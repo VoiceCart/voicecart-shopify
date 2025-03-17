@@ -1,0 +1,41 @@
+version: "3.9"
+
+# Same external network name
+networks:
+  shopify_ml_net:
+    external: true
+
+services:
+  shopify-app:
+    build: .
+    container_name: voicecart-shopify-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SHOPIFY_API_KEY=${SHOPIFY_API_KEY}
+      - SHOPIFY_API_SECRET=${SHOPIFY_API_SECRET}
+      - SHOPIFY_APP_URL=${SHOPIFY_APP_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - ML_SERVER_URL=http://ml-api:5556
+    depends_on:
+      - db
+    networks:
+      - shopify_ml_net
+
+  db:
+    image: postgres:14-alpine
+    container_name: db-1
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=shopify_app_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - shopify_ml_net
+
+volumes:
+  postgres_data:
