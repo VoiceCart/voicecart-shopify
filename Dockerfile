@@ -25,5 +25,6 @@ RUN npx prisma generate
 # Build the Remix/Shopify app
 RUN npm run build
 
-# Start your production server
-CMD ["npm", "run", "docker-start"]
+# Start your production server after applying Prisma migrations
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run docker-start"]
+

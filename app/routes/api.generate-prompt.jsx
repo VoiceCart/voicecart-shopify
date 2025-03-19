@@ -1,6 +1,8 @@
+// app/routes/api.generate-prompt.jsx
 import { json } from "@remix-run/node";
 import { fetchStoreInfoAndTags } from "../utils/shopifyStoreInfoFetch.server";
 import { runChatCompletion } from "../utils/connectors/gptConnector.js";
+import prisma from "../db.server";
 
 export async function loader({ request }) {
   try {
@@ -25,11 +27,22 @@ Return only the new general prompt as your response, nothing else.`;
       stream: false,
     });
 
-    // Return the result
+    // Get shop from headers
+    const shop = request.headers.get("X-Shopify-Shop-Domain") || "unknown";
+
+    // Save the generated prompt in DB
+    const savedPrompt = await prisma.prompt.create({
+      data: {
+        shop,
+        prompt: generalPrompt,
+      },
+    });
+
+    // Return the result (retrieved from DB)
     return json({
       uniqueTags,
       shopDescription,
-      generalPrompt,
+      generalPrompt: savedPrompt.prompt,
     });
   } catch (error) {
     console.error("Error generating prompt:", error);

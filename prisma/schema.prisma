@@ -65,3 +65,10 @@ model Languages {
   shop     String @id
   language String
 }
+
+model Prompt {
+  id        String   @id @default(cuid())
+  shop      String
+  prompt    String
+  createdAt DateTime @default(now())
+}
