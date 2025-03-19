@@ -12,7 +12,6 @@ export default function DownloadProducts() {
   const shopify = useAppBridge();
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
 
-  // Existing task-related functions
   const startTask = (taskType) => {
     fetcher.submit(
       { taskType },
@@ -24,7 +23,32 @@ export default function DownloadProducts() {
   const createEmbeddings = () => startTask("create-embeddings");
   const deleteEmbeddings = () => startTask("delete-embeddings");
 
-  // --- New Function: Set Global Language ---
+  // Updated function to call the new server-side API route
+  const printStoreInfoAndTags = async () => {
+    try {
+      const response = await fetch("/api/generate-prompt", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Shop-Domain": shopify.shopOrigin || "",
+        },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Shop Description:", data.shopDescription);
+        console.log("Unique Tags:", data.uniqueTags);
+        console.log("Generated Store Prompt:", data.generalPrompt);
+        shopify.toast.show("Store info, tags, and generated prompt printed to console");
+      } else {
+        console.error("Error response from server:", data);
+        shopify.toast.show(`Error: ${data.error || "Failed to fetch store info"}`);
+      }
+    } catch (error) {
+      console.error("Network error fetching store info or generating prompt:", error);
+      shopify.toast.show("Error processing store info and prompt");
+    }
+  };
+
   const setGlobalLanguage = () => {
     fetcher.submit(
       { language: defaultLanguage },
@@ -47,7 +71,6 @@ export default function DownloadProducts() {
       setStatus("Failed");
       shopify.toast.show(fetcher.data.error);
     } else if (fetcher.data?.success) {
-      // Handle response from the set-global-language action
       shopify.toast.show(`Global language set to ${defaultLanguage}`);
     }
   }, [fetcher.data, shopify, defaultLanguage]);
@@ -93,7 +116,6 @@ export default function DownloadProducts() {
     <Page title="VoiceCart - Admin panel">
       <TitleBar title="Shopify Product Catalog Management" primaryAction={null} />
 
-      {/* New Card for setting the global language */}
       <Card sectioned>
         <Text>Set the default global language for your store.</Text>
         <Select
@@ -161,6 +183,14 @@ export default function DownloadProducts() {
             }
           >
             Delete Product Embeddings
+          </Button>
+        </Card>
+
+        {/* Updated card */}
+        <Card sectioned>
+          <Text>Click to print store description and unique tags to the console.</Text>
+          <Button onClick={printStoreInfoAndTags} primary>
+            Print Store Info & Tags
           </Button>
         </Card>
       </ButtonGroup>
