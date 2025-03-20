@@ -26,8 +26,14 @@ export async function loader({ request }) {
         const userQuery = searchParams.get("query");
         const action = searchParams.get("action");
         const lang = searchParams.get("lang");
-        const shopDomain = request.headers.get("X-Shop-Name");
-        const shop = shopDomain.split('.')[0];
+
+        // --- CHANGED PART: unify the shop domain ---
+        const rawDomain = request.headers.get("X-Shop-Name") || "";
+        let shop = rawDomain.trim().toLowerCase();
+        if (!shop.endsWith(".myshopify.com")) {
+            shop += ".myshopify.com";
+        }
+        // ------------------------------------------
 
         if (!sessionId) {
             return json({ error: "Shopify session is required." }, { status: 400 });
@@ -65,8 +71,9 @@ export async function loader({ request }) {
                 inFlightRequests.delete(sessionId);
             }
 
-            console.log("DEBUG HISTORY: ", producedMessages)
+            console.log("DEBUG HISTORY: ", producedMessages);
             const responseMessage = JSON.stringify(producedMessages);
+
             // Filter and transform "products" messages
             producedMessages = producedMessages.map((message) => {
                 if (message.type === "products") {
@@ -99,12 +106,12 @@ export async function loader({ request }) {
             if (!shop) {
                 return json({ error: "Shop is required." }, { status: 400 });
             }
-            console.log("DEBUG: ", "sessionId: ", sessionId, "shop: ", shop)
+            console.log("DEBUG: ", "sessionId: ", sessionId, "shop: ", shop);
             const chats = await prisma.chats.findMany({
                 where: { sessionId, shop },
                 orderBy: { createdAt: "asc" },
             });
-            console.log("DEBUG: ", chats)
+            console.log("DEBUG: ", chats);
             const messages = [];
 
             chats.forEach(chat => {
@@ -134,7 +141,7 @@ export async function loader({ request }) {
 
             return json(messages);
         } else if (action == "getLanguage") {
-            console.log('DEBUG: Getting language for', shop)
+            console.log('DEBUG: Getting language for', shop);
             if (!shop) {
                 return json({ error: "Shop is required." }, { status: 400 });
             }

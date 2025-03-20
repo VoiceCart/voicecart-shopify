@@ -2,19 +2,28 @@ import { json } from "@remix-run/node";
 import { fetchStoreInfoAndTags } from "../utils/shopifyStoreInfoFetch.server";
 import { runChatCompletion } from "../utils/connectors/gptConnector.js";
 import prisma from "../db.server";
+import { authenticate } from "../shopify.server";
 
 export async function loader({ request }) {
   try {
-    // Fetch store info and tags
+    // 1) Use Shopify’s session to get the real shop domain
+    const { admin } = await authenticate.admin(request);
+    let shop = admin.rest.session.shop.trim().toLowerCase();
+    if (!shop.endsWith(".myshopify.com")) {
+      shop += ".myshopify.com";
+    }
+    console.log("api.generate-prompt: saving prompt for shop =>", shop);
+
+    // 2) Fetch store info & tags
     const { uniqueTags, shopDescription } = await fetchStoreInfoAndTags(request);
 
-    // Construct the OpenAI prompt
-    const openAiPrompt = `Create a concise general prompt that describes what a Shopify store sells based on the following information. The prompt should thoroughly represent the store's assortment without being verbose, focusing on the overall theme or key product categories rather than listing every detail. Use the provided list of tags and, if available, the SEO description to inform your response. Here’s the data:  
+    // 3) Build the prompt
+    const openAiPrompt = `Create a concise general prompt describing what the Shopify store sells. 
 - Tags: ${uniqueTags.join(", ")}  
 - SEO Description: ${shopDescription || ""}  
 Return only the new general prompt as your response, nothing else.`;
 
-    // Call OpenAI API
+    // 4) Call OpenAI
     const generalPrompt = await runChatCompletion({
       systemPrompt: "You are a helpful assistant that generates concise prompts.",
       userQuery: openAiPrompt,
@@ -26,22 +35,17 @@ Return only the new general prompt as your response, nothing else.`;
       stream: false,
     });
 
-    // Get shop from headers
-    const shop = request.headers.get("X-Shopify-Shop-Domain") || "unknown";
-
-    // Save the generated prompt in DB
+    // 5) Save in DB
     await prisma.prompt.create({
       data: {
         shop,
         prompt: generalPrompt,
       },
     });
+    console.log(`New prompt saved for shop: ${shop} => ${generalPrompt}`);
 
-    // Return only store info and tags, not the prompt
-    return json({
-      uniqueTags,
-      shopDescription,
-    });
+    // 6) Return store info & tags
+    return json({ uniqueTags, shopDescription });
   } catch (error) {
     console.error("Error generating or saving prompt:", error);
     return json({ error: error.message || "Failed to generate or save prompt" }, { status: 500 });
