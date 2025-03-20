@@ -23,8 +23,8 @@ export default function DownloadProducts() {
   const createEmbeddings = () => startTask("create-embeddings");
   const deleteEmbeddings = () => startTask("delete-embeddings");
 
-  // Updated function to call the new server-side API route
-  const printStoreInfoAndTags = async () => {
+  // Fetch store info and tags
+  const fetchStoreInfoAndTags = async () => {
     try {
       const response = await fetch("/api/generate-prompt", {
         method: "GET",
@@ -37,15 +37,40 @@ export default function DownloadProducts() {
       if (response.ok) {
         console.log("Shop Description:", data.shopDescription);
         console.log("Unique Tags:", data.uniqueTags);
-        console.log("Generated Store Prompt:", data.generalPrompt);
-        shopify.toast.show("Store info, tags, and generated prompt printed to console");
+        shopify.toast.show("Store info and tags printed to console. Fetching prompt...");
+        // After success, fetch the prompt from the DB
+        await fetchPromptFromDB();
       } else {
         console.error("Error response from server:", data);
         shopify.toast.show(`Error: ${data.error || "Failed to fetch store info"}`);
       }
     } catch (error) {
-      console.error("Network error fetching store info or generating prompt:", error);
-      shopify.toast.show("Error processing store info and prompt");
+      console.error("Network error fetching store info:", error);
+      shopify.toast.show("Error processing store info");
+    }
+  };
+
+  // Fetch the saved prompt directly from the DB
+  const fetchPromptFromDB = async () => {
+    try {
+      const response = await fetch("/api/get-saved-prompt", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Shop-Domain": shopify.shopOrigin || "",
+        },
+      });
+      const data = await response.json();
+      if (response.ok && data.generalPrompt) {
+        console.log("Generated Store Prompt (from DB):", data.generalPrompt);
+        shopify.toast.show("Prompt successfully retrieved from database and printed");
+      } else {
+        console.error("No prompt found in DB or error:", data);
+        shopify.toast.show(`Error: ${data.error || "Prompt not found in DB"}`);
+      }
+    } catch (error) {
+      console.error("Network error fetching prompt from DB:", error);
+      shopify.toast.show("Error fetching prompt from database");
     }
   };
 
@@ -136,9 +161,7 @@ export default function DownloadProducts() {
 
       <ButtonGroup>
         <Card sectioned>
-          <Text>
-            Click to generate and store your product catalog on the server.
-          </Text>
+          <Text>Click to generate and store your product catalog on the server.</Text>
           {status && currentTaskType === 'product-catalog' && (
             <Text>Catalog Status: {status}</Text>
           )}
@@ -186,10 +209,9 @@ export default function DownloadProducts() {
           </Button>
         </Card>
 
-        {/* Updated card */}
         <Card sectioned>
-          <Text>Click to print store description and unique tags to the console.</Text>
-          <Button onClick={printStoreInfoAndTags} primary>
+          <Text>Click to print store description, tags, and prompt (from DB) to the console.</Text>
+          <Button onClick={fetchStoreInfoAndTags} primary>
             Print Store Info & Tags
           </Button>
         </Card>
