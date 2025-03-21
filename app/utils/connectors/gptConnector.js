@@ -3,7 +3,19 @@ import { infoLog } from "../logger.server.js";
 import { info } from "console";
 const prisma = new PrismaClient();
 
-
+export async function getShopPrompt(baseSystemPrompt, shop) {
+    if (!shop.includes('.myshopify.com')) {
+      shop = `${shop}.myshopify.com`;
+    }
+    const savedPrompt = await prisma.prompt.findFirst({
+      where: { shop },
+      orderBy: { id: "desc" },
+    });
+    infoLog.log("info", `Saved prompt for shop ${shop}: ${JSON.stringify(savedPrompt)}`);
+    const shopContext = savedPrompt?.prompt || "Default store context (none found).";
+    const fullSystemPrompt = `Shop Context: ${shopContext}\n\n${baseSystemPrompt}`;
+    return fullSystemPrompt;
+}
 
 export async function runChatCompletion({
     systemPrompt,
@@ -13,48 +25,36 @@ export async function runChatCompletion({
     temperature = 0.7,
     numberOfMessagesHistory = 10,
     responseFormat = "text", // e.g., "text" or "json_object"
-    stream = false,          // set to true for streaming, false for non-streaming
-    signal
+    stream = false,
+    signal,
+    shop // optional; if provided, DB prompt will be appended
 }) {
+    infoLog.log("info", `DEBUG: Shop parameter received: ${shop}`);
+    
+    // Append saved prompt from DB if shop is provided
+    if (shop) {
+        systemPrompt = await getShopPrompt(systemPrompt, shop);
+        infoLog.log("info", `DEBUG: Combined system prompt for session ${sessionId}:\n${systemPrompt}`);
+    } else {
+        infoLog.log("info", `DEBUG: No shop provided, using base system prompt only`);
+    }
+
     const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
     const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-    // infoLog.log("info", `Goes into getThreadHistory ${sessionId}`);
-    // 1. Gather conversation history
     const messages = await getThreadHistory({
         numberOfMessagesHistory,
         sessionId,
         userQuery,
         systemPrompt,
     });
-    // Logging the messages history to see what's going into chat completion API
-    // infoLog.log("info",
-    //     "Thread History results:\n" +
-    //     messages
-    //         .map(({ role, content }, idx) => {
-    //             // Safely serialize if "content" is an object
-    //             const safeContent =
-    //                 typeof content === "object"
-    //                     ? JSON.stringify(content)
-    //                     : content;
-    //             return `${idx}. [${role}]: ${safeContent}`;
-    //         })
-    //         .join("\n")
-    // );
-
-    // 2. Build the request body
-    //    If we're not streaming, we should omit `stream` or set it to false.
     const body = {
         model,
         messages,
         temperature,
-        stream, // controlled by the parameter
-        // If you are using a standard OpenAI endpoint directly,
-        // 'response_format' isn't a recognized parameter. 
-        // This may be custom logic or an internal/proxy parameter.
+        stream,
         response_format: { type: responseFormat },
     };
 
-    // 3. Send the request
     const response = await fetch(OPENAI_URL, {
         method: "POST",
         headers: {
@@ -70,40 +70,12 @@ export async function runChatCompletion({
         throw new Error(`OpenAI error: ${response.status} - ${errText}`);
     }
 
-    // 4. Handle the response differently based on the `stream` parameter
-
     if (!stream) {
         const data = await response.json();
-        //
-        // =============== Non-Streaming Mode ===============
-        //
-        // The typical shape for ChatCompletion data is:
-        // {
-        //   id: ...
-        //   object: ...
-        //   created: ...
-        //   choices: [
-        //     {
-        //       index: 0,
-        //       message: {
-        //         role: 'assistant',
-        //         content: '...'
-        //       },
-        //       finish_reason: ...
-        //     }
-        //   ],
-        //   usage: ...
-        // }
-        //
         const finalAnswer = data?.choices?.[0]?.message?.content || "";
         infoLog.log("info", `runChatCompletion Results for session ${sessionId} - ${finalAnswer}`);
         return finalAnswer.trim();
     } else {
-        //
-        // =============== Streaming Mode ===============
-        //
-        // Stream the response in chunks using the reader
-        //
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let finalAnswer = "";
@@ -117,11 +89,10 @@ export async function runChatCompletion({
             const lines = chunk.split("\n").filter((line) => line.trim() !== "");
 
             for (const line of lines) {
-                // Each line should be in the SSE format: "data: ..."
                 if (line.startsWith("data: ")) {
                     const jsonStr = line.replace("data: ", "");
                     if (jsonStr === "[DONE]") {
-                        break; // stream finished
+                        break;
                     }
                     try {
                         const parsed = JSON.parse(jsonStr);
@@ -130,7 +101,7 @@ export async function runChatCompletion({
                             finalAnswer += token;
                         }
                     } catch (err) {
-                        // Skip parse errors
+                        // skip parse errors
                     }
                 }
             }

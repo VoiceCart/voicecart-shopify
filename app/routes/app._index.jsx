@@ -12,7 +12,6 @@ export default function DownloadProducts() {
   const shopify = useAppBridge();
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
 
-  // Existing task-related functions
   const startTask = (taskType) => {
     fetcher.submit(
       { taskType },
@@ -24,7 +23,57 @@ export default function DownloadProducts() {
   const createEmbeddings = () => startTask("create-embeddings");
   const deleteEmbeddings = () => startTask("delete-embeddings");
 
-  // --- New Function: Set Global Language ---
+  // Fetch store info and tags
+  const fetchStoreInfoAndTags = async () => {
+    try {
+      const response = await fetch("/api/generate-prompt", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Shop-Domain": shopify.shopOrigin || "",
+        },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Shop Description:", data.shopDescription);
+        console.log("Unique Tags:", data.uniqueTags);
+        shopify.toast.show("Store info and tags printed to console. Fetching prompt...");
+        // After success, fetch the prompt from the DB
+        await fetchPromptFromDB();
+      } else {
+        console.error("Error response from server:", data);
+        shopify.toast.show(`Error: ${data.error || "Failed to fetch store info"}`);
+      }
+    } catch (error) {
+      console.error("Network error fetching store info:", error);
+      shopify.toast.show("Error processing store info");
+    }
+  };
+
+  // Fetch the saved prompt directly from the DB
+  const fetchPromptFromDB = async () => {
+    try {
+      const response = await fetch("/api/get-saved-prompt", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shopify-Shop-Domain": shopify.shopOrigin || "",
+        },
+      });
+      const data = await response.json();
+      if (response.ok && data.generalPrompt) {
+        console.log("Generated Store Prompt (from DB):", data.generalPrompt);
+        shopify.toast.show("Prompt successfully retrieved from database and printed");
+      } else {
+        console.error("No prompt found in DB or error:", data);
+        shopify.toast.show(`Error: ${data.error || "Prompt not found in DB"}`);
+      }
+    } catch (error) {
+      console.error("Network error fetching prompt from DB:", error);
+      shopify.toast.show("Error fetching prompt from database");
+    }
+  };
+
   const setGlobalLanguage = () => {
     fetcher.submit(
       { language: defaultLanguage },
@@ -47,7 +96,6 @@ export default function DownloadProducts() {
       setStatus("Failed");
       shopify.toast.show(fetcher.data.error);
     } else if (fetcher.data?.success) {
-      // Handle response from the set-global-language action
       shopify.toast.show(`Global language set to ${defaultLanguage}`);
     }
   }, [fetcher.data, shopify, defaultLanguage]);
@@ -93,7 +141,6 @@ export default function DownloadProducts() {
     <Page title="VoiceCart - Admin panel">
       <TitleBar title="Shopify Product Catalog Management" primaryAction={null} />
 
-      {/* New Card for setting the global language */}
       <Card sectioned>
         <Text>Set the default global language for your store.</Text>
         <Select
@@ -114,9 +161,7 @@ export default function DownloadProducts() {
 
       <ButtonGroup>
         <Card sectioned>
-          <Text>
-            Click to generate and store your product catalog on the server.
-          </Text>
+          <Text>Click to generate and store your product catalog on the server.</Text>
           {status && currentTaskType === 'product-catalog' && (
             <Text>Catalog Status: {status}</Text>
           )}
@@ -161,6 +206,13 @@ export default function DownloadProducts() {
             }
           >
             Delete Product Embeddings
+          </Button>
+        </Card>
+
+        <Card sectioned>
+          <Text>Click to create and save system prompt with relevant shop assortiment.</Text>
+          <Button onClick={fetchStoreInfoAndTags} primary>
+            Create Prompt
           </Button>
         </Card>
       </ButtonGroup>
