@@ -210,9 +210,9 @@ export default function DownloadProducts() {
         </Card>
 
         <Card sectioned>
-          <Text>Click to print store description, tags, and prompt (from DB) to the console.</Text>
+          <Text>Click to create and save system prompt with relevant shop assortiment.</Text>
           <Button onClick={fetchStoreInfoAndTags} primary>
-            Print Store Info & Tags
+            Create Prompt
           </Button>
         </Card>
       </ButtonGroup>

@@ -32,7 +32,7 @@ export async function getChatResponse({ userQuery, shop, sessionId, signal, lang
 
 
 const intentMapping = {
-    extract: async (content, { sessionId, signal, lang }) => {
+    extract: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'extract' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.extractor, lang);
         const completionResult = await runChatCompletion({
@@ -41,6 +41,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
 
@@ -57,6 +58,7 @@ const intentMapping = {
             systemPrompt: finalPrompt,
             userQuery: content,
             sessionId,
+            shop,
             responseFormat: "json_object",
             signal,
             lang
@@ -67,9 +69,10 @@ const intentMapping = {
             relatedProductResponseObject.intent,
             relatedProductResponseObject.content,
             shop,
-            sessionId, // ADD THIS
-            signal,    // ADD THIS
-            lang       // ADD THIS
+            sessionId,
+            signal,
+            shop,
+            lang
         );
 
         console.log(productRelatedChildResponse);
@@ -77,7 +80,7 @@ const intentMapping = {
         return productRelatedChildResponse;
     },
 
-    greet: async (content, { sessionId, signal, lang }) => {
+    greet: async (content, { sessionId, signal, lang, shop }) => {
         infoLog.log("info", "Showing results for the 'greet' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.greet, lang);
         const completionResult = await runChatCompletion({
@@ -86,6 +89,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -95,7 +99,7 @@ const intentMapping = {
         }];
     },
 
-    whoAreYou: async (content, { sessionId, signal, lang }) => {
+    whoAreYou: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'whoAreYou' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.whoAreYou, lang);
         const completionResult = await runChatCompletion({
@@ -104,6 +108,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -113,7 +118,7 @@ const intentMapping = {
         }];
     },
 
-    specifyProduct: async (content, { sessionId, signal, lang }) => {
+    specifyProduct: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'specifyProduct' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productSpecifier, lang);
         const completionResult = await runChatCompletion({
@@ -122,6 +127,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -131,7 +137,7 @@ const intentMapping = {
         }];
     },
 
-    productSummarizer: async (content, { sessionId, signal, lang }) => {
+    productSummarizer: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'productSummarizer' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productSummarizer, lang);
         const completionResult = await runChatCompletion({
@@ -140,6 +146,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -171,6 +178,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         console.log('product summary: completion result: ', completionResult)
@@ -194,7 +202,7 @@ const intentMapping = {
         );
     },
 
-    recommendProduct: async (content, { sessionId, signal, lang }) => {
+    recommendProduct: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'recommendProduct' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productRecommender, lang);
         const completionResult = await runChatCompletion({
@@ -204,6 +212,7 @@ const intentMapping = {
             sessionId,
             signal,
             lang,
+            shop,
             model: "gpt-4o"
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -213,7 +222,7 @@ const intentMapping = {
         }];
     },
 
-    compareProducts: async (content, { sessionId, signal, lang }) => {
+    compareProducts: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'recommendProduct' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.compareProducts, lang);
         const completionResult = await runChatCompletion({
@@ -222,6 +231,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -231,7 +241,7 @@ const intentMapping = {
         }];
     },
 
-    explainProduct: async (content, { sessionId, signal, lang }) => {
+    explainProduct: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'explainProduct' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productExplainer, lang);
         const completionResult = await runChatCompletion({
@@ -240,6 +250,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -250,7 +261,7 @@ const intentMapping = {
     },
 
 
-    addToCart: async (content, { sessionId, signal, lang }) => {
+    addToCart: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'addToCart' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.addToCart, lang);
         const completionResult = await runChatCompletion({
@@ -260,6 +271,7 @@ const intentMapping = {
             sessionId,
             signal,
             lang,
+            shop,
             model: "gpt-4o"
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -270,7 +282,7 @@ const intentMapping = {
     },
 
 
-    removeFromCart: async (content, { sessionId, signal, lang }) => {
+    removeFromCart: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'removeFromCart' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.removeFromCart, lang);
         const completionResult = await runChatCompletion({
@@ -280,6 +292,7 @@ const intentMapping = {
             sessionId,
             signal,
             lang,
+            shop,
             model: "gpt-4o"
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
@@ -298,6 +311,7 @@ const intentMapping = {
             sessionId,
             responseFormat: "json_object",
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult)["actions"][0];
@@ -313,7 +327,7 @@ const intentMapping = {
     },
 
 
-    summarize: async (content, { sessionId, signal, lang }) => {
+    summarize: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'summarize' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.summarizer, lang);
         const completionResult = await runChatCompletion({
@@ -322,13 +336,14 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
         return parsedAssistantResponse;
     },
 
-    undefined: async (content, { sessionId, signal, lang }) => {
+    undefined: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'undefined' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.undefined, lang);
         const completionResult = await runChatCompletion({
@@ -337,6 +352,7 @@ const intentMapping = {
             responseFormat: "json_object",
             sessionId,
             signal,
+            shop,
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
