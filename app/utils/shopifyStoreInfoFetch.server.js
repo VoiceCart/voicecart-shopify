@@ -57,47 +57,91 @@ export async function fetchStoreInfoAndTags(request) {
       // Не бросаем ошибку, идём дальше с дефолтным значением
     }
 
-    // 2. GraphQL-запрос для тегов
-    const productQuery = `
-      query {
-        products(first: 250) {
-          edges {
-            node {
-              tags
+    // 2. GraphQL-запрос для тегов с пагинацией
+    let allProductTags = [];
+    let hasNextPage = true;
+    let cursor = null;
+    const BATCH_SIZE = 250; // Максимальное кол-во продуктов в одном запросе
+    const MAX_BATCHES = 20;  // Ограничение на количество запросов, чтобы избежать слишком долгой выполнения
+    let batchCount = 0;
+
+    console.log("Fetching products via GraphQL with pagination...");
+    
+    while (hasNextPage && batchCount < MAX_BATCHES) {
+      batchCount++;
+      console.log(`Fetching products batch #${batchCount}${cursor ? ` (after cursor: ${cursor})` : ''}`);
+      
+      // Формируем запрос с курсором если он есть
+      const productQuery = `
+        query {
+          products(first: ${BATCH_SIZE}${cursor ? `, after: "${cursor}"` : ''}) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            edges {
+              node {
+                tags
+              }
             }
           }
         }
+      `;
+      
+      let productResponse;
+      try {
+        productResponse = await admin.graphql(productQuery, {
+          headers: { "Accept": "application/json" },
+        });
+      } catch (graphqlError) {
+        const errorText = graphqlError instanceof Response ? await graphqlError.text() : graphqlError.message;
+        throw new Error(`GraphQL API failed: ${errorText}`);
       }
-    `;
-    console.log("Fetching products via GraphQL...");
-    let productResponse;
-    try {
-      productResponse = await admin.graphql(productQuery, {
-        headers: { "Accept": "application/json" },
-      });
-    } catch (graphqlError) {
-      const errorText = graphqlError instanceof Response ? await graphqlError.text() : graphqlError.message;
-      throw new Error(`GraphQL API failed: ${errorText}`);
-    }
-    console.log("GraphQL response status:", productResponse.status);
-    const responseText = await productResponse.text();
-    console.log("Raw GraphQL response:", responseText);
-    const productData = JSON.parse(responseText);
+      
+      console.log(`Batch #${batchCount} - GraphQL response status:`, productResponse.status);
+      const responseText = await productResponse.text();
+      
+      // Логируем только первые 500 символов ответа, чтобы не перегружать логи
+      console.log(`Batch #${batchCount} - Raw GraphQL response (truncated):`, 
+        responseText.length > 500 ? responseText.substring(0, 500) + "..." : responseText);
+      
+      const productData = JSON.parse(responseText);
 
-    if (productData.errors) {
-      throw new Error(`GraphQL errors: ${JSON.stringify(productData.errors)}`);
+      if (productData.errors) {
+        throw new Error(`GraphQL errors: ${JSON.stringify(productData.errors)}`);
+      }
+      if (!productData.data || !productData.data.products) {
+        throw new Error("No products data in GraphQL response");
+      }
+
+      // Собираем теги из текущей порции продуктов
+      const batchTags = productData.data.products.edges
+        .flatMap(edge => edge.node.tags)
+        .filter(tag => tag && tag.trim() !== "");
+        
+      allProductTags = [...allProductTags, ...batchTags];
+      console.log(`Batch #${batchCount} - Fetched ${batchTags.length} tags, total so far: ${allProductTags.length}`);
+
+      // Проверяем есть ли следующая страница
+      hasNextPage = productData.data.products.pageInfo.hasNextPage;
+      if (hasNextPage) {
+        cursor = productData.data.products.pageInfo.endCursor;
+      }
+      
+      // Если это последняя порция, логируем это
+      if (!hasNextPage) {
+        console.log("Reached the end of products list");
+      }
     }
-    if (!productData.data || !productData.data.products) {
-      throw new Error("No products data in GraphQL response");
+
+    // Если мы достигли MAX_BATCHES, но hasNextPage всё ещё true
+    if (hasNextPage && batchCount >= MAX_BATCHES) {
+      console.log(`Reached maximum batch count (${MAX_BATCHES}), some products may not be processed`);
     }
 
     // 3. Извлекаем только уникальные теги
-    const uniqueTags = [...new Set(
-      productData.data.products.edges
-        .flatMap(edge => edge.node.tags)
-        .filter(tag => tag && tag.trim() !== "")
-    )].sort();
-    console.log(`Fetched ${uniqueTags.length} unique tags`);
+    const uniqueTags = [...new Set(allProductTags)].sort();
+    console.log(`Fetched ${uniqueTags.length} unique tags from ${allProductTags.length} total tags`);
 
     // Возвращаем только теги, описание пока опционально
     return { uniqueTags, shopDescription };
