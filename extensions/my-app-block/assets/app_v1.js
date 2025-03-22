@@ -86,6 +86,27 @@ const constantMessages = {
 // ===================== Helper Functions =====================
 
 /**
+ * Fetches the current cart state from Shopify.
+ * Returns the quantity of the specified variantId in the cart, or 0 if not found.
+ */
+async function getCartQuantity(variantId) {
+  try {
+    const response = await fetch(window.Shopify.routes.root + 'cart.js', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const cart = await response.json();
+    const item = cart.items.find(item => item.variant_id === Number(variantId));
+    return item ? item.quantity : 0;
+  } catch (error) {
+    console.error("Error fetching cart state:", error);
+    return 0;
+  }
+}
+
+/**
  * Iterates over all elements tagged with a constant message and updates their text based on the new language.
  */
 function updateConstantMessages() {
@@ -388,17 +409,17 @@ async function handleUserQuery(messageText, options) {
       } else if (message.type === "products") {
         await sendProductListToAChat(message.value);
       } else if (message.type === "action") {
-        // Handle actions like addToCart
         const action = message.value;
         if (action.action === "addToCart") {
           try {
-            // Call cartActions.addToCart (available globally from cart.js)
+            // Fetch current cart quantity
+            const currentQuantity = await getCartQuantity(action.variantId);
+            const newQuantity = currentQuantity + Number(action.quantity);
             await cartActions.addToCart({
               variantId: action.variantId,
               quantity: action.quantity,
             });
-            console.log(`Added item with variantId ${action.variantId} to cart`);
-            // Display the confirmation message (already included in the response as a separate "message" type)
+            console.log(`Added ${action.quantity} units of item with variantId ${action.variantId} to cart. New quantity: ${newQuantity}`);
           } catch (error) {
             console.error("Error adding item to cart:", error);
             sendMessageToAChat(MessageSender.bot, {
@@ -407,22 +428,28 @@ async function handleUserQuery(messageText, options) {
               customClass: "error-message"
             });
           }
-        }
-      } else if (
-        message.type === "removeFromCart" ||
-        message.type === "addToCart"
-      ) {
-        if (message.value.clarify === false) {
-          sendMessageToAChat(MessageSender.bot, {
-            message: message.value.explanation,
-            emotion: "welcome"
-          });
-          cartActions[message.type](message.value);
-        } else {
-          sendMessageToAChat(MessageSender.bot, {
-            message: message.value.explanation,
-            emotion: "thinking"
-          });
+        } else if (action.action === "removeFromCart") {
+          try {
+            // Fetch current cart quantity
+            const currentQuantity = await getCartQuantity(action.variantId);
+            const newQuantity = Number(action.quantity); // Use the quantity from the action
+            if (currentQuantity > 0) {
+              await cartActions.removeFromCart({
+                variantId: action.variantId,
+                quantity: newQuantity,
+              });
+              console.log(`Set quantity of item with variantId ${action.variantId} to ${newQuantity} in cart`);
+            } else {
+              console.log(`Item with variantId ${action.variantId} not in cart, skipping remove`);
+            }
+          } catch (error) {
+            console.error("Error removing item from cart:", error);
+            sendMessageToAChat(MessageSender.bot, {
+              message: "Sorry, I couldn’t remove the item from your cart. Please try again later.",
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
         }
       } else {
         enableInputBar();
@@ -706,6 +733,9 @@ function showThinkingBubble(duration = 10000) {
 async function renderChatHistory(messages) {
   const chatView = document.querySelector("#chat-view");
   if (!chatView.classList.contains("rendered")) {
+    // Track executed actions to avoid duplicates
+    const executedActions = new Set();
+
     for (let message of messages) {
       if (message.sender === "customer") {
         sendMessageToAChat(MessageSender.customer, { message: message.value });
@@ -718,17 +748,25 @@ async function renderChatHistory(messages) {
         } else if (message.type === "products") {
           await sendProductListToAChat(message.value);
         } else if (message.type === "action") {
-          // Handle actions like addToCart when rendering history
           const action = message.value;
+          const actionKey = `${action.action}-${action.variantId}-${action.quantity || 0}-${message.createdAt || Date.now()}`;
+          
+          // Skip if this action has already been executed
+          if (executedActions.has(actionKey)) {
+            console.log(`Skipping already executed action: ${actionKey}`);
+            continue;
+          }
+
           if (action.action === "addToCart") {
             try {
-              // Call cartActions.addToCart (available globally from cart.js)
+              const currentQuantity = await getCartQuantity(action.variantId);
+              const newQuantity = currentQuantity + Number(action.quantity);
               await cartActions.addToCart({
                 variantId: action.variantId,
                 quantity: action.quantity,
               });
-              console.log(`Added item with variantId ${action.variantId} to cart from history`);
-              // The confirmation message should already be in the history as a separate "message" type
+              console.log(`Added ${action.quantity} units of item with variantId ${action.variantId} to cart from history. New quantity: ${newQuantity}`);
+              executedActions.add(actionKey);
             } catch (error) {
               console.error("Error adding item to cart from history:", error);
               sendMessageToAChat(MessageSender.bot, {
@@ -737,21 +775,28 @@ async function renderChatHistory(messages) {
                 customClass: "error-message"
               });
             }
-          }
-        } else if (
-          message.type === "removeFromCart" ||
-          message.type === "addToCart"
-        ) {
-          if (message.value.clarify === false) {
-            sendMessageToAChat(MessageSender.bot, {
-              message: message.value.explanation,
-              emotion: "welcome"
-            });
-          } else {
-            sendMessageToAChat(MessageSender.bot, {
-              message: message.value.explanation,
-              emotion: "thinking"
-            });
+          } else if (action.action === "removeFromCart") {
+            try {
+              const currentQuantity = await getCartQuantity(action.variantId);
+              const newQuantity = Number(action.quantity);
+              if (currentQuantity > 0) {
+                await cartActions.removeFromCart({
+                  variantId: action.variantId,
+                  quantity: newQuantity,
+                });
+                console.log(`Set quantity of item with variantId ${action.variantId} to ${newQuantity} in cart from history`);
+                executedActions.add(actionKey);
+              } else {
+                console.log(`Item with variantId ${action.variantId} not in cart, skipping remove from history`);
+              }
+            } catch (error) {
+              console.error("Error removing item from cart from history:", error);
+              sendMessageToAChat(MessageSender.bot, {
+                message: "Sorry, I couldn’t remove the item from your cart when loading the history.",
+                emotion: "sad",
+                customClass: "error-message"
+              });
+            }
           }
         }
       }

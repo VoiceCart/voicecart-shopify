@@ -319,10 +319,34 @@ const intentMapping = {
             model: "gpt-4o"
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
-        return [{
-            type: "message",
-            value: `${parsedAssistantResponse}`,
-        }];
+        
+        // Extract variantId, quantity, and explanation from the response
+        const { variantId, quantity, explanation } = parsedAssistantResponse;
+        
+        if (!variantId) {
+            infoLog.log("error", "Missing variantId in removeFromCart response");
+            return [{
+                type: "message",
+                value: "Sorry, I couldn’t remove the item from your cart. Please try again.",
+            }];
+        }
+    
+        // Return the confirmation message and an action for the client to handle
+        const message = explanation || "Item removed from cart.";
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "removeFromCart",
+                    variantId,
+                    quantity,
+                },
+            }
+        ];
     },
 
     cartRelated: async (content, { sessionId, shop, signal, lang }) => {
