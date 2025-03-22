@@ -117,7 +117,6 @@ function checkAndSendGreeting() {
   }
 }
 
-
 /**
  * Initializes the loader by checking the session state.
  */
@@ -388,6 +387,27 @@ async function handleUserQuery(messageText, options) {
         });
       } else if (message.type === "products") {
         await sendProductListToAChat(message.value);
+      } else if (message.type === "action") {
+        // Handle actions like addToCart
+        const action = message.value;
+        if (action.action === "addToCart") {
+          try {
+            // Call cartActions.addToCart (available globally from cart.js)
+            await cartActions.addToCart({
+              variantId: action.variantId,
+              quantity: action.quantity,
+            });
+            console.log(`Added item with variantId ${action.variantId} to cart`);
+            // Display the confirmation message (already included in the response as a separate "message" type)
+          } catch (error) {
+            console.error("Error adding item to cart:", error);
+            sendMessageToAChat(MessageSender.bot, {
+              message: "Sorry, I couldn’t add the item to your cart. Please try again later.",
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        }
       } else if (
         message.type === "removeFromCart" ||
         message.type === "addToCart"
@@ -501,7 +521,8 @@ function showConsentBubble() {
 
 /**
  * Handles the user's consent response.
- */function handleConsent(consent) {
+ */
+function handleConsent(consent) {
   if (consent) {
     const sessionId = generateUUID();
     setCookie("_eva_sid", sessionId, 365);
@@ -696,6 +717,27 @@ async function renderChatHistory(messages) {
           });
         } else if (message.type === "products") {
           await sendProductListToAChat(message.value);
+        } else if (message.type === "action") {
+          // Handle actions like addToCart when rendering history
+          const action = message.value;
+          if (action.action === "addToCart") {
+            try {
+              // Call cartActions.addToCart (available globally from cart.js)
+              await cartActions.addToCart({
+                variantId: action.variantId,
+                quantity: action.quantity,
+              });
+              console.log(`Added item with variantId ${action.variantId} to cart from history`);
+              // The confirmation message should already be in the history as a separate "message" type
+            } catch (error) {
+              console.error("Error adding item to cart from history:", error);
+              sendMessageToAChat(MessageSender.bot, {
+                message: "Sorry, I couldn’t add the item to your cart when loading the history.",
+                emotion: "sad",
+                customClass: "error-message"
+              });
+            }
+          }
         } else if (
           message.type === "removeFromCart" ||
           message.type === "addToCart"

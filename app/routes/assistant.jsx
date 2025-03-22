@@ -64,8 +64,8 @@ export async function loader({ request }) {
             } finally {
                 inFlightRequests.delete(sessionId);
             }
-
-            console.log("DEBUG HISTORY: ", producedMessages)
+            
+            console.log("DEBUG HISTORY: ", producedMessages);
             const responseMessage = JSON.stringify(producedMessages);
             // Filter and transform "products" messages
             producedMessages = producedMessages.map((message) => {
@@ -78,9 +78,9 @@ export async function loader({ request }) {
                         })),
                     };
                 }
-                return message;
+                return message; // Pass through other types (like "message" and "action") unchanged
             });
-
+            
             console.log("Saving message to Prisma:\n", responseMessage);
             await prisma.chats.create({
                 data: {
@@ -92,7 +92,7 @@ export async function loader({ request }) {
                     createdAt: new Date(),
                 },
             });
-
+            
             console.log("Final response:", JSON.stringify(producedMessages, null, 2));
             return json({ messages: producedMessages });
         } else if (action == "getSessionHistory") {

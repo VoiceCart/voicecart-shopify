@@ -275,12 +275,35 @@ const intentMapping = {
             model: "gpt-4o"
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
-        return [{
-            type: "message",
-            value: `${parsedAssistantResponse}`,
-        }];
+        
+        // Extract variantId, quantity, and explanation from the response
+        const { variantId, quantity, explanation } = parsedAssistantResponse;
+        
+        if (!variantId || !quantity) {
+            infoLog.log("error", "Missing variantId or quantity in addToCart response");
+            return [{
+                type: "message",
+                value: "Sorry, I couldn’t add the item to your cart. Please try again.",
+            }];
+        }
+    
+        // Instead of calling cartActions.addToCart here, return a message and an action for the client to handle
+        const message = explanation || "Item added to cart.";
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "addToCart",
+                    variantId,
+                    quantity,
+                },
+            }
+        ];
     },
-
 
     removeFromCart: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'removeFromCart' intent");
