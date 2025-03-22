@@ -86,6 +86,28 @@ const constantMessages = {
 // ===================== Helper Functions =====================
 
 /**
+ * Manages the set of executed actions in localStorage, scoped by sessionId.
+ */
+function manageExecutedActions(sessionId) {
+  const storageKey = `executedActions_${sessionId}`;
+  
+  return {
+    get: () => {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    },
+    add: (actionKey) => {
+      const executedActions = manageExecutedActions(sessionId).get();
+      executedActions.add(actionKey);
+      localStorage.setItem(storageKey, JSON.stringify([...executedActions]));
+    },
+    clear: () => {
+      localStorage.removeItem(storageKey);
+    }
+  };
+}
+
+/**
  * Fetches the current cart state from Shopify.
  * Returns the quantity of the specified variantId in the cart, or 0 if not found.
  */
@@ -152,7 +174,7 @@ async function initLoader() {
         console.log("Session state: ", sessionState);
 
         if (sessionState && sessionState.length > 0) {
-          await renderChatHistory(sessionState);
+          await renderChatHistory(sessionState, evaCookie);
         } else {
           checkAndSendGreeting();
         }
@@ -169,8 +191,7 @@ async function initLoader() {
           constantKey: "errorServer"
         });
       }
-    }
-    else {
+    } else {
       checkAndSendGreeting();
     }
     chatView.classList.add("rendered");
@@ -730,11 +751,11 @@ function showThinkingBubble(duration = 10000) {
 /**
  * Renders the chat history.
  */
-async function renderChatHistory(messages) {
+async function renderChatHistory(messages, sessionId) {
   const chatView = document.querySelector("#chat-view");
   if (!chatView.classList.contains("rendered")) {
-    // Track executed actions to avoid duplicates
-    const executedActions = new Set();
+    // Use persistent storage for executed actions
+    const executedActions = manageExecutedActions(sessionId);
 
     for (let message of messages) {
       if (message.sender === "customer") {
@@ -752,7 +773,8 @@ async function renderChatHistory(messages) {
           const actionKey = `${action.action}-${action.variantId}-${action.quantity || 0}-${message.createdAt || Date.now()}`;
           
           // Skip if this action has already been executed
-          if (executedActions.has(actionKey)) {
+          const executedSet = executedActions.get();
+          if (executedSet.has(actionKey)) {
             console.log(`Skipping already executed action: ${actionKey}`);
             continue;
           }
@@ -761,6 +783,12 @@ async function renderChatHistory(messages) {
             try {
               const currentQuantity = await getCartQuantity(action.variantId);
               const newQuantity = currentQuantity + Number(action.quantity);
+              // Skip if the cart already has the desired quantity
+              if (currentQuantity >= newQuantity) {
+                console.log(`Skipping addToCart: Cart already has ${currentQuantity} units of variantId ${action.variantId}`);
+                executedActions.add(actionKey);
+                continue;
+              }
               await cartActions.addToCart({
                 variantId: action.variantId,
                 quantity: action.quantity,
@@ -779,6 +807,12 @@ async function renderChatHistory(messages) {
             try {
               const currentQuantity = await getCartQuantity(action.variantId);
               const newQuantity = Number(action.quantity);
+              // Skip if the cart already has the desired quantity
+              if (currentQuantity === newQuantity) {
+                console.log(`Skipping removeFromCart: Cart already has ${currentQuantity} units of variantId ${action.variantId}`);
+                executedActions.add(actionKey);
+                continue;
+              }
               if (currentQuantity > 0) {
                 await cartActions.removeFromCart({
                   variantId: action.variantId,
@@ -788,6 +822,7 @@ async function renderChatHistory(messages) {
                 executedActions.add(actionKey);
               } else {
                 console.log(`Item with variantId ${action.variantId} not in cart, skipping remove from history`);
+                executedActions.add(actionKey);
               }
             } catch (error) {
               console.error("Error removing item from cart from history:", error);
@@ -813,6 +848,12 @@ function startNewChat() {
   // Reset the state variables so that new message groups are created
   currentGroup = null;
   lastSender = null;
+
+  // Clear executed actions for the current session
+  const sessionId = getOwnCookie("_eva_sid");
+  if (sessionId) {
+    manageExecutedActions(sessionId).clear();
+  }
 
   const footer = document.querySelector("#eva-chat-footer");
   footer.classList.add("invisible");
