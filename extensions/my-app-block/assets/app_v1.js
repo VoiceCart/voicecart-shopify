@@ -308,6 +308,8 @@ async function initLoader() {
   }
 }
 
+let stopVoiceCycle = null;
+
 /**
  * Initializes all UI event listeners (once the DOM is loaded).
  */
@@ -401,6 +403,26 @@ async function initListeners(navigationEngine, messageFactory) {
     });
   }
 
+  // Add these listeners so the red cross & back arrow actually exit voice mode:
+  const backTextBtn = document.querySelector("#back-text");
+  if (backTextBtn) {
+    backTextBtn.addEventListener("click", () => {
+      if (stopVoiceCycle) {
+        stopVoiceCycle();
+        navigationEngine.goToTextInput();
+      }
+    });
+  }
+  const cancelVoiceBtn = document.querySelector("#cancel-voice");
+  if (cancelVoiceBtn) {
+    cancelVoiceBtn.addEventListener("click", () => {
+      if (stopVoiceCycle) {
+        stopVoiceCycle();
+        navigationEngine.goToTextInput();
+      }
+    });
+  }
+
   // Query input & send button
   const queryInput = document.querySelector("#query-input");
   const sendButton = document.querySelector("#send-query-button");
@@ -430,7 +452,7 @@ async function initListeners(navigationEngine, messageFactory) {
 
   // Voice button
   const voiceButton = document.querySelector("#record-voice-button");
-  let textParagraph = document.querySelector("#text-paragraph");
+  let textParagraph = null;
 
   // Request audio permission
   navigator.mediaDevices.getUserMedia({
@@ -442,49 +464,72 @@ async function initListeners(navigationEngine, messageFactory) {
   });
 
   // Create voice chat cycle
-  const { start: startVoiceCycle, stopVoiceCycle } = createVoiceChatCycle({
+  const voiceChatCycle = createVoiceChatCycle({
     onProcessingStarted: () => {
-      const messageBox = sendMessageToAChat(MessageSender.customer, {
-        message: "",
-        mode: "voice"
-      });
-      textParagraph = messageBox.querySelector("p");
+      // Create a temporary UI element to show interim transcripts, but don't append it as a message yet
+      const messageBox = document.createElement("div");
+      messageBox.classList.add("chat-customer-message", "voice-temp");
+      messageBox.innerHTML = `<div class="chat-customer-message-content"></div>`;
+      navigationEngine.getCurrentView().appendChild(messageBox);
+      textParagraph = messageBox.querySelector(".chat-customer-message-content");
+      scrollChatToBottom();
     },
-    onFinalTranscript: (transcript) => {
-      textParagraph.innerHTML = transcript;
-    },
+  
     onInterimTranscript: (chunk) => {
-      textParagraph.innerHTML = chunk;
+      if (textParagraph) {
+        textParagraph.innerHTML = chunk;
+      }
     },
+  
+    onFinalTranscript: (transcript) => {
+      if (textParagraph) {
+        textParagraph.innerHTML = transcript;
+      }
+    },
+  
     onRecognitionError: (error) => {
       console.error("Recognition error:", error);
+      // Remove the temporary message on error
+      const tempMessage = document.querySelector(".voice-temp");
+      if (tempMessage) tempMessage.remove();
     },
-    onSendMessage: (transcript) => {
-      const messageBox = sendMessageToAChat(MessageSender.bot, {
-        message: "I am a reply from the backend",
-        emotion: "welcoming"
+  
+    onSendMessage: async (transcript) => {
+      // Remove the temporary voice message
+      const tempMessage = document.querySelector(".voice-temp");
+      if (tempMessage) tempMessage.remove();
+      // Pass a custom handler to handleUserQuery to append the message exactly once
+      await handleUserQuery(transcript, {
+        handle: () => {
+          sendMessageToAChat(MessageSender.customer, { message: transcript });
+        }
       });
-      textParagraph = messageBox.querySelector("p");
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ reply: "I am a reply from the backend" });
-        }, 2000);
-      });
+      return { reply: "" };
     },
-    onBackendReply: (reply) => { },
+  
     onBackendError: (error) => {
       console.error("Backend error:", error);
+      // Remove the temporary message on error
+      const tempMessage = document.querySelector(".voice-temp");
+      if (tempMessage) tempMessage.remove();
     },
+  
     onTTSStart: (text) => {
       console.log("TTS started:", text);
     },
+  
     onTTSEnd: (text) => {
       console.log("TTS ended:", text);
     },
+  
     onTTSError: (error) => {
       console.error("TTS error:", error);
     }
   });
+
+  // Assign startVoiceCycle and stopVoiceCycle to be accessible
+  const startVoiceCycle = voiceChatCycle.start;
+  stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
     navigationEngine.goToVoiceInput();

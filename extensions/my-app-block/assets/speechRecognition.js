@@ -138,6 +138,7 @@ function createVoiceChatCycle(config = {}) {
         if (!result.isFinal) {
           onInterimTranscript(transcript);
         } else {
+          recognitionInstance.stop();
           onFinalTranscript(transcript);
           // Reset the flag for the next utterance.
           utteranceStarted = false;
