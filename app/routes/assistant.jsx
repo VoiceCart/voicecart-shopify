@@ -64,8 +64,8 @@ export async function loader({ request }) {
             } finally {
                 inFlightRequests.delete(sessionId);
             }
-
-            console.log("DEBUG HISTORY: ", producedMessages)
+            
+            console.log("DEBUG HISTORY: ", producedMessages);
             const responseMessage = JSON.stringify(producedMessages);
             // Filter and transform "products" messages
             producedMessages = producedMessages.map((message) => {
@@ -78,9 +78,9 @@ export async function loader({ request }) {
                         })),
                     };
                 }
-                return message;
+                return message; // Pass through other types (like "message" and "action") unchanged
             });
-
+            
             console.log("Saving message to Prisma:\n", responseMessage);
             await prisma.chats.create({
                 data: {
@@ -89,10 +89,10 @@ export async function loader({ request }) {
                     threadId,
                     query: userQuery,
                     response: responseMessage,
-                    createdAt: new Date(),
+                    createdAt: new Date(), // Already present, just ensuring it's noted
                 },
             });
-
+            
             console.log("Final response:", JSON.stringify(producedMessages, null, 2));
             return json({ messages: producedMessages });
         } else if (action == "getSessionHistory") {
@@ -105,15 +105,15 @@ export async function loader({ request }) {
                 orderBy: { createdAt: "asc" },
             });
             console.log("DEBUG: ", chats)
-            const messages = [];
 
+            const messages = [];
             chats.forEach(chat => {
                 if (chat.query) {
                     messages.push({
                         type: "message",
                         value: chat.query,
                         sender: "customer",
-                        createdAt: chat.createdAt,
+                        createdAt: chat.createdAt.toISOString(), // Ensure createdAt is serialized consistently
                     });
                 }
                 if (chat.response) {
@@ -124,7 +124,7 @@ export async function loader({ request }) {
                             type: messageStructure.type,
                             value: messageStructure.value,
                             sender: "bot",
-                            createdAt: chat.createdAt,
+                            createdAt: chat.createdAt.toISOString(), // Ensure createdAt is serialized consistently
                         });
                     }
                 }

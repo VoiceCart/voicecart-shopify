@@ -85,6 +85,155 @@ const constantMessages = {
 
 // ===================== Helper Functions =====================
 
+let lastAppliedDiscountCode = null;
+
+// Add a function to generate the checkout URL
+async function generateCheckoutUrl(discountCode = null) {
+  try {
+    // Fetch the current cart to check if it's empty
+    const cart = await getCartState();
+    if (cart.item_count === 0) {
+      throw new Error("Cart is empty. Add items before checking out.");
+    }
+
+    // Shopify's checkout URL is typically at the /checkout endpoint
+    // window.Shopify.routes.root gives the base path (e.g., "/")
+    // We need the full store domain for a clickable link
+    const storeDomain = window.Shopify.shop || 'getvoicecart.myshopify.com'; // Fallback to your store domain
+    let checkoutUrl = `https://${storeDomain}/checkout`;
+
+    // Append discount code if provided
+    if (discountCode) {
+      checkoutUrl += `?discount=${encodeURIComponent(discountCode)}`;
+    }
+
+    console.log("Generated checkout URL:", checkoutUrl); // Log for debugging
+    return checkoutUrl;
+  } catch (error) {
+    console.error("Error generating checkout URL:", error);
+    throw error;
+  }
+}
+
+// Add this new function to apply discount codes
+async function applyDiscountCode(discountCode) {
+  try {
+    const response = await fetch(window.Shopify.routes.root + 'cart/update.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        discount: discountCode
+      })
+    });
+    const result = await response.json();
+    console.log("applyDiscountCode response:", result); // Log Shopify's response
+    if (!response.ok) {
+      throw new Error(`Shopify API error: ${response.status} - ${result.description || 'Unknown error'}`);
+    }
+    return result;
+  } catch (error) {
+    console.error("Error applying discount code:", error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches the current cart state from Shopify.
+ * Returns the full cart object.
+ */
+async function getCartState() {
+  try {
+    const response = await fetch(window.Shopify.routes.root + 'cart.js', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const cart = await response.json();
+    return cart;
+  } catch (error) {
+    console.error("Error fetching cart state:", error);
+    return { items: [], item_count: 0, total_price: 0, total_discount: 0 };
+  }
+}
+
+/**
+ * Displays the current cart contents in the chat.
+ */
+async function sendCartSummaryToChat() {
+  const cart = await getCartState();
+  if (cart.item_count === 0) {
+    sendMessageToAChat(MessageSender.bot, {
+      message: "Your cart is empty.",
+      emotion: "neutral"
+    });
+  } else {
+    let summary = `Your cart has ${cart.item_count} item(s):\n`;
+    cart.items.forEach((item, index) => {
+      const itemPrice = (item.price / 100).toFixed(2); // Convert cents to dollars
+      summary += `${index + 1}. ${item.title} - Quantity: ${item.quantity}, Price: ${itemPrice} ${cart.currency} each\n`;
+    });
+    
+    const totalPrice = (cart.total_price / 100).toFixed(2);
+    const totalDiscount = (cart.total_discount / 100).toFixed(2);
+    
+    summary += `\nTotal Price: ${totalPrice} ${cart.currency}`;
+    if (totalDiscount > 0) {
+      summary += `\nDiscount Applied: ${totalDiscount} ${cart.currency} saved`;
+    }
+    
+    sendMessageToAChat(MessageSender.bot, {
+      message: summary,
+      emotion: "welcoming"
+    });
+  }
+}
+
+/**
+ * Manages the set of executed actions in localStorage, scoped by sessionId.
+ */
+function manageExecutedActions(sessionId) {
+  const storageKey = `executedActions_${sessionId}`;
+  
+  return {
+    get: () => {
+      const stored = localStorage.getItem(storageKey);
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    },
+    add: (actionKey) => {
+      const executedActions = manageExecutedActions(sessionId).get();
+      executedActions.add(actionKey);
+      localStorage.setItem(storageKey, JSON.stringify([...executedActions]));
+    },
+    clear: () => {
+      localStorage.removeItem(storageKey);
+    }
+  };
+}
+
+/**
+ * Fetches the current cart state from Shopify.
+ * Returns the quantity of the specified variantId in the cart, or 0 if not found.
+ */
+async function getCartQuantity(variantId) {
+  try {
+    const response = await fetch(window.Shopify.routes.root + 'cart.js', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const cart = await response.json();
+    const item = cart.items.find(item => item.variant_id === Number(variantId));
+    return item ? item.quantity : 0;
+  } catch (error) {
+    console.error("Error fetching cart state:", error);
+    return 0;
+  }
+}
+
 /**
  * Iterates over all elements tagged with a constant message and updates their text based on the new language.
  */
@@ -117,7 +266,6 @@ function checkAndSendGreeting() {
   }
 }
 
-
 /**
  * Initializes the loader by checking the session state.
  */
@@ -132,7 +280,7 @@ async function initLoader() {
         console.log("Session state: ", sessionState);
 
         if (sessionState && sessionState.length > 0) {
-          await renderChatHistory(sessionState);
+          await renderChatHistory(sessionState, evaCookie);
         } else {
           checkAndSendGreeting();
         }
@@ -149,8 +297,7 @@ async function initLoader() {
           constantKey: "errorServer"
         });
       }
-    }
-    else {
+    } else {
       checkAndSendGreeting();
     }
     chatView.classList.add("rendered");
@@ -360,7 +507,6 @@ async function handleUserQuery(messageText, options) {
     return;
   }
 
-  // Check if the evaSession cookie exists
   const sessionId = getOwnCookie("_eva_sid");
   if (!sessionId) {
     showConsentBubble();
@@ -377,9 +523,14 @@ async function handleUserQuery(messageText, options) {
   currentFetchController = controller;
 
   try {
+    const cartState = await getCartState(); // Fetch cart state for context
     const receivedMessage = await fetchMessage(messageText.trim(), controller.signal);
     if (thinkingBubble) thinkingBubble.remove();
 
+    // Track the last action to deduplicate consecutive identical actions
+    let lastActionKey = null;
+
+    console.log(`Processing ${receivedMessage.messages.length} messages from response`);
     for (let message of receivedMessage.messages) {
       if (message.type === "message") {
         sendMessageToAChat(MessageSender.bot, {
@@ -388,25 +539,133 @@ async function handleUserQuery(messageText, options) {
         });
       } else if (message.type === "products") {
         await sendProductListToAChat(message.value);
-      } else if (
-        message.type === "removeFromCart" ||
-        message.type === "addToCart"
-      ) {
-        if (message.value.clarify === false) {
-          sendMessageToAChat(MessageSender.bot, {
-            message: message.value.explanation,
-            emotion: "welcome"
-          });
-          cartActions[message.type](message.value);
-        } else {
-          sendMessageToAChat(MessageSender.bot, {
-            message: message.value.explanation,
-            emotion: "thinking"
-          });
+      } else if (message.type === "action") {
+        const action = message.value;
+        // Generate a key for the action to check for duplicates
+        const actionKey = `${action.action}-${action.variantId || 'no-variant'}-${action.quantity || 0}`;
+        if (actionKey === lastActionKey) {
+          console.log(`Skipping duplicate action: ${actionKey}`);
+          continue; // Skip duplicate consecutive actions
         }
-      } else {
-        enableInputBar();
-        throw new Error("Unknown message type");
+        lastActionKey = actionKey;
+
+        if (action.action === "addToCart") {
+          try {
+            const currentQuantity = cartState.items.find(item => item.variant_id === Number(action.variantId))?.quantity || 0;
+            const desiredQuantity = Number(action.quantity); // Treat as total desired quantity
+            const quantityToAdd = desiredQuantity - currentQuantity;
+            if (quantityToAdd > 0) {
+              await cartActions.addToCart({
+                variantId: action.variantId,
+                quantity: quantityToAdd,
+              });
+              console.log(`Added ${quantityToAdd} units of item with variantId ${action.variantId} to cart. Desired total quantity: ${desiredQuantity}`);
+              // Validate cart state after adding
+              const updatedCartState = await getCartState();
+              const actualQuantity = updatedCartState.items.find(item => item.variant_id === Number(action.variantId))?.quantity || 0;
+              if (actualQuantity !== desiredQuantity) {
+                console.error(`Cart quantity mismatch: Expected ${desiredQuantity}, but found ${actualQuantity} for variantId ${action.variantId}`);
+                sendMessageToAChat(MessageSender.bot, {
+                  message: `There was an issue updating the cart. Expected ${desiredQuantity} items, but found ${actualQuantity}. Please check your cart.`,
+                  emotion: "sad",
+                  customClass: "error-message"
+                });
+              }
+            } else {
+              console.log(`#pragma once
+No additional units added. Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredQuantity}`);
+            }
+          } catch (error) {
+            console.error("Error adding item to cart:", error);
+            sendMessageToAChat(MessageSender.bot, {
+              message: "Sorry, I couldn’t add the item to your cart. Please try again later.",
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        } else if (action.action === "removeFromCart") {
+          try {
+            const currentQuantity = cartState.items.find(item => item.variant_id === Number(action.variantId))?.quantity || 0;
+            const newQuantity = Number(action.quantity);
+            if (currentQuantity > 0) {
+              await cartActions.removeFromCart({
+                variantId: action.variantId,
+                quantity: newQuantity,
+              });
+              console.log(`Set quantity of item with variantId ${action.variantId} to ${newQuantity} in cart`);
+            } else {
+              console.log(`Item with variantId ${action.variantId} not in cart, skipping remove`);
+            }
+          } catch (error) {
+            console.error("Error removing item from cart:", error);
+            sendMessageToAChat(MessageSender.bot, {
+              message: "Sorry, I couldn’t remove the item from your cart. Please try again later.",
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        } else if (action.action === "clearCart") {
+          try {
+            await cartActions.clearCart();
+            console.log("Cart cleared successfully");
+            sendMessageToAChat(MessageSender.bot, {
+              message: "Your cart has been cleared.",
+              emotion: "neutral"
+            });
+          } catch (error) {
+            console.error("Error clearing cart:", error);
+            sendMessageToAChat(MessageSender.bot, {
+              message: "Sorry, I couldn’t clear your cart. Please try again later.",
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        } else if (action.action === "applyDiscount") {
+          try {
+            const originalTotal = cartState.total_price;
+            console.log("Original cart state before applying discount:", cartState);
+            await applyDiscountCode(action.discountCode);
+            const updatedCart = await getCartState();
+            console.log("Updated cart state after applying discount:", updatedCart);
+            const discountAmount = ((originalTotal - updatedCart.total_price) / 100).toFixed(2);
+            if (discountAmount <= 0) {
+              throw new Error("Discount didn’t reduce the total price.");
+            }
+            lastAppliedDiscountCode = action.discountCode; // Store the discount code
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Discount code "${action.discountCode}" applied! You saved ${discountAmount} ${updatedCart.currency}.`,
+              emotion: "welcoming"
+            });
+          } catch (error) {
+            console.error("Error applying discount code:", error.message);
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Sorry, I couldn’t apply the discount code: ${error.message}. Please check the code and try again.`,
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        } else if (action.action === "checkoutCart") {
+          try {
+            // Show cart summary before proceeding to checkout
+            await sendCartSummaryToChat();
+            const discountCode = action.discountCode || lastAppliedDiscountCode;
+            const checkoutUrl = await generateCheckoutUrl(discountCode);
+            // Make the URL clickable by wrapping it in an <a> tag
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Ready to checkout? Click here: <a href="${checkoutUrl}" target="_blank">${checkoutUrl}</a>`,
+              emotion: "welcoming"
+            });
+          } catch (error) {
+            console.error("Error generating checkout URL:", error.message);
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Sorry, I couldn’t generate the checkout link: ${error.message}. Please try again.`,
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        }
+      } else if (message.type === "cartSummary") {
+        await sendCartSummaryToChat();
       }
       scrollChatToBottom();
     }
@@ -501,7 +760,8 @@ function showConsentBubble() {
 
 /**
  * Handles the user's consent response.
- */function handleConsent(consent) {
+ */
+function handleConsent(consent) {
   if (consent) {
     const sessionId = generateUUID();
     setCookie("_eva_sid", sessionId, 365);
@@ -682,9 +942,11 @@ function showThinkingBubble(duration = 10000) {
 /**
  * Renders the chat history.
  */
-async function renderChatHistory(messages) {
+async function renderChatHistory(messages, sessionId) {
   const chatView = document.querySelector("#chat-view");
   if (!chatView.classList.contains("rendered")) {
+    const executedActions = manageExecutedActions(sessionId);
+
     for (let message of messages) {
       if (message.sender === "customer") {
         sendMessageToAChat(MessageSender.customer, { message: message.value });
@@ -696,21 +958,101 @@ async function renderChatHistory(messages) {
           });
         } else if (message.type === "products") {
           await sendProductListToAChat(message.value);
-        } else if (
-          message.type === "removeFromCart" ||
-          message.type === "addToCart"
-        ) {
-          if (message.value.clarify === false) {
-            sendMessageToAChat(MessageSender.bot, {
-              message: message.value.explanation,
-              emotion: "welcome"
-            });
-          } else {
-            sendMessageToAChat(MessageSender.bot, {
-              message: message.value.explanation,
-              emotion: "thinking"
-            });
+        } else if (message.type === "action") {
+          const action = message.value;
+          if (!message.createdAt) {
+            console.warn("Missing createdAt for action message:", message);
+            continue;
           }
+          const actionKey = `${action.action}-${action.variantId || 'no-variant'}-${action.quantity || 0}-${message.createdAt}`;
+          
+          const executedSet = executedActions.get();
+          if (executedSet.has(actionKey)) {
+            console.log(`Skipping already executed action: ${actionKey}`);
+            continue;
+          }
+
+          if (action.action === "addToCart") {
+            try {
+              const cartState = await getCartState();
+              const currentQuantity = cartState.items.find(item => item.variant_id === Number(action.variantId))?.quantity || 0;
+              const desiredTotalQuantity = Number(action.quantity); // Desired total quantity in cart
+              if (currentQuantity >= desiredTotalQuantity) {
+                console.log(`Skipping addToCart: Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredTotalQuantity}`);
+                executedActions.add(actionKey);
+                continue;
+              }
+              const quantityToAdd = desiredTotalQuantity - currentQuantity;
+              await cartActions.addToCart({
+                variantId: action.variantId,
+                quantity: quantityToAdd,
+              });
+              console.log(`Added ${quantityToAdd} units of item with variantId ${action.variantId} to cart from history. Total quantity: ${desiredTotalQuantity}`);
+              // Validate cart state after adding
+              const updatedCartState = await getCartState();
+              const actualQuantity = updatedCartState.items.find(item => item.variant_id === Number(action.variantId))?.quantity || 0;
+              if (actualQuantity !== desiredTotalQuantity) {
+                console.error(`Cart quantity mismatch in history: Expected ${desiredTotalQuantity}, but found ${actualQuantity} for variantId ${action.variantId}`);
+                sendMessageToAChat(MessageSender.bot, {
+                  message: `There was an issue loading the cart history. Expected ${desiredTotalQuantity} items, but found ${actualQuantity}. Please check your cart.`,
+                  emotion: "sad",
+                  customClass: "error-message"
+                });
+              }
+              executedActions.add(actionKey);
+            } catch (error) {
+              console.error("Error adding item to cart from history:", error);
+              sendMessageToAChat(MessageSender.bot, {
+                message: "Sorry, I couldn’t add the item to your cart when loading the history.",
+                emotion: "sad",
+                customClass: "error-message"
+              });
+            }
+          } else if (action.action === "removeFromCart") {
+            try {
+              const cartState = await getCartState();
+              const currentQuantity = cartState.items.find(item => item.variant_id === Number(action.variantId))?.quantity || 0;
+              const newQuantity = Number(action.quantity);
+              if (currentQuantity === newQuantity) {
+                console.log(`Skipping removeFromCart: Cart already has ${currentQuantity} units of variantId ${action.variantId}`);
+                executedActions.add(actionKey);
+                continue;
+              }
+              if (currentQuantity > 0) {
+                await cartActions.removeFromCart({
+                  variantId: action.variantId,
+                  quantity: newQuantity,
+                });
+                console.log(`Set quantity of item with variantId ${action.variantId} to ${newQuantity} in cart from history`);
+                executedActions.add(actionKey);
+              } else {
+                console.log(`Item with variantId ${action.variantId} not in cart, skipping remove from history`);
+                executedActions.add(actionKey);
+              }
+            } catch (error) {
+              console.error("Error removing item from cart from history:", error);
+              sendMessageToAChat(MessageSender.bot, {
+                message: "Sorry, I couldn’t remove the item from your cart when loading the history.",
+                emotion: "sad",
+                customClass: "error-message"
+              });
+            }
+          } else if (action.action === "clearCart") {
+            try {
+              await cartActions.clearCart();
+              console.log("Cart cleared successfully from history");
+              executedActions.add(actionKey);
+            } catch (error) {
+              console.error("Error clearing cart from history:", error);
+              sendMessageToAChat(MessageSender.bot, {
+                message: "Sorry, I couldn’t clear your cart when loading the history.",
+                emotion: "sad",
+                customClass: "error-message"
+              });
+            }
+          }
+        } else if (message.type === "cartSummary") {
+          await sendCartSummaryToChat();
         }
       }
     }
@@ -726,6 +1068,12 @@ function startNewChat() {
   // Reset the state variables so that new message groups are created
   currentGroup = null;
   lastSender = null;
+
+  // Clear executed actions for the current session
+  const sessionId = getOwnCookie("_eva_sid");
+  if (sessionId) {
+    manageExecutedActions(sessionId).clear();
+  }
 
   const footer = document.querySelector("#eva-chat-footer");
   footer.classList.add("invisible");

@@ -275,12 +275,35 @@ const intentMapping = {
             model: "gpt-4o"
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
-        return [{
-            type: "message",
-            value: `${parsedAssistantResponse}`,
-        }];
+        
+        const { variantId, quantity, explanation } = parsedAssistantResponse;
+        
+        if (!variantId || !quantity) {
+            infoLog.log("error", "Missing variantId or quantity in addToCart response");
+            return [{
+                type: "message",
+                value: "Sorry, I couldn’t add the item to your cart. Please try again.",
+            }];
+        }
+    
+        const message = explanation || `Updating cart to have a total of ${quantity} units.`;
+        const response = [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "addToCart",
+                    variantId,
+                    quantity, // Total desired quantity
+                },
+            }
+        ];
+        console.log("addToCart handler response:", JSON.stringify(response));
+        return response;
     },
-
 
     removeFromCart: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'removeFromCart' intent");
@@ -296,10 +319,34 @@ const intentMapping = {
             model: "gpt-4o"
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
-        return [{
-            type: "message",
-            value: `${parsedAssistantResponse}`,
-        }];
+        
+        // Extract variantId, quantity, and explanation from the response
+        const { variantId, quantity, explanation } = parsedAssistantResponse;
+        
+        if (!variantId) {
+            infoLog.log("error", "Missing variantId in removeFromCart response");
+            return [{
+                type: "message",
+                value: "Sorry, I couldn’t remove the item from your cart. Please try again.",
+            }];
+        }
+    
+        // Return the confirmation message and an action for the client to handle
+        const message = explanation || "Item removed from cart.";
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "removeFromCart",
+                    variantId,
+                    quantity,
+                },
+            }
+        ];
     },
 
     cartRelated: async (content, { sessionId, shop, signal, lang }) => {
@@ -316,16 +363,127 @@ const intentMapping = {
         });
         const parsedAssistantResponse = JSON.parse(completionResult)["actions"][0];
 
+        if (content.toLowerCase().includes("what's in my cart") || content.toLowerCase().includes("show my cart")) {
+            return [{
+                type: "cartSummary",
+                value: "Show cart contents"
+            }];
+        }
+
         const cartRelatedChildResponse = await processUserQuery(
             parsedAssistantResponse.intent,
-            parsedAssistantResponse.content
+            parsedAssistantResponse.content,
+            shop,
+            sessionId,
+            signal,
+            lang
         );
-
-        console.log(cartRelatedChildResponse);
 
         return cartRelatedChildResponse;
     },
 
+    checkoutCart: async (content, { sessionId, signal, shop, lang }) => {
+        infoLog.log("info", "Showing results for the 'checkoutCart' intent");
+        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.checkoutCart, lang);
+        const completionResult = await runChatCompletion({
+            systemPrompt: finalPrompt,
+            userQuery: content,
+            responseFormat: "json_object",
+            sessionId,
+            signal,
+            shop,
+            lang,
+            model: "gpt-4o"
+        });
+        const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
+
+        const { discountCode, explanation } = parsedAssistantResponse;
+
+        const message = explanation || "Proceeding to checkout.";
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "checkoutCart",
+                    discountCode: discountCode || null
+                },
+            }
+        ];
+    },
+
+    applyDiscount: async (content, { sessionId, signal, shop, lang }) => {
+        infoLog.log("info", "Showing results for the 'applyDiscount' intent");
+        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.applyDiscount, lang);
+        const completionResult = await runChatCompletion({
+            systemPrompt: finalPrompt,
+            userQuery: content,
+            responseFormat: "json_object",
+            sessionId,
+            signal,
+            shop,
+            lang,
+            model: "gpt-4o"
+        });
+        const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
+
+        const { discountCode, explanation } = parsedAssistantResponse;
+
+        if (!discountCode) {
+            return [{
+                type: "message",
+                value: "Please provide a discount code to apply.",
+            }];
+        }
+
+        const message = explanation || `Applying discount code "${discountCode}".`;
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "applyDiscount",
+                    discountCode
+                },
+            }
+        ];
+    },
+
+    clearCart: async (content, { sessionId, signal, shop, lang }) => {
+        infoLog.log("info", "Showing results for the 'clearCart' intent");
+        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.clearCart, lang);
+        const completionResult = await runChatCompletion({
+            systemPrompt: finalPrompt,
+            userQuery: content,
+            responseFormat: "json_object",
+            sessionId,
+            signal,
+            shop,
+            lang,
+            model: "gpt-4o"
+        });
+        const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
+
+        const message = parsedAssistantResponse.explanation || "All items will be removed from your cart.";
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "clearCart"
+                },
+            }
+        ];
+    },
 
     summarize: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'summarize' intent");
