@@ -382,6 +382,39 @@ const intentMapping = {
         return cartRelatedChildResponse;
     },
 
+    checkoutCart: async (content, { sessionId, signal, shop, lang }) => {
+        infoLog.log("info", "Showing results for the 'checkoutCart' intent");
+        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.checkoutCart, lang);
+        const completionResult = await runChatCompletion({
+            systemPrompt: finalPrompt,
+            userQuery: content,
+            responseFormat: "json_object",
+            sessionId,
+            signal,
+            shop,
+            lang,
+            model: "gpt-4o"
+        });
+        const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
+
+        const { discountCode, explanation } = parsedAssistantResponse;
+
+        const message = explanation || "Proceeding to checkout.";
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "checkoutCart",
+                    discountCode: discountCode || null
+                },
+            }
+        ];
+    },
+
     applyDiscount: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'applyDiscount' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.applyDiscount, lang);

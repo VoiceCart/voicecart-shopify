@@ -85,6 +85,36 @@ const constantMessages = {
 
 // ===================== Helper Functions =====================
 
+let lastAppliedDiscountCode = null;
+
+// Add a function to generate the checkout URL
+async function generateCheckoutUrl(discountCode = null) {
+  try {
+    // Fetch the current cart to check if it's empty
+    const cart = await getCartState();
+    if (cart.item_count === 0) {
+      throw new Error("Cart is empty. Add items before checking out.");
+    }
+
+    // Shopify's checkout URL is typically at the /checkout endpoint
+    // window.Shopify.routes.root gives the base path (e.g., "/")
+    // We need the full store domain for a clickable link
+    const storeDomain = window.Shopify.shop || 'getvoicecart.myshopify.com'; // Fallback to your store domain
+    let checkoutUrl = `https://${storeDomain}/checkout`;
+
+    // Append discount code if provided
+    if (discountCode) {
+      checkoutUrl += `?discount=${encodeURIComponent(discountCode)}`;
+    }
+
+    console.log("Generated checkout URL:", checkoutUrl); // Log for debugging
+    return checkoutUrl;
+  } catch (error) {
+    console.error("Error generating checkout URL:", error);
+    throw error;
+  }
+}
+
 // Add this new function to apply discount codes
 async function applyDiscountCode(discountCode) {
   try {
@@ -542,7 +572,8 @@ async function handleUserQuery(messageText, options) {
                 });
               }
             } else {
-              console.log(`No additional units added. Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredQuantity}`);
+              console.log(`#pragma once
+No additional units added. Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredQuantity}`);
             }
           } catch (error) {
             console.error("Error adding item to cart:", error);
@@ -592,22 +623,42 @@ async function handleUserQuery(messageText, options) {
         } else if (action.action === "applyDiscount") {
           try {
             const originalTotal = cartState.total_price;
-            console.log("Original cart state before applying discount:", cartState); // Log original cart state
+            console.log("Original cart state before applying discount:", cartState);
             await applyDiscountCode(action.discountCode);
             const updatedCart = await getCartState();
-            console.log("Updated cart state after applying discount:", updatedCart); // Log updated cart state
+            console.log("Updated cart state after applying discount:", updatedCart);
             const discountAmount = ((originalTotal - updatedCart.total_price) / 100).toFixed(2);
             if (discountAmount <= 0) {
               throw new Error("Discount didn’t reduce the total price.");
             }
+            lastAppliedDiscountCode = action.discountCode; // Store the discount code
             sendMessageToAChat(MessageSender.bot, {
               message: `Discount code "${action.discountCode}" applied! You saved ${discountAmount} ${updatedCart.currency}.`,
               emotion: "welcoming"
             });
           } catch (error) {
-            console.error("Error applying discount code:", error.message); // Log the specific error message
+            console.error("Error applying discount code:", error.message);
             sendMessageToAChat(MessageSender.bot, {
               message: `Sorry, I couldn’t apply the discount code: ${error.message}. Please check the code and try again.`,
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        } else if (action.action === "checkoutCart") {
+          try {
+            // Show cart summary before proceeding to checkout
+            await sendCartSummaryToChat();
+            const discountCode = action.discountCode || lastAppliedDiscountCode;
+            const checkoutUrl = await generateCheckoutUrl(discountCode);
+            // Make the URL clickable by wrapping it in an <a> tag
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Ready to checkout? Click here: <a href="${checkoutUrl}" target="_blank">${checkoutUrl}</a>`,
+              emotion: "welcoming"
+            });
+          } catch (error) {
+            console.error("Error generating checkout URL:", error.message);
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Sorry, I couldn’t generate the checkout link: ${error.message}. Please try again.`,
               emotion: "sad",
               customClass: "error-message"
             });

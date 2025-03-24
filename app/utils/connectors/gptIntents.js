@@ -74,6 +74,18 @@ export const discountResponseSchema = `{
     ]
 }`;
 
+export const checkoutResponseSchema = `{
+    "actions": [
+        {
+            "content": {
+                "query": "<user's query>",
+                "discountCode": "<discount code if applied, otherwise null>",
+                "explanation": "<explanation of the checkout action>"
+            }
+        }
+    ]
+}`;
+
 // Global Constraint
 export const globalConstraint = `
 If the conversation history does not include a specific product name or brand, do not introduce any brand on your own – except for comparison queries where two brands are explicitly mentioned.
@@ -86,7 +98,7 @@ You're an intent extractor with 6 possible intents. Only:
   - greet: The user greets or says hello.
   - whoAreYou: The user asks about you or your purpose (e.g., "Who are you?", "What do you do?").
   - productRelated: When the user's query is about finding, specifying, recommending, explaining, or comparing products. Or if there's at least a general question about some product.
-  - cartRelated: When the user's query is about shopping cart actions (add to cart, remove from cart, checkout).
+  - cartRelated: When the user's query is about shopping cart actions (add to cart, remove from cart, checkout or 'check please').
   - undefined: When the user's query doesn't match any of the above.
 Output Requirements:
   For every intent, return the entire user query as "content".
@@ -223,13 +235,26 @@ You're an assistant with the following possible intents. Only:
   1. addToCart
   2. removeFromCart
   3. clearCart
-  4. applyDiscount  // New intent for applying discount codes
+  4. applyDiscount
+  5. checkoutCart – when user asks about checkout related stuff, like 'I want to checout', 'check please' and so on
 For every intent return the entire user query as "content". When the user's query is just confirmation of an intent, keep the previous product-related info in the context.
 If multiple intents appear in one query, output them in order.
 Be extremely concise.
 JSON output format:
 json
 ${extractResponseSchema}
+`;
+
+export const CHECKOUT_CART_PROMPT = `
+You're a shopping assistant dedicated to handling checkout queries.
+When the user requests to checkout (e.g., "I want to checkout", "checkout now", "check please" and so on), confirm the action.
+Include the user's query and an explanation.
+If a discount code was previously applied in the conversation, include it as "discountCode"; otherwise, set it to null.
+Your intent is always checkoutCart.
+Keep your answer extremely short.
+JSON output format:
+json
+${checkoutResponseSchema}
 `;
 
 export const APPLY_DISCOUNT_PROMPT = `
@@ -299,6 +324,7 @@ export const SYSTEM_PROMPT = {
     removeFromCart: REMOVE_FROM_CART_PROMPT,
     applyDiscount: APPLY_DISCOUNT_PROMPT,
     clearCart: CLEAR_CART_PROMPT,
+    checkoutCart: CHECKOUT_CART_PROMPT,
     undefined: GENERAL_PROMPT
 };
 
