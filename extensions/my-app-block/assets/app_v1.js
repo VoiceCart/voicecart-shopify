@@ -85,6 +85,30 @@ const constantMessages = {
 
 // ===================== Helper Functions =====================
 
+// Add this new function to apply discount codes
+async function applyDiscountCode(discountCode) {
+  try {
+    const response = await fetch(window.Shopify.routes.root + 'cart/update.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        discount: discountCode
+      })
+    });
+    const result = await response.json();
+    console.log("applyDiscountCode response:", result); // Log Shopify's response
+    if (!response.ok) {
+      throw new Error(`Shopify API error: ${response.status} - ${result.description || 'Unknown error'}`);
+    }
+    return result;
+  } catch (error) {
+    console.error("Error applying discount code:", error);
+    throw error;
+  }
+}
+
 /**
  * Fetches the current cart state from Shopify.
  * Returns the full cart object.
@@ -97,10 +121,11 @@ async function getCartState() {
         'Content-Type': 'application/json'
       }
     });
-    return await response.json();
+    const cart = await response.json();
+    return cart;
   } catch (error) {
     console.error("Error fetching cart state:", error);
-    return { items: [], item_count: 0 };
+    return { items: [], item_count: 0, total_price: 0, total_discount: 0 };
   }
 }
 
@@ -117,8 +142,18 @@ async function sendCartSummaryToChat() {
   } else {
     let summary = `Your cart has ${cart.item_count} item(s):\n`;
     cart.items.forEach((item, index) => {
-      summary += `${index + 1}. ${item.title} - Quantity: ${item.quantity}, Price: ${item.price / 100} ${cart.currency}\n`;
+      const itemPrice = (item.price / 100).toFixed(2); // Convert cents to dollars
+      summary += `${index + 1}. ${item.title} - Quantity: ${item.quantity}, Price: ${itemPrice} ${cart.currency} each\n`;
     });
+    
+    const totalPrice = (cart.total_price / 100).toFixed(2);
+    const totalDiscount = (cart.total_discount / 100).toFixed(2);
+    
+    summary += `\nTotal Price: ${totalPrice} ${cart.currency}`;
+    if (totalDiscount > 0) {
+      summary += `\nDiscount Applied: ${totalDiscount} ${cart.currency} saved`;
+    }
+    
     sendMessageToAChat(MessageSender.bot, {
       message: summary,
       emotion: "welcoming"
@@ -550,6 +585,29 @@ async function handleUserQuery(messageText, options) {
             console.error("Error clearing cart:", error);
             sendMessageToAChat(MessageSender.bot, {
               message: "Sorry, I couldn’t clear your cart. Please try again later.",
+              emotion: "sad",
+              customClass: "error-message"
+            });
+          }
+        } else if (action.action === "applyDiscount") {
+          try {
+            const originalTotal = cartState.total_price;
+            console.log("Original cart state before applying discount:", cartState); // Log original cart state
+            await applyDiscountCode(action.discountCode);
+            const updatedCart = await getCartState();
+            console.log("Updated cart state after applying discount:", updatedCart); // Log updated cart state
+            const discountAmount = ((originalTotal - updatedCart.total_price) / 100).toFixed(2);
+            if (discountAmount <= 0) {
+              throw new Error("Discount didn’t reduce the total price.");
+            }
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Discount code "${action.discountCode}" applied! You saved ${discountAmount} ${updatedCart.currency}.`,
+              emotion: "welcoming"
+            });
+          } catch (error) {
+            console.error("Error applying discount code:", error.message); // Log the specific error message
+            sendMessageToAChat(MessageSender.bot, {
+              message: `Sorry, I couldn’t apply the discount code: ${error.message}. Please check the code and try again.`,
               emotion: "sad",
               customClass: "error-message"
             });

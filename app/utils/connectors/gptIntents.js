@@ -61,6 +61,18 @@ export const productSummarizerSchema = `{
     ]
 }`;
 
+export const discountResponseSchema = `{
+    "actions": [
+        {
+            "content": {
+                "clarify": true/false,
+                "query": "<user's query>",
+                "discountCode": "<extracted discount code>",
+                "explanation": "<explanation of the discount application>"
+            }
+        }
+    ]
+}`;
 
 // Global Constraint
 export const globalConstraint = `
@@ -210,13 +222,26 @@ export const CART_RELATED_PROMPT = `
 You're an assistant with the following possible intents. Only:
   1. addToCart
   2. removeFromCart
-  3. clearCart  // New intent for clearing the cart
+  3. clearCart
+  4. applyDiscount  // New intent for applying discount codes
 For every intent return the entire user query as "content". When the user's query is just confirmation of an intent, keep the previous product-related info in the context.
 If multiple intents appear in one query, output them in order.
 Be extremely concise.
 JSON output format:
 json
 ${extractResponseSchema}
+`;
+
+export const APPLY_DISCOUNT_PROMPT = `
+You're a shopping assistant dedicated to handling discount code application queries.
+Extract the discount code from the user's query (e.g., "apply code SUMMER20").
+If no discount code is provided, ask for clarification.
+Return the "discountCode" and include the user's query and an explanation.
+Your intent is always applyDiscount.
+Keep your answer extremely short.
+JSON output format:
+json
+${discountResponseSchema}
 `;
 
 export const CLEAR_CART_PROMPT = `
@@ -272,7 +297,8 @@ export const SYSTEM_PROMPT = {
     cartRelated: CART_RELATED_PROMPT,
     addToCart: ADD_TO_CART_PROMPT,
     removeFromCart: REMOVE_FROM_CART_PROMPT,
-    clearCart: CLEAR_CART_PROMPT,  // New mapping
+    applyDiscount: APPLY_DISCOUNT_PROMPT,
+    clearCart: CLEAR_CART_PROMPT,
     undefined: GENERAL_PROMPT
 };
 

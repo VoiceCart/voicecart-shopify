@@ -363,7 +363,6 @@ const intentMapping = {
         });
         const parsedAssistantResponse = JSON.parse(completionResult)["actions"][0];
 
-        // Handle cart summary request
         if (content.toLowerCase().includes("what's in my cart") || content.toLowerCase().includes("show my cart")) {
             return [{
                 type: "cartSummary",
@@ -380,8 +379,47 @@ const intentMapping = {
             lang
         );
 
-        console.log(cartRelatedChildResponse);
         return cartRelatedChildResponse;
+    },
+
+    applyDiscount: async (content, { sessionId, signal, shop, lang }) => {
+        infoLog.log("info", "Showing results for the 'applyDiscount' intent");
+        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.applyDiscount, lang);
+        const completionResult = await runChatCompletion({
+            systemPrompt: finalPrompt,
+            userQuery: content,
+            responseFormat: "json_object",
+            sessionId,
+            signal,
+            shop,
+            lang,
+            model: "gpt-4o"
+        });
+        const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
+
+        const { discountCode, explanation } = parsedAssistantResponse;
+
+        if (!discountCode) {
+            return [{
+                type: "message",
+                value: "Please provide a discount code to apply.",
+            }];
+        }
+
+        const message = explanation || `Applying discount code "${discountCode}".`;
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "applyDiscount",
+                    discountCode
+                },
+            }
+        ];
     },
 
     clearCart: async (content, { sessionId, signal, shop, lang }) => {
