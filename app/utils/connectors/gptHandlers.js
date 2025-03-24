@@ -276,7 +276,6 @@ const intentMapping = {
         });
         const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
         
-        // Extract variantId, quantity, and explanation from the response
         const { variantId, quantity, explanation } = parsedAssistantResponse;
         
         if (!variantId || !quantity) {
@@ -287,9 +286,8 @@ const intentMapping = {
             }];
         }
     
-        // Instead of calling cartActions.addToCart here, return a message and an action for the client to handle
-        const message = explanation || "Item added to cart.";
-        return [
+        const message = explanation || `Updating cart to have a total of ${quantity} units.`;
+        const response = [
             {
                 type: "message",
                 value: message,
@@ -299,10 +297,12 @@ const intentMapping = {
                 value: {
                     action: "addToCart",
                     variantId,
-                    quantity,
+                    quantity, // Total desired quantity
                 },
             }
         ];
+        console.log("addToCart handler response:", JSON.stringify(response));
+        return response;
     },
 
     removeFromCart: async (content, { sessionId, signal, shop, lang }) => {
@@ -363,16 +363,56 @@ const intentMapping = {
         });
         const parsedAssistantResponse = JSON.parse(completionResult)["actions"][0];
 
+        // Handle cart summary request
+        if (content.toLowerCase().includes("what's in my cart") || content.toLowerCase().includes("show my cart")) {
+            return [{
+                type: "cartSummary",
+                value: "Show cart contents"
+            }];
+        }
+
         const cartRelatedChildResponse = await processUserQuery(
             parsedAssistantResponse.intent,
-            parsedAssistantResponse.content
+            parsedAssistantResponse.content,
+            shop,
+            sessionId,
+            signal,
+            lang
         );
 
         console.log(cartRelatedChildResponse);
-
         return cartRelatedChildResponse;
     },
 
+    clearCart: async (content, { sessionId, signal, shop, lang }) => {
+        infoLog.log("info", "Showing results for the 'clearCart' intent");
+        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.clearCart, lang);
+        const completionResult = await runChatCompletion({
+            systemPrompt: finalPrompt,
+            userQuery: content,
+            responseFormat: "json_object",
+            sessionId,
+            signal,
+            shop,
+            lang,
+            model: "gpt-4o"
+        });
+        const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
+
+        const message = parsedAssistantResponse.explanation || "All items will be removed from your cart.";
+        return [
+            {
+                type: "message",
+                value: message,
+            },
+            {
+                type: "action",
+                value: {
+                    action: "clearCart"
+                },
+            }
+        ];
+    },
 
     summarize: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'summarize' intent");

@@ -206,12 +206,11 @@ json
 ${productSummarizerSchema}
 `;
 
-
-// CART_RELATED_PROMPT remains unchanged.
 export const CART_RELATED_PROMPT = `
 You're an assistant with the following possible intents. Only:
   1. addToCart
   2. removeFromCart
+  3. clearCart  // New intent for clearing the cart
 For every intent return the entire user query as "content". When the user's query is just confirmation of an intent, keep the previous product-related info in the context.
 If multiple intents appear in one query, output them in order.
 Be extremely concise.
@@ -220,11 +219,22 @@ json
 ${extractResponseSchema}
 `;
 
+export const CLEAR_CART_PROMPT = `
+You're a shopping assistant dedicated to handling queries for clearing the shopping cart.
+Your role is to confirm and process the removal of all items from the user's cart.
+Return a simple confirmation message in the explanation field.
+Your intent is always clearCart.
+Keep your answer extremely short.
+JSON output format:
+json
+${cartResponseSchema}
+`;
+
 // ADD_TO_CART_PROMPT for handling add-to-cart queries.
 export const ADD_TO_CART_PROMPT = `
 You're a shopping assistant dedicated to handling add-to-cart queries.
 Before processing the addition, verify that a product is identified in the conversation context. If not, ask for clarification.
-Return the "variantId" and "quantity" for the product the user wants to add. If uncertain about variantId or quantity, ask for clarification.
+Return the "variantId" and "quantity" for the product the user wants to add, where "quantity" is the total desired quantity in the cart after the action (not the amount to add). If uncertain about variantId or quantity, ask for clarification.
 Include the user's query and an explanation: if clarify is true, explain what was added (using product details from context); otherwise, indicate what is missing.
 Your intent is always addToCart.
 Keep your answer extremely short.
@@ -262,6 +272,7 @@ export const SYSTEM_PROMPT = {
     cartRelated: CART_RELATED_PROMPT,
     addToCart: ADD_TO_CART_PROMPT,
     removeFromCart: REMOVE_FROM_CART_PROMPT,
+    clearCart: CLEAR_CART_PROMPT,  // New mapping
     undefined: GENERAL_PROMPT
 };
 

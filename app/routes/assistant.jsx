@@ -89,7 +89,7 @@ export async function loader({ request }) {
                     threadId,
                     query: userQuery,
                     response: responseMessage,
-                    createdAt: new Date(),
+                    createdAt: new Date(), // Already present, just ensuring it's noted
                 },
             });
             
@@ -105,15 +105,15 @@ export async function loader({ request }) {
                 orderBy: { createdAt: "asc" },
             });
             console.log("DEBUG: ", chats)
-            const messages = [];
 
+            const messages = [];
             chats.forEach(chat => {
                 if (chat.query) {
                     messages.push({
                         type: "message",
                         value: chat.query,
                         sender: "customer",
-                        createdAt: chat.createdAt,
+                        createdAt: chat.createdAt.toISOString(), // Ensure createdAt is serialized consistently
                     });
                 }
                 if (chat.response) {
@@ -124,7 +124,7 @@ export async function loader({ request }) {
                             type: messageStructure.type,
                             value: messageStructure.value,
                             sender: "bot",
-                            createdAt: chat.createdAt,
+                            createdAt: chat.createdAt.toISOString(), // Ensure createdAt is serialized consistently
                         });
                     }
                 }
