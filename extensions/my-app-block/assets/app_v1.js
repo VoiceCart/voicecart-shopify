@@ -87,7 +87,7 @@ const constantMessages = {
 
 let lastAppliedDiscountCode = null;
 
-// Add a function to generate the checkout URL
+// Add a function to generate the checkout URL using Shopify Storefront API
 async function generateCheckoutUrl(discountCode = null) {
   try {
     // Fetch the current cart to check if it's empty
@@ -96,10 +96,31 @@ async function generateCheckoutUrl(discountCode = null) {
       throw new Error("Cart is empty. Add items before checking out.");
     }
 
+    // Get session_id from cookie
+    const sessionId = getOwnCookie("_eva_sid");
+    if (!sessionId) {
+      throw new Error("Session ID not found. Please start a new chat.");
+    }
+
+    // Add session_id as a cart attribute
+    const response = await fetch(window.Shopify.routes.root + 'cart/update.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        attributes: {
+          "voicecart_session_id": sessionId // This will appear in order.note_attributes
+        }
+      })
+    });
+    const updateResult = await response.json();
+    if (!response.ok) {
+      throw new Error(`Failed to update cart attributes: ${updateResult.description || 'Unknown error'}`);
+    }
+
     // Shopify's checkout URL is typically at the /checkout endpoint
-    // window.Shopify.routes.root gives the base path (e.g., "/")
-    // We need the full store domain for a clickable link
-    const storeDomain = window.Shopify.shop || 'getvoicecart.myshopify.com'; // Fallback to your store domain
+    const storeDomain = window.Shopify.shop || 'getvoicecart.myshopify.com';
     let checkoutUrl = `https://${storeDomain}/checkout`;
 
     // Append discount code if provided
@@ -107,7 +128,7 @@ async function generateCheckoutUrl(discountCode = null) {
       checkoutUrl += `?discount=${encodeURIComponent(discountCode)}`;
     }
 
-    console.log("Generated checkout URL:", checkoutUrl); // Log for debugging
+    console.log("Generated checkout URL with session_id in cart attributes:", checkoutUrl);
     return checkoutUrl;
   } catch (error) {
     console.error("Error generating checkout URL:", error);
