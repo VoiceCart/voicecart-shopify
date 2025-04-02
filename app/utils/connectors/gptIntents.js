@@ -111,17 +111,19 @@ ${extractResponseSchema}
 
 // PRODUCT_RELATED_PROMPT
 export const PRODUCT_RELATED_PROMPT = `
+${globalConstraint}
 You're an assistant handling product-related queries with the following five possible intents:
   1. findSpecificProduct:
      - The user is looking for a specific product by name, brand, or attribute.
      - The query or context should contain details (brand, size, color, model, price range, etc.).
      - Any directive such as "show", "display", or "find" should trigger this intent.
   2. recommendProduct:
-     - The user wants broad suggestions or general categories.
+     - The user wants suggestions, either broad or specific, including queries asking for the "best" product of a type (e.g., "what's the best vitamin D supplement?").
+     - This includes queries where the user is asking for recommendations without specifying a brand.
   3. specifyProduct:
      - The user clarifies or corrects a previously mentioned product.
   4. explainProduct:
-     - The user asks for more details about a product. It's usage, benefits, price, etc. It can be a specific product or a general product type.
+     - The user asks for more details about a product type or specific product, focusing on usage, benefits, price, etc., without asking for a recommendation (e.g., "What are the benefits of vitamin D?").
   5. compareProducts:
      - The user explicitly compares two products or brands (e.g., "Which vitamin D is better – NOW Foods or Solgar?").
      - Use any provided criteria (such as price, quality of ingredients, or effects) to generate a concise comparison.
@@ -133,6 +135,7 @@ JSON output format:
 json
 ${extractResponseSchema}
 `;
+
 // NEW: PRODUCT_COMPARISON_PROMPT for queries explicitly comparing two brands/products.
 export const PRODUCT_COMPARISON_PROMPT = `
 ${globalConstraint}
@@ -236,9 +239,10 @@ You're an assistant with the following possible intents. Only:
   2. removeFromCart
   3. clearCart
   4. applyDiscount
-  5. checkoutCart – when user asks about checkout related stuff, like 'I want to checout', 'check please' and so on
+  5. checkoutCart – when user asks about checkout related stuff, like 'I want to checkout', 'check please' and so on
+  6. cartSummary – when user asks to see cart contents, like 'what's in my cart', 'show my cart', or 'show me what I have in my cart'
 For every intent return the entire user query as "content". When the user's query is just confirmation of an intent, keep the previous product-related info in the context.
-If multiple intents appear in one query, output them in order.
+If multiple intents appear in one query, output them in order, but prioritize cartSummary if phrases like 'show my cart' or 'what's in my cart' are present, and do not include checkoutCart unless explicitly requested with phrases like 'checkout' or 'check please'.
 Be extremely concise.
 JSON output format:
 json

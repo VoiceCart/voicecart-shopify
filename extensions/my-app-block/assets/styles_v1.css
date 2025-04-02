@@ -447,7 +447,7 @@ html {
 /* Chat message backgrounds */
 #eva-assistant .chat-message-background-wrapper {
   width: fit-content;
-  padding: 0.7rem 1rem;
+  padding: 0.7rem 1rem 0.7rem 0.9rem;
   box-shadow: rgba(0, 0, 0, 0.15) 0px 0.6px 0.54px -1.33px,
               rgba(0, 0, 0, 0.13) 0px 3px 2.06px -2.67px,
               rgba(0, 0, 0, 0.04) 0px 10px 9px -4px;
@@ -620,15 +620,16 @@ html {
   align-self: end;
   margin-bottom: 1.5rem !important;
   border-radius: 12px 12px 0 12px;
-  max-width: 90%;
+  max-width: 81%;
   gap: 0.5rem;
-  text-align: end;
+  /* text-align: end; */
 }
 .bot-message-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 2.5rem !important;
+  max-width: 90%;
 }
 .bot-message-group .chat-bot-message-with-pic-wrapper:last-child .chat-bot-message {
   border-radius: 12px 12px 12px 0 !important;

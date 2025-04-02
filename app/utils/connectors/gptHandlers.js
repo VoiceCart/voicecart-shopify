@@ -158,68 +158,163 @@ const intentMapping = {
 
     findSpecificProduct: async (content, { sessionId, signal, lang, shop }) => {
         infoLog.log("info", "Showing results for the 'findSpecificProduct' intent");
-        const summarizedProductInfo = await processUserQuery("summarize", content, shop); //#TODO: speed to be improved 
-        const findSpecificProductResponse = await extractProduct(
-            { query: summarizedProductInfo },//content,
-            shop
-        );
-
-        infoLog.log(
-            "info",
-            `Handler "findSpecificProduct" - extracted products: `,
-            findSpecificProductResponse.data
-        );
-        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productSummarizer, lang);
-        // Build the summarizer input. For instance, pass name, price, and a short description:
-        const productInfo = JSON.stringify(findSpecificProductResponse);
-        const completionResult = await runChatCompletion({
-            systemPrompt: finalPrompt,
-            userQuery: productInfo,      // Summaries for all products
-            responseFormat: "json_object",
-            sessionId,
-            signal,
-            shop,
-            lang
-        });
-        console.log('product summary: completion result: ', completionResult)
-        // 3) Let's assume the returned JSON from your summarizer has an "actions" array with "content"
-        //    that might contain a short summary text. Parse as needed:
-        const parsedAssistantResponse = JSON.parse(completionResult);
-        console.log('product summary: parsedAssistantResponse: ', parsedAssistantResponse)
-        // For instance, if it lumps everything into a single string:
-        const finalShortDescription = parsedAssistantResponse.actions[0].content;
-
-        console.log('product summary: finalShortDescription: ', finalShortDescription)
-        return ([{
-            type: "message",
-            value: finalShortDescription,
+        try {
+            // Step 1: Summarize the user query to extract product details
+            const summarizedProductInfo = await processUserQuery("summarize", content, shop);
+            if (!summarizedProductInfo || !summarizedProductInfo.tokens || summarizedProductInfo.tokens.length === 0) {
+                throw new Error("Unable to summarize product information from the query.");
+            }
+    
+            // Extract the product type/category from the tokens for use in error messages
+            const productTokens = summarizedProductInfo.tokens || [];
+            const productType = productTokens.filter(token => !["best", "the", "find", "show"].includes(token.toLowerCase())).join(" ") || "product";
+    
+            // Step 2: Fetch products based on the summarized info
+            const findSpecificProductResponse = await extractProduct(
+                { query: summarizedProductInfo },
+                shop
+            );
+    
+            infoLog.log(
+                "info",
+                `Handler "findSpecificProduct" - extracted products: `,
+                findSpecificProductResponse.data
+            );
+    
+            // Check if products were found
+            if (!findSpecificProductResponse || !findSpecificProductResponse.data || findSpecificProductResponse.data.length === 0) {
+                return [{
+                    type: "message",
+                    value: `Sorry, I couldn’t find any ${productType} matching your request. Can you provide more details or try a different product?`,
+                }];
+            }
+    
+            // Step 3: Summarize the products using the productSummarizer prompt
+            const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productSummarizer, lang);
+            const productInfo = JSON.stringify(findSpecificProductResponse);
+            const completionResult = await runChatCompletion({
+                systemPrompt: finalPrompt,
+                userQuery: productInfo,
+                responseFormat: "json_object",
+                sessionId,
+                signal,
+                shop,
+                lang
+            });
+    
+            // Step 4: Parse the summarization result
+            const parsedAssistantResponse = JSON.parse(completionResult);
+            if (!parsedAssistantResponse.actions || !parsedAssistantResponse.actions[0]?.content) {
+                throw new Error("Failed to summarize product information.");
+            }
+    
+            const finalShortDescription = parsedAssistantResponse.actions[0].content;
+    
+            // Step 5: Return the summarized product description and the product list
+            return ([
+                {
+                    type: "message",
+                    value: finalShortDescription,
+                },
+                {
+                    type: "products",
+                    value: findSpecificProductResponse?.data,
+                }
+            ]);
+        } catch (error) {
+            console.error("Error in findSpecificProduct handler:", error.message);
+            infoLog.log("error", `Error in findSpecificProduct handler: ${error.message}`);
+    
+            // Attempt to extract product type from the original query as a fallback
+            const queryTokens = content.toLowerCase().split(/\s+/);
+            const productType = queryTokens.filter(token => !["best", "the", "find", "show", "can", "you", "recommend", "that", "have"].includes(token)).join(" ") || "product";
+    
+            return [{
+                type: "message",
+                value: `Sorry, I couldn’t process your request for a ${productType}. Please try again or ask for something else.`,
+            }];
         }
-            ,
-        {
-            type: "products",
-            value: findSpecificProductResponse?.data,
-        }]
-        );
     },
 
     recommendProduct: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'recommendProduct' intent");
-        const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productRecommender, lang);
-        const completionResult = await runChatCompletion({
-            systemPrompt: finalPrompt,
-            userQuery: content,
-            responseFormat: "json_object",
-            sessionId,
-            signal,
-            lang,
-            shop,
-            model: "gpt-4o"
-        });
-        const parsedAssistantResponse = JSON.parse(completionResult).actions[0].content;
-        return [{
-            type: "message",
-            value: `${parsedAssistantResponse}`,
-        }];
+        try {
+            // Step 1: Summarize the user query to extract product details
+            const summarizedProductInfo = await processUserQuery("summarize", content, shop);
+            if (!summarizedProductInfo || !summarizedProductInfo.tokens || summarizedProductInfo.tokens.length === 0) {
+                throw new Error("Unable to summarize product information from the query.");
+            }
+    
+            // Extract the product type/category from the tokens
+            const productTokens = summarizedProductInfo.tokens || [];
+            const productType = productTokens.filter(token => !["best", "the", "recommend", "what", "whats"].includes(token.toLowerCase())).join(" ") || "product";
+    
+            // Step 2: Fetch products based on the summarized info
+            const productResponse = await extractProduct(
+                { query: summarizedProductInfo },
+                shop
+            );
+    
+            infoLog.log(
+                "info",
+                `Handler "recommendProduct" - extracted products: `,
+                productResponse.data
+            );
+    
+            // Check if products were found
+            if (!productResponse || !productResponse.data || productResponse.data.length === 0) {
+                return [{
+                    type: "message",
+                    value: `I couldn’t find any ${productType} to recommend right now. Can you provide more details or try a different product?`,
+                }];
+            }
+    
+            // Step 3: Summarize the products using the productSummarizer prompt
+            const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.productSummarizer, lang);
+            const productInfo = JSON.stringify(productResponse);
+            const completionResult = await runChatCompletion({
+                systemPrompt: finalPrompt,
+                userQuery: productInfo,
+                responseFormat: "json_object",
+                sessionId,
+                signal,
+                shop,
+                lang,
+                model: "gpt-4o"
+            });
+    
+            // Step 4: Parse the summarization result
+            const parsedAssistantResponse = JSON.parse(completionResult);
+            if (!parsedAssistantResponse.actions || !parsedAssistantResponse.actions[0]?.content) {
+                throw new Error("Failed to summarize product information.");
+            }
+    
+            const finalShortDescription = parsedAssistantResponse.actions[0].content;
+    
+            // Step 5: Return the summarized product description and the product list
+            return ([
+                {
+                    type: "message",
+                    value: `Here are some of the best ${productType} I can recommend:\n${finalShortDescription}`,
+                },
+                {
+                    type: "products",
+                    value: productResponse?.data,
+                }
+            ]);
+        } catch (error) {
+            console.error("Error in recommendProduct handler:", error.message);
+            infoLog.log("error", `Error in recommendProduct handler: ${error.message}`);
+    
+            // Fallback: Extract product type from the original query
+            const queryTokens = content.toLowerCase().split(/\s+/);
+            const productType = queryTokens.filter(token => !["best", "the", "recommend", "what", "whats", "can", "you"].includes(token)).join(" ") || "product";
+    
+            return [{
+                type: "message",
+                value: `Sorry, I couldn’t process your request to recommend a ${productType}. Please try again or ask for something else.`,
+            }];
+        }
     },
 
     compareProducts: async (content, { sessionId, signal, shop, lang }) => {
@@ -362,14 +457,16 @@ const intentMapping = {
             lang
         });
         const parsedAssistantResponse = JSON.parse(completionResult)["actions"][0];
-
+    
+        // Check for cartSummary intent first
         if (content.toLowerCase().includes("what's in my cart") || content.toLowerCase().includes("show my cart")) {
             return [{
                 type: "cartSummary",
                 value: "Show cart contents"
             }];
         }
-
+    
+        // If not cartSummary, process the identified intent
         const cartRelatedChildResponse = await processUserQuery(
             parsedAssistantResponse.intent,
             parsedAssistantResponse.content,
@@ -378,7 +475,7 @@ const intentMapping = {
             signal,
             lang
         );
-
+    
         return cartRelatedChildResponse;
     },
 
