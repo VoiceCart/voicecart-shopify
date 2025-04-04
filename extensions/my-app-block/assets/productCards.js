@@ -143,8 +143,8 @@ async function generateGlideMarkup(products, prefix) {
   // Create one bullet per product
   for (let i = 0; i < products.length; i++) {                           // <-- new
     const bullet = document.createElement('button');                   // <-- new
-    bullet.classList.add('glide__bullet');                             // <-- new
-    bullet.setAttribute('data-glide-dir', `=${i}`);                    // <-- new
+    bullet.classList.add('glide__bullet');
+    // bullet.setAttribute('data-glide-dir', `=${i}`);
     bulletsContainer.appendChild(bullet);                              // <-- new
   }                                                                     // <-- new
 
