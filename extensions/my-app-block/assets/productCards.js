@@ -55,6 +55,41 @@ async function generateGlideMarkup(products, prefix) {
     const price = document.createElement('div');
     price.classList.add('product-price-wrapper');
 
+    // Buttons container
+    const buttonsWrapper = document.createElement('div');
+    buttonsWrapper.classList.add('product-buttons-wrapper');
+
+    // NEW: Custom quantity selector
+    const quantityWrapper = document.createElement('div');
+    quantityWrapper.classList.add('quantity-wrapper');
+
+    const minusButton = document.createElement('button');
+    minusButton.classList.add('quantity-btn', 'quantity-minus');
+    minusButton.textContent = '–';
+    quantityWrapper.appendChild(minusButton);
+
+    const quantityDisplay = document.createElement('span');
+    quantityDisplay.classList.add('quantity-display');
+    quantityDisplay.textContent = '1'; // Default quantity
+    quantityWrapper.appendChild(quantityDisplay);
+
+    const plusButton = document.createElement('button');
+    plusButton.classList.add('quantity-btn', 'quantity-plus');
+    plusButton.textContent = '+';
+    quantityWrapper.appendChild(plusButton);
+
+    const addToCartButton = document.createElement('button');
+    addToCartButton.classList.add('product-action-btn', 'add-to-cart-btn');
+    addToCartButton.textContent = 'Add to Cart';
+    buttonsWrapper.appendChild(quantityWrapper); // Add quantity selector before the button
+    buttonsWrapper.appendChild(addToCartButton);
+
+    const detailsButton = document.createElement('button');
+    detailsButton.classList.add('product-action-btn', 'details-btn');
+    detailsButton.textContent = 'Details';
+    detailsButton.dataset.productHandle = product.handle; // Store handle for Shopify API
+    buttonsWrapper.appendChild(detailsButton);
+
     try {
       // Fetch product data
       const response = await fetch(window.Shopify.routes.root + 'products/' + product.handle + '.js');
@@ -64,10 +99,13 @@ async function generateGlideMarkup(products, prefix) {
       brand.textContent = data.vendor;
       model.textContent = data.title;
 
+      // Set the product title for the Add to Cart button
+      addToCartButton.dataset.productTitle = data.title || 'Unknown Product'; // Fallback if title is missing
+      console.log(`Set product title for Add to Cart button: ${addToCartButton.dataset.productTitle}`);
+
       // Product image
       if (data?.images[0]) {
         const originalURL = data.images[0];
-        // Request a smaller 400x400 image from Shopify's CDN
         const smallerImgURL = originalURL.replace(/(\.[^/.]+)$/, '_400x400$1');
         productImage.src = smallerImgURL;
         productImage.alt = data.title;
@@ -104,9 +142,12 @@ async function generateGlideMarkup(products, prefix) {
       }
     } catch (error) {
       console.error('Error fetching product data:', error);
+      // Fallback for Add to Cart button if fetch fails
+      addToCartButton.dataset.productTitle = 'Unknown Product';
     }
 
     descriptionWrapper.appendChild(price);
+    descriptionWrapper.appendChild(buttonsWrapper); // Add buttons below price
 
     // Build up the DOM structure
     productCard.appendChild(imageWrapper);
@@ -135,33 +176,93 @@ async function generateGlideMarkup(products, prefix) {
   rightArrow.setAttribute('data-glide-dir', '>');
   arrowsContainer.appendChild(rightArrow);
 
-  // --- NEW: Bullets container for "dots" at the bottom
-  const bulletsContainer = document.createElement('div');              // <-- new
-  bulletsContainer.classList.add('glide__bullets');                    // <-- new
-  bulletsContainer.setAttribute('data-glide-el', 'controls[nav]');     // <-- new
+  // --- Bullets container for "dots" at the bottom
+  const bulletsContainer = document.createElement('div');
+  bulletsContainer.classList.add('glide__bullets');
+  bulletsContainer.setAttribute('data-glide-el', 'controls[nav]');
 
-  // Create one bullet per product
-  for (let i = 0; i < products.length; i++) {                           // <-- new
-    const bullet = document.createElement('button');                   // <-- new
+  for (let i = 0; i < products.length; i++) {
+    const bullet = document.createElement('button');
     bullet.classList.add('glide__bullet');
-    // bullet.setAttribute('data-glide-dir', `=${i}`);
-    bulletsContainer.appendChild(bullet);                              // <-- new
-  }                                                                     // <-- new
+    bulletsContainer.appendChild(bullet);
+  }
 
   // Append track, arrows, bullets to main container
   glideContainer.appendChild(glideTrack);
   glideContainer.appendChild(arrowsContainer);
-  glideContainer.appendChild(bulletsContainer);                        // <-- new
+  glideContainer.appendChild(bulletsContainer);
 
   return glideContainer;
 }
 
 async function mountProducts(prefix) {
-  // The standard Glide init
-  await (new Glide('.glide-'+prefix, {
+  // Mount the Glide carousel
+  const glide = new Glide('.glide-' + prefix, {
     type: 'carousel',
     perView: 1,
     focusAt: 'center',
     gap: 10
-  })).mount();
+  });
+
+  glide.mount();
+
+  // Add event listeners for quantity buttons
+  const quantityWrappers = document.querySelectorAll('.glide-' + prefix + ' .quantity-wrapper');
+  quantityWrappers.forEach(wrapper => {
+    const minusButton = wrapper.querySelector('.quantity-minus');
+    const plusButton = wrapper.querySelector('.quantity-plus');
+    const quantityDisplay = wrapper.querySelector('.quantity-display');
+
+    minusButton.addEventListener('click', () => {
+      let quantity = parseInt(quantityDisplay.textContent, 10);
+      if (quantity > 1) {
+        quantity--;
+        quantityDisplay.textContent = quantity;
+      }
+    });
+
+    plusButton.addEventListener('click', () => {
+      let quantity = parseInt(quantityDisplay.textContent, 10);
+      if (quantity < 10) { // Match max limit
+        quantity++;
+        quantityDisplay.textContent = quantity;
+      }
+    });
+  });
+
+  // Add event listeners to buttons after mounting
+  const addToCartButtons = document.querySelectorAll('.glide-' + prefix + ' .add-to-cart-btn');
+  addToCartButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const productTitle = button.dataset.productTitle;
+      // Get the quantity from the display
+      const quantityDisplay = button.parentElement.querySelector('.quantity-display');
+      const quantity = parseInt(quantityDisplay.textContent, 10) || 1; // Fallback to 1 if invalid
+      console.log(`Add to Cart clicked for product: ${productTitle}, quantity: ${quantity}`);
+      handleUserQuery(`add ${quantity} ${productTitle} to cart`);
+    });
+  });
+
+  const detailsButtons = document.querySelectorAll('.glide-' + prefix + ' .details-btn');
+  detailsButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const handle = button.dataset.productHandle;
+      try {
+        const response = await fetch(window.Shopify.routes.root + 'products/' + handle + '.js');
+        const data = await response.json();
+        const description = data.description || "No description available.";
+        sendMessageToAChat(MessageSender.bot, {
+          message: `${data.title}:\n${description}`,
+          emotion: "welcoming"
+        });
+      } catch (error) {
+        console.error('Error fetching product details:', error);
+        sendMessageToAChat(MessageSender.bot, {
+          message: "Sorry, I couldn’t fetch the product details. Please try again later.",
+          emotion: "sad",
+          customClass: "error-message"
+        });
+      }
+    });
+  });
 }
