@@ -1090,3 +1090,28 @@ html {
 .product-action-btn:hover {
   opacity: 0.9;
 }
+
+.eva-chat-button-base {
+  margin-left: 10px !important;
+}
+
+.eva-chat-button-base:hover {
+  cursor: pointer;
+}
+
+.modal-window div {
+  text-align: left !important;
+  padding: 20px 20px !important;
+}
+
+.modal-close-button {
+  background: white !important;
+  padding: 5px 10px !important;
+  border-radius: 10px !important;
+  border: 1px solid #ccc !important;
+}
+
+.modal-close-button:hover {
+  cursor: pointer;
+  background: #ccc !important;
+}
