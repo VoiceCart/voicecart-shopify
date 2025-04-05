@@ -36,10 +36,10 @@ const languageMap = {
 // Map of constant messages for every language.
 const constantMessages = {
   greeting: {
-    en: "Hi! My name is Eva and I'm here to assist you with shopping 😊",
-    ru: "Привет! Меня зовут Eva, я здесь, чтобы помочь вам с покупками 😊",
-    de: "Hallo! Mein Name ist Eva und ich helfe Ihnen beim Einkaufen 😊",
-    cs: "Ahoj! Jmenuji se Eva a jsem tu, abych vám pomohla s nákupem 😊"
+    en: "Hi! My name is Eva and I'm here to assist you with shopping, managing your cart, applying discounts, and checking out 😊",
+    ru: "Привет! Меня зовут Eva, я здесь, чтобы помочь вам с покупками, управлением корзиной, применением скидок и оформлением заказа 😊",
+    de: "Hallo! Mein Name ist Eva und ich helfe Ihnen beim Einkaufen, Verwalten Ihres Warenkorbs, Anwenden von Rabatten und Auschecken 😊",
+    cs: "Ahoj! Jmenuji se Eva a jsem tu, abych vám pomohla s nákupem, správou košíku, uplatněním slev a dokončením objednávky 😊"
   },
   errorServer: {
     en: "Server error. Turn on the server and try again.",
@@ -427,6 +427,11 @@ async function initListeners(navigationEngine, messageFactory) {
     });
   }
 
+  const helpButton = document.querySelector("#help-button");
+  if (helpButton) {
+    helpButton.addEventListener("click", openHelpPopup);
+  }
+
   // Add these listeners so the red cross & back arrow actually exit voice mode:
   const backTextBtn = document.querySelector("#back-text");
   if (backTextBtn) {
@@ -785,6 +790,53 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
     isProcessing = false; // Reset flag to unlock input
     enableInputBar();
   }
+}
+
+/**
+ * Opens a help popup explaining what the bot can do.
+ */
+function openHelpPopup() {
+  const chatView = document.querySelector("#chat-view");
+
+  // Create an overlay for the modal within #chat-view
+  const modalOverlay = document.createElement("div");
+  modalOverlay.classList.add("modal-overlay");
+
+  // Create the modal window container
+  const modalWindow = document.createElement("div");
+  modalWindow.classList.add("modal-window");
+
+  // Help message content
+  const helpMessage = document.createElement("div");
+  helpMessage.innerHTML = `
+    Hello! I'm Eva, your shopping assistant. I can:
+    <br><br>
+    <ul style="margin-left: 20px;">
+    <li>Help you find products and answer shopping-related questions.</li>
+    <li>Add items to your cart, remove them, or clear your cart.</li>
+    <li>Show you a summary of your cart at any time.</li>
+    <li>Apply discount codes to save you money.</li>
+    <li>Generate a checkout link when you're ready to buy.</li>
+    <li>Support multiple languages (English, Russian, German, Czech).</li>
+    </ul>
+    <br>
+    Use text or voice input to chat with me!
+    <br>
+  `;
+  modalWindow.appendChild(helpMessage);
+
+  // Close button
+  const closeButton = document.createElement("button");
+  closeButton.textContent = "Back to Chat";
+  closeButton.classList.add("modal-close-button");
+  modalWindow.appendChild(closeButton);
+
+  modalOverlay.appendChild(modalWindow);
+  chatView.appendChild(modalOverlay);
+
+  closeButton.addEventListener("click", () => {
+    modalOverlay.remove();
+  });
 }
 
 /**
