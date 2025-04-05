@@ -12,6 +12,9 @@ const MessageSender = {
 
 // ===================== Variable Declarations =====================
 
+// A flag to track if a request is being processed
+let isProcessing = false;
+
 // Keep reference to the current fetch AbortController
 let currentFetchController = null;
 
@@ -516,6 +519,14 @@ async function initListeners(navigationEngine, messageFactory) {
     },
   
     onSendMessage: async (transcript) => {
+      // Check if a request is already in progress
+      if (isProcessing) {
+        console.log("Request already in progress, ignoring voice message:", transcript);
+        const tempMessage = document.querySelector(".voice-temp");
+        if (tempMessage) tempMessage.remove();
+        return { reply: "" };
+      }
+
       // Remove the temporary voice message
       const tempMessage = document.querySelector(".voice-temp");
       if (tempMessage) tempMessage.remove();
@@ -553,6 +564,10 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
+    if (isProcessing) {
+      console.log("Request in progress, voice input disabled.");
+      return;
+    }
     navigationEngine.goToVoiceInput();
     navigationEngine.goToChat();
     startVoiceCycle();
@@ -563,6 +578,12 @@ async function initListeners(navigationEngine, messageFactory) {
  * Main function to handle user input flow, including showing "Responding..." & possible abort.
  */
 async function handleUserQuery(messageText, options) {
+  // Prevent new queries if a request is already in progress
+  if (isProcessing) {
+    console.log("Request already in progress, ignoring new query:", messageText);
+    return;
+  }
+
   const handler =
     options?.handle ||
     (() => {
@@ -587,6 +608,7 @@ async function handleUserQuery(messageText, options) {
 
   const controller = new AbortController();
   currentFetchController = controller;
+  isProcessing = true; // Set flag to lock input
 
   try {
     const cartState = await getCartState(); // Fetch cart state for context
@@ -760,6 +782,7 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
     }
   } finally {
     currentFetchController = null;
+    isProcessing = false; // Reset flag to unlock input
     enableInputBar();
   }
 }
