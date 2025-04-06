@@ -483,14 +483,9 @@ async function initListeners(navigationEngine, messageFactory) {
   const voiceButton = document.querySelector("#record-voice-button");
   let textParagraph = null;
 
-  // Request audio permission
-  navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
-    }
-  });
+  // Check for Speech Recognition API support
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const isSpeechRecognitionSupported = !!SpeechRecognition;
 
   // Create voice chat cycle
   const voiceChatCycle = createVoiceChatCycle({
@@ -573,9 +568,82 @@ async function initListeners(navigationEngine, messageFactory) {
       console.log("Request in progress, voice input disabled.");
       return;
     }
-    navigationEngine.goToVoiceInput();
-    navigationEngine.goToChat();
-    startVoiceCycle();
+  
+    // Debug logging to help troubleshoot
+    console.log("Voice button clicked");
+    
+    // Make sure we have the chat container to add messages to
+    const chatContainer = document.querySelector("#chat-view") || document.querySelector(".chat-messages-container");
+    if (!chatContainer) {
+      console.error("Could not find chat container");
+      return;
+    }
+  
+    // First create a direct DOM element for browser support message if needed
+    const createErrorMessage = (message) => {
+      // Try the proper way first
+      try {
+        sendMessageToAChat(MessageSender.bot, {
+          message: message,
+          emotion: "sad",
+          customClass: "error-message"
+        });
+      } catch (err) {
+        // Fallback if sendMessageToAChat fails
+        console.error("Error in sendMessageToAChat:", err);
+        
+        // Direct DOM manipulation as fallback
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("chat-bot-message", "error-message");
+        messageElement.innerHTML = `
+          <div class="chat-bot-avatar sad"></div>
+          <div class="chat-bot-message-content">${message}</div>
+        `;
+        chatContainer.appendChild(messageElement);
+      }
+      
+      // Try both scrolling methods to ensure visibility
+      try {
+        scrollChatToBottom();
+      } catch (err) {
+        console.error("Error in scrollChatToBottom:", err);
+        // Fallback scrolling
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    };
+  
+    // Specifically detect Firefox
+    if (navigator.userAgent.toLowerCase().includes("firefox")) {
+      console.log("Firefox detected, showing message");
+      createErrorMessage("Firefox does not support voice mode. Please use Chrome or another compatible browser.");
+      return;
+    }
+  
+    // Check for Speech Recognition support in other browsers
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.log("Speech recognition not supported, showing message");
+      createErrorMessage("Your browser does not support voice mode. Please use Chrome or another compatible browser.");
+      return;
+    }
+  
+    // Request audio permission only when voice mode is activated
+    try {
+      await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      navigationEngine.goToVoiceInput();
+      navigationEngine.goToChat();
+      startVoiceCycle();
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      // Create more robust microphone access error message
+      createErrorMessage("Microphone access is required for voice mode. Please allow access to continue.");
+    }
   });
 }
 

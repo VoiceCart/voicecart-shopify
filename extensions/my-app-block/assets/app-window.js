@@ -93,12 +93,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Логика Web Speech API для голосового ввода
   recordVoiceButton.addEventListener("click", () => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert("Your browser does not support Web Speech API. Please use Google Chrome or another supported browser.");
+    // The check for Speech Recognition support and microphone permission is now handled in app_v1.js
+    // This listener will only handle the recording state, as the modal for unsupported browsers is shown in app_v1.js
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      // Do nothing here; app_v1.js will handle showing the modal
       return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
 
     recognition.lang = 'en-US';
