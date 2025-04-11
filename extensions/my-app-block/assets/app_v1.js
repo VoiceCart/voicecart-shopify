@@ -348,10 +348,29 @@ async function initListeners(navigationEngine, messageFactory) {
 
   // Bubble button -> show chat
   const evaBubbleButton = document.querySelector(".eva-bubble-button");
+  const evaBubbleButtonWrapepr = document.querySelector(".eva-bubble-button-wrapper");
   evaBubbleButton.addEventListener("click", async () => {
     const chatWrapper = document.querySelector("#eva-assistant");
     if (chatWrapper.classList.contains("invisible")) {
       evaBubbleButton.classList.add("invisible");
+      console.log('1st');
+      if (window.innerWidth < 800) {
+        evaBubbleButtonWrapepr.classList.add("_bottom-right")
+        console.log('2nd');
+        if (chatWrapper) {
+          console.log('3d');
+          chatWrapper.classList.add(
+            "fixed",
+            "inset-0",
+            "!w-full",
+            "!h-screen",
+            "!sm:relative",
+            "!sm:inset-auto",
+            "sm:!w-auto",
+            "sm:!h-auto"
+          );
+        }
+      }
       fadeIn(chatWrapper);
       await initLoader();
     } else {
@@ -370,6 +389,22 @@ async function initListeners(navigationEngine, messageFactory) {
   foldChatButton.addEventListener("click", async () => {
     const chatWrapper = document.querySelector("#eva-assistant");
     const evaBubbleButton = document.querySelector(".eva-bubble-button");
+    const evaBubbleButtonWrapepr = document.querySelector(".eva-bubble-button-wrapper");
+    if (window.innerWidth < 800) {
+      evaBubbleButtonWrapepr.classList.remove("_bottom-right")
+      if (chatWrapper) {
+        chatWrapper.classList.remove(
+          "fixed",
+          "inset-0",
+          "!w-full",
+          "!h-screen",
+          "!sm:relative",
+          "!sm:inset-auto",
+          "sm:!w-auto",
+          "sm:!h-auto"
+        );
+      }
+    }
     if (!chatWrapper.classList.contains("invisible")) {
       fadeOut(chatWrapper);
       await new Promise(r => setTimeout(r, 300));

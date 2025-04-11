@@ -1115,3 +1115,38 @@ html {
   cursor: pointer;
   background: #ccc !important;
 }
+
+
+._bottom-right {
+  bottom: 0 !important;
+  right: 0 !important;
+}
+/* 
+@media (max-width: 799px) {
+  :where(#eva-assistant) {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100vh !important;
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    min-width: 100% !important;
+    min-height: 100vh !important;
+    display: block !important;
+    z-index: 999999 !important;
+  }
+}
+
+@media (min-width: 800px) {
+  :where(#eva-assistant) {
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    z-index: auto !important;
+  }
+} */
