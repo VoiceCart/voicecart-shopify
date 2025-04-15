@@ -9,7 +9,7 @@ ENV NODE_ENV=production
 COPY package.json package-lock.json* ./
 
 # Install OpenSSL
-RUN apk add --no-cache openssl openssl-dev
+RUN apt update && apt install -y openssl
 
 # Install production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
