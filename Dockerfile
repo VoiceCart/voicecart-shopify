@@ -8,22 +8,22 @@ ENV NODE_ENV=production
 
 COPY package.json package-lock.json* ./
 
-# Install OpenSSL
-RUN apt update && apt install -y openssl
+# Устанавливаем OpenSSL, dev-библиотеки и корневые сертификаты
+RUN apt update && apt install -y openssl libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
 
-# Install production dependencies
+# Установка production-зависимостей
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Remove CLI packages since we don't need them in production by default.
-RUN npm remove @shopify/cli
+# Удаляем @shopify/cli (если он случайно ставится в build deps)
+RUN npm remove @shopify/cli || true
 
 COPY . .
 
-# **Generate the Prisma client here** so your app can use @prisma/client at runtime
+# Генерация Prisma Client
 RUN npx prisma generate
 
-# Build the Remix/Shopify app
+# Сборка Shopify/Remix-приложения
 RUN npm run build
 
-# Start your production server
+# Старт с миграцией БД
 CMD ["sh", "-c", "npx prisma migrate deploy && npm run docker-start"]
