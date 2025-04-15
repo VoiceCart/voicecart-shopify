@@ -8,8 +8,10 @@ ENV NODE_ENV=production
 
 COPY package.json package-lock.json* ./
 
-# Устанавливаем OpenSSL, dev-библиотеки и корневые сертификаты
-RUN apt update && apt install -y openssl libssl-dev ca-certificates && rm -rf /var/lib/apt/lists/*
+# Устанавливаем OpenSSL 1.1 и сертификаты
+RUN apt update && \
+    apt install -y openssl libssl1.1 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 # Установка production-зависимостей
 RUN npm ci --omit=dev && npm cache clean --force
@@ -22,7 +24,7 @@ COPY . .
 # Генерация Prisma Client
 RUN npx prisma generate
 
-# Сборка Shopify/Remix-приложения
+# Сборка Remix/Shopify app
 RUN npm run build
 
 # Старт с миграцией БД
