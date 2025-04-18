@@ -27,3 +27,5 @@ database.sqlite
 
 /shopify.app.toml
 project_contents.txt
+package-lock.json
+prisma/migrations/
