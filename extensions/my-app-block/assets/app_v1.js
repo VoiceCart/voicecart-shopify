@@ -355,7 +355,7 @@ async function initListeners(navigationEngine, messageFactory) {
       evaBubbleButton.classList.add("invisible");
       console.log('1st');
       if (window.innerWidth < 640) {
-        evaBubbleButtonWrapepr.classList.add("_bottom-right")
+        evaBubbleButtonWrapepr.classList.add("_bottom-right", "!max-w-full")
         console.log('2nd');
         if (chatWrapper) {
           console.log('3d');
@@ -363,7 +363,6 @@ async function initListeners(navigationEngine, messageFactory) {
             "fixed",
             "inset-0",
             "!w-full",
-            "!max-w-full",
             "!h-screen",
             "!sm:relative",
             "!sm:inset-auto",
@@ -392,13 +391,12 @@ async function initListeners(navigationEngine, messageFactory) {
     const evaBubbleButton = document.querySelector(".eva-bubble-button");
     const evaBubbleButtonWrapepr = document.querySelector(".eva-bubble-button-wrapper");
     if (window.innerWidth > 640) {
-      evaBubbleButtonWrapepr.classList.remove("_bottom-right")
+      evaBubbleButtonWrapepr.classList.remove("_bottom-right", "!max-w-full")
       if (chatWrapper) {
         chatWrapper.classList.remove(
           "fixed",
           "inset-0",
           "!w-full",
-          "!max-w-full",
           "!h-screen",
           "!sm:relative",
           "!sm:inset-auto",
