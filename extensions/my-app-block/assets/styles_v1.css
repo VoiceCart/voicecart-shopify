@@ -1091,7 +1091,7 @@ html {
   opacity: 0.9;
 }
 
-.eva-chat-button-base {
+#help-button.eva-chat-button-base {
   margin-left: 10px !important;
 }
 
