@@ -22,7 +22,7 @@ export async function runChatCompletion({
     sessionId,
     userQuery,
     model = "gpt-4o-mini",
-    temperature = 0.7,
+    temperature = 0,
     numberOfMessagesHistory = 10,
     responseFormat = "text", // e.g., "text" or "json_object"
     stream = false,

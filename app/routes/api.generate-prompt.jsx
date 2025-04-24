@@ -41,7 +41,7 @@ Return only the store description as your response, without any additional comme
       userQuery: openAiPrompt,
       sessionId: "store-info-session",
       model: "gpt-4o-mini", // Keeping the same model
-      temperature: 0.7,
+      // temperature: 0.7,
       numberOfMessagesHistory: 0,
       responseFormat: "text",
       stream: false,
