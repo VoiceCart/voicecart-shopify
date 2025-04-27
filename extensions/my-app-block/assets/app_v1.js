@@ -26,6 +26,9 @@ let lastSender = null;
 let currentLanguageKey = null;  // Will be set on DOMContentLoaded
 let currentLanguage = null;
 
+// Track voice mode state
+let isVoiceMode = false;
+
 const languageMap = {
   en: "en-US",
   ru: "ru-RU",
@@ -335,6 +338,52 @@ async function initLoader() {
 let stopVoiceCycle = null;
 
 /**
+ * Plays an audio stream using the Web Audio API.
+ * @param {ReadableStream} stream - The audio stream from the OpenAI TTS API.
+ * @param {AbortSignal} signal - The abort signal to cancel the stream.
+ */
+async function playAudioStream(stream, signal) {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const reader = stream.getReader();
+    let chunks = [];
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (signal.aborted) {
+        audioContext.close();
+        return;
+      }
+      chunks.push(value);
+    }
+
+    const blob = new Blob(chunks, { type: 'audio/mp3' });
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.play().catch(err => {
+      console.error("Audio playback error:", err);
+      sendMessageToAChat(MessageSender.bot, {
+        message: "Sorry, I couldn’t play the audio response. Please try again.",
+        emotion: "sad",
+        customClass: "error-message"
+      });
+    });
+    audio.onended = () => {
+      URL.revokeObjectURL(url);
+      audioContext.close();
+    };
+  } catch (err) {
+    console.error("Error playing audio stream:", err);
+    sendMessageToAChat(MessageSender.bot, {
+      message: "Sorry, I couldn’t play the audio response. Please try again.",
+      emotion: "sad",
+      customClass: "error-message"
+    });
+  }
+}
+
+/**
  * Initializes all UI event listeners (once the DOM is loaded).
  */
 async function initListeners(navigationEngine, messageFactory) {
@@ -474,6 +523,7 @@ async function initListeners(navigationEngine, messageFactory) {
       if (stopVoiceCycle) {
         stopVoiceCycle();
         navigationEngine.goToTextInput();
+        isVoiceMode = false; // Exit voice mode
       }
     });
   }
@@ -483,6 +533,7 @@ async function initListeners(navigationEngine, messageFactory) {
       if (stopVoiceCycle) {
         stopVoiceCycle();
         navigationEngine.goToTextInput();
+        isVoiceMode = false; // Exit voice mode
       }
     });
   }
@@ -595,14 +646,8 @@ async function initListeners(navigationEngine, messageFactory) {
   });
 
   // Assign startVoiceCycle and stopVoiceCycle to be accessible
-  const startVoiceCycle = () => {
-    globalThis.voiceModeActive = true;
-    voiceChatCycle.start();
-  };
-  stopVoiceCycle = () => {
-    globalThis.voiceModeActive = false;
-    voiceChatCycle.stop();
-  };
+  const startVoiceCycle = voiceChatCycle.start;
+  stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
     if (isProcessing) {
@@ -680,6 +725,7 @@ async function initListeners(navigationEngine, messageFactory) {
       navigationEngine.goToVoiceInput();
       navigationEngine.goToChat();
       startVoiceCycle();
+      isVoiceMode = true; // Enter voice mode
     } catch (error) {
       console.error("Error accessing microphone:", error);
       // Create more robust microphone access error message
@@ -774,8 +820,7 @@ async function handleUserQuery(messageText, options) {
                 });
               }
             } else {
-              console.log(`#pragma once
-No additional units added. Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredQuantity}`);
+              console.log(`No additional units added. Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredQuantity}`);
             }
           } catch (error) {
             console.error("Error adding item to cart:", error);
@@ -1076,6 +1121,7 @@ function grayOutLastMessageBubble() {
 /**
  * Creates and appends a new message bubble to the chat view.
  * If a constantKey is provided, the message bubble is tagged so that its content can be updated when the language changes.
+ * For bot messages in voice mode, triggers TTS and streams audio.
  */
 function sendMessageToAChat(sender, config) {
   let messageBubble;
@@ -1098,6 +1144,21 @@ function sendMessageToAChat(sender, config) {
     // Tag the bubble if it is a constant message
     if (config.constantKey) {
       messageBubble.dataset.constantKey = config.constantKey;
+    }
+    // Trigger TTS if in voice mode and message is not empty
+    if (isVoiceMode && config.message && config.message.trim().length > 0) {
+      const controller = new AbortController();
+      fetchMessage("", controller.signal, { method: "POST", endpoint: "/api/gpt/tts", body: { text: config.message } })
+        .then(response => response.body)
+        .then(stream => playAudioStream(stream, controller.signal))
+        .catch(err => {
+          console.error("TTS error:", err);
+          sendMessageToAChat(MessageSender.bot, {
+            message: "Sorry, I couldn’t play the audio response. Please try again.",
+            emotion: "sad",
+            customClass: "error-message"
+          });
+        });
     }
   } else {
     throw new Error("Message type is not defined in sendMessageToAChatFunction");

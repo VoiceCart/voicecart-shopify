@@ -110,6 +110,36 @@ export async function runChatCompletion({
     }
 }
 
+export async function generateSpeech({ text, signal }) {
+    const OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+    const body = {
+        model: "tts-1",
+        input: text,
+        voice: "alloy",
+        response_format: "mp3",
+        speed: 1.0
+    };
+
+    const response = await fetch(OPENAI_TTS_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify(body),
+        signal
+    });
+
+    if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`OpenAI TTS error: ${response.status} - ${errText}`);
+    }
+
+    return response.body; // Return the readable stream
+}
+
 export async function checkForExistingThread({
     sessionId, shop
 }) {
