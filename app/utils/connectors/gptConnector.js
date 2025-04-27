@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { infoLog } from "../logger.server.js";
-import { info } from "console";
+import OpenAI from 'openai';
+
 const prisma = new PrismaClient();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function getShopPrompt(baseSystemPrompt, shop) {
     if (!shop.includes('.myshopify.com')) {
@@ -24,14 +26,13 @@ export async function runChatCompletion({
     model = "gpt-4o-mini",
     temperature = 0,
     numberOfMessagesHistory = 10,
-    responseFormat = "text", // e.g., "text" or "json_object"
+    responseFormat = "text",
     stream = false,
     signal,
-    shop // optional; if provided, DB prompt will be appended
+    shop
 }) {
     infoLog.log("info", `DEBUG: Shop parameter received: ${shop}`);
     
-    // Append saved prompt from DB if shop is provided
     if (shop) {
         systemPrompt = await getShopPrompt(systemPrompt, shop);
         infoLog.log("info", `DEBUG: Combined system prompt for session ${sessionId}:\n${systemPrompt}`);
@@ -39,105 +40,50 @@ export async function runChatCompletion({
         infoLog.log("info", `DEBUG: No shop provided, using base system prompt only`);
     }
 
-    const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     const messages = await getThreadHistory({
         numberOfMessagesHistory,
         sessionId,
         userQuery,
         systemPrompt,
     });
-    const body = {
+
+    const response = await openai.chat.completions.create({
         model,
         messages,
         temperature,
         stream,
         response_format: { type: responseFormat },
-    };
-
-    const response = await fetch(OPENAI_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify(body),
-        signal
-    });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`OpenAI error: ${response.status} - ${errText}`);
-    }
+    }, { signal });
 
     if (!stream) {
-        const data = await response.json();
-        const finalAnswer = data?.choices?.[0]?.message?.content || "";
+        const finalAnswer = response.choices?.[0]?.message?.content || "";
         infoLog.log("info", `runChatCompletion Results for session ${sessionId} - ${finalAnswer}`);
         return finalAnswer.trim();
     } else {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
         let finalAnswer = "";
-
-        while (true) {
-            const { value, done } = await reader.read();
-            if (done) {
-                break;
-            }
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split("\n").filter((line) => line.trim() !== "");
-
-            for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                    const jsonStr = line.replace("data: ", "");
-                    if (jsonStr === "[DONE]") {
-                        break;
-                    }
-                    try {
-                        const parsed = JSON.parse(jsonStr);
-                        const token = parsed?.choices?.[0]?.delta?.content;
-                        if (token) {
-                            finalAnswer += token;
-                        }
-                    } catch (err) {
-                        // skip parse errors
-                    }
-                }
+        for await (const chunk of response) {
+            const token = chunk.choices?.[0]?.delta?.content;
+            if (token) {
+                finalAnswer += token;
             }
         }
         return finalAnswer;
     }
 }
 
-export async function generateSpeech({ text, signal }) {
-    const OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech";
-    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-    const body = {
-        model: "tts-1",
-        input: text,
-        voice: "alloy",
-        response_format: "mp3",
-        speed: 1.0
-    };
-
-    const response = await fetch(OPENAI_TTS_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify(body),
-        signal
-    });
-
-    if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`OpenAI TTS error: ${response.status} - ${errText}`);
+export async function generateSpeech({ text, instructions, signal }) {
+    try {
+        const response = await openai.audio.speech.create({
+            model: 'tts-1',
+            voice: 'alloy',
+            input: text,
+            instructions,
+        }, { signal });
+        return response;
+    } catch (error) {
+        console.error('OpenAI TTS error:', error);
+        throw error;
     }
-
-    return response.body; // Return the readable stream
 }
 
 export async function checkForExistingThread({
@@ -167,16 +113,13 @@ export async function checkForExistingThread({
 }
 
 export async function getThreadHistory({ numberOfMessagesHistory, sessionId, userQuery, systemPrompt }) {
-    // infoLog.log("info", `Session ${sessionId}`);
-    // infoLog.log("info", `Preparing chat history for session ${sessionId}`);
     const previousMessages = await prisma.chats.findMany({
         where: { sessionId },
         orderBy: { createdAt: "desc" },
         take: numberOfMessagesHistory,
     });
-    const conversationHistory = previousMessages.reverse(); // oldest -> newest
+    const conversationHistory = previousMessages.reverse();
 
-    // Build the messages array
     const messages = [];
     messages.push({ role: "system", content: systemPrompt });
 
@@ -185,5 +128,5 @@ export async function getThreadHistory({ numberOfMessagesHistory, sessionId, use
         messages.push({ role: "assistant", content: row.response });
     }
     messages.push({ role: "user", content: userQuery });
-    return messages
+    return messages;
 }
