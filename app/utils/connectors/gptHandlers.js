@@ -4,6 +4,35 @@ import { extractProduct } from "./embedingConnector.js";
 import { infoLog } from "../logger.server.js";
 
 
+async function sendVoiceMessage(text) {
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+    const response = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            model: 'gpt-4o-mini-tts', 
+            voice: 'nova', 
+            input: text,
+            response_format: 'wav'
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('TTS error:', errorText);
+        throw new Error(`TTS generation failed: ${response.status}`);
+    }
+
+    const audioBuffer = await response.arrayBuffer();
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/wav' });
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const audio = new Audio(audioUrl);
+    audio.play();
+}
+
 export async function getChatResponse({ userQuery, shop, sessionId, signal, lang }) {
     // 1. Extract
     const extractorResult = await processUserQuery("extract", userQuery, shop, sessionId, signal, lang);
@@ -623,6 +652,20 @@ export async function processUserQuery(intent, content, shop, sessionId, signal,
     const handler = intentMapping[intent];
     if (handler) {
         const response = await handler(content, { shop, sessionId, signal, lang });
+
+        // Play TTS if voice mode is enabled and the response is a message
+        if (globalThis.voiceModeActive) {
+            for (const item of response) {
+                if (item.type === 'message' && item.value) {
+                    try {
+                        await sendVoiceMessage(item.value);
+                    } catch (error) {
+                        console.error('Voice playback error:', error.message);
+                    }
+                }
+            }
+        }
+
         return response;
     }
     throw new Error(`No handler found for an intent ${intent} | ${content}`);

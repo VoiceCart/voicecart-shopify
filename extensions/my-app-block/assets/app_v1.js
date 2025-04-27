@@ -595,8 +595,14 @@ async function initListeners(navigationEngine, messageFactory) {
   });
 
   // Assign startVoiceCycle and stopVoiceCycle to be accessible
-  const startVoiceCycle = voiceChatCycle.start;
-  stopVoiceCycle = voiceChatCycle.stop;
+  const startVoiceCycle = () => {
+    globalThis.voiceModeActive = true;
+    voiceChatCycle.start();
+  };
+  stopVoiceCycle = () => {
+    globalThis.voiceModeActive = false;
+    voiceChatCycle.stop();
+  };
 
   voiceButton.addEventListener("click", async () => {
     if (isProcessing) {
