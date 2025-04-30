@@ -25,4 +25,29 @@ export async function insertAppBlock(session) {
 
   // 3. Проверить наличие блока
   const hasBlock = templateJSON.sections?.main?.blocks?.some(
-    (block) => block.type === "my-app-block::app-window
+    (block) => block.type === "my-app-block::app-window"
+  );
+
+  if (!hasBlock) {
+    templateJSON.sections.main.blocks.push({
+      type: "my-app-block::app-window",
+      settings: {},
+    });
+
+    // 4. Сохранить изменения
+    await client.put({
+      path: `themes/${mainTheme.id}/assets`,
+      data: {
+        asset: {
+          key: "templates/index.json",
+          value: JSON.stringify(templateJSON, null, 2),
+        },
+      },
+      type: "application/json",
+    });
+
+    console.log("✅ App block added to main theme.");
+  } else {
+    console.log("ℹ️ App block already present.");
+  }
+}
