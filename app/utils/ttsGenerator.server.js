@@ -1,13 +1,8 @@
-import { AsyncOpenAI } from "openai";
-import ffmpeg from "fluent-ffmpeg";
-import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
+import { OpenAI } from "openai";
 import { Readable } from "stream";
 
-// Устанавливаем путь к ffmpeg
-ffmpeg.setFfmpegPath(ffmpegInstaller.path);
-
 // Инициализация OpenAI клиента
-const openai = new AsyncOpenAI({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
@@ -22,7 +17,7 @@ export async function generateTTSStream() {
     // Генерация аудио с OpenAI TTS
     const response = await openai.audio.speech.create({
       model: "tts-1", // Стандартная модель TTS
-      voice: "alloy", // Используем доступный голос (sage недоступен, используем alloy)
+      voice: "alloy", // Используем доступный голос
       input,
       response_format: "mp3", // Получаем сразу MP3
     });
