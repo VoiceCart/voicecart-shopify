@@ -40,6 +40,8 @@
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "express-session": "^1.18.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "isbot": "^5.1.0",
     "openai": "^4.71.1",
     "parquet": "^0.0.0",

@@ -8,9 +8,9 @@ ENV NODE_ENV=production
 
 COPY package.json package-lock.json* ./
 
-# Устанавливаем OpenSSL 1.1 и сертификаты
+# Устанавливаем OpenSSL 1.1, сертификаты и ffmpeg
 RUN apt update && \
-    apt install -y openssl libssl1.1 ca-certificates && \
+    apt install -y openssl libssl1.1 ca-certificates ffmpeg && \
     rm -rf /var/lib/apt/lists/*
 
 RUN npm ci --omit=dev && npm cache clean --force

@@ -599,6 +599,27 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
+    // Воспроизведение сгенерированного голоса сразу при клике
+    try {
+      const audio = new Audio("/api/tts");
+      audio.play().catch((error) => {
+        console.error("Error playing TTS audio:", error);
+        sendMessageToAChat(MessageSender.bot, {
+          message: "Failed to play audio. Please try again.",
+          emotion: "sad",
+          customClass: "error-message",
+        });
+      });
+    } catch (error) {
+      console.error("Error initiating TTS audio:", error);
+      sendMessageToAChat(MessageSender.bot, {
+        message: "Failed to initiate audio. Please try again.",
+        emotion: "sad",
+        customClass: "error-message",
+      });
+    }
+  
+    // Существующая логика голосового ввода остается без изменений
     if (isProcessing) {
       console.log("Request in progress, voice input disabled.");
       return;
@@ -606,7 +627,7 @@ async function initListeners(navigationEngine, messageFactory) {
   
     // Debug logging to help troubleshoot
     console.log("Voice button clicked");
-    
+  
     // Make sure we have the chat container to add messages to
     const chatContainer = document.querySelector("#chat-view") || document.querySelector(".chat-messages-container");
     if (!chatContainer) {
@@ -616,18 +637,14 @@ async function initListeners(navigationEngine, messageFactory) {
   
     // First create a direct DOM element for browser support message if needed
     const createErrorMessage = (message) => {
-      // Try the proper way first
       try {
         sendMessageToAChat(MessageSender.bot, {
           message: message,
           emotion: "sad",
-          customClass: "error-message"
+          customClass: "error-message",
         });
       } catch (err) {
-        // Fallback if sendMessageToAChat fails
         console.error("Error in sendMessageToAChat:", err);
-        
-        // Direct DOM manipulation as fallback
         const messageElement = document.createElement("div");
         messageElement.classList.add("chat-bot-message", "error-message");
         messageElement.innerHTML = `
@@ -636,13 +653,10 @@ async function initListeners(navigationEngine, messageFactory) {
         `;
         chatContainer.appendChild(messageElement);
       }
-      
-      // Try both scrolling methods to ensure visibility
       try {
         scrollChatToBottom();
       } catch (err) {
         console.error("Error in scrollChatToBottom:", err);
-        // Fallback scrolling
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
     };
@@ -668,15 +682,14 @@ async function initListeners(navigationEngine, messageFactory) {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
-        }
+          autoGainControl: true,
+        },
       });
       navigationEngine.goToVoiceInput();
       navigationEngine.goToChat();
       startVoiceCycle();
     } catch (error) {
       console.error("Error accessing microphone:", error);
-      // Create more robust microphone access error message
       createErrorMessage("Microphone access is required for voice mode. Please allow access to continue.");
     }
   });
