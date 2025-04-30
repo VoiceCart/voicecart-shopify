@@ -6,6 +6,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+COPY .env .env
 COPY package.json package-lock.json* ./
 
 # Устанавливаем ffmpeg, OpenSSL 1.1 и сертификаты
