@@ -1,6 +1,7 @@
 import { generateTTSStream } from "../utils/ttsGenerator.server";
 
-export async function loader() {
+// Именованный экспорт loader
+export const loader = async () => {
   try {
     // Получаем MP3-поток
     const mp3Stream = await generateTTSStream();
@@ -18,4 +19,4 @@ export async function loader() {
     console.error("TTS API error:", error);
     return new Response("Error generating audio", { status: 500 });
   }
-}
+};

@@ -20,29 +20,15 @@ const instructions = `Accent/Affect: Warm, refined, and gently instructive, remi
 export async function generateTTSStream() {
   try {
     // Генерация аудио с OpenAI TTS
-    const response = await openai.audio.speech.with_streaming_response.create({
-      model: "gpt-4o-mini-tts",
-      voice: "sage",
+    const response = await openai.audio.speech.create({
+      model: "tts-1", // Стандартная модель TTS
+      voice: "alloy", // Используем доступный голос (sage недоступен, используем alloy)
       input,
-      instructions,
-      response_format: "pcm",
+      response_format: "mp3", // Получаем сразу MP3
     });
 
-    // Собираем PCM-данные в Buffer
-    const pcmBuffer = Buffer.concat(await response.body.toArray());
-
-    // Создаем Readable поток из PCM
-    const pcmStream = new Readable();
-    pcmStream.push(pcmBuffer);
-    pcmStream.push(null); // Завершаем поток
-
-    // Создаем MP3-поток с помощью ffmpeg
-    const mp3Stream = ffmpeg()
-      .input(pcmStream)
-      .inputOptions(["-f s16le", "-ar 24000", "-ac 1"]) // PCM: 16-bit, 24kHz, mono
-      .audioCodec("libmp3lame")
-      .format("mp3")
-      .pipe();
+    // Получаем MP3-данные как поток
+    const mp3Stream = response.body; // response.body уже является потоком
 
     return mp3Stream;
   } catch (error) {

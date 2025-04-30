@@ -599,24 +599,54 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
-    // Воспроизведение сгенерированного голоса сразу при клике
+    console.log("Attempting to play TTS audio from /api/tts");
     try {
       const audio = new Audio("/api/tts");
       audio.play().catch((error) => {
         console.error("Error playing TTS audio:", error);
-        sendMessageToAChat(MessageSender.bot, {
-          message: "Failed to play audio. Please try again.",
-          emotion: "sad",
-          customClass: "error-message",
-        });
+        try {
+          sendMessageToAChat(MessageSender.bot, {
+            message: `Failed to play audio: ${error.message}. Please try again.`,
+            emotion: "sad",
+            customClass: "error-message",
+          });
+        } catch (uiError) {
+          console.error("Failed to display error in chat:", uiError);
+          const chatContainer = document.querySelector("#chat-view") || document.querySelector(".chat-messages-container");
+          if (chatContainer) {
+            const errorElement = document.createElement("div");
+            errorElement.classList.add("chat-bot-message", "error-message");
+            errorElement.innerHTML = `
+              <div class="chat-bot-avatar sad"></div>
+              <div class="chat-bot-message-content">Failed to play audio: ${error.message}. Please try again.</div>
+            `;
+            chatContainer.appendChild(errorElement);
+            scrollChatToBottom();
+          }
+        }
       });
     } catch (error) {
       console.error("Error initiating TTS audio:", error);
-      sendMessageToAChat(MessageSender.bot, {
-        message: "Failed to initiate audio. Please try again.",
-        emotion: "sad",
-        customClass: "error-message",
-      });
+      try {
+        sendMessageToAChat(MessageSender.bot, {
+          message: `Failed to initiate audio: ${error.message}. Please try again.`,
+          emotion: "sad",
+          customClass: "error-message",
+        });
+      } catch (uiError) {
+        console.error("Failed to display error in chat:", uiError);
+        const chatContainer = document.querySelector("#chat-view") || document.querySelector(".chat-messages-container");
+        if (chatContainer) {
+          const errorElement = document.createElement("div");
+          errorElement.classList.add("chat-bot-message", "error-message");
+          errorElement.innerHTML = `
+            <div class="chat-bot-avatar sad"></div>
+            <div class="chat-bot-message-content">Failed to initiate audio: ${error.message}. Please try again.</div>
+          `;
+          chatContainer.appendChild(errorElement);
+          scrollChatToBottom();
+        }
+      }
     }
   
     // Существующая логика голосового ввода остается без изменений
