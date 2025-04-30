@@ -34,6 +34,7 @@ const api = shopifyApi({
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.April24,
   restResources,
+  hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, '') || '',
 });
 
 export default shopify;
