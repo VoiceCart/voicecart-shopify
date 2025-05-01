@@ -599,37 +599,20 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
-    console.log("Attempting to play TTS audio from /api/tts");
+    console.log("Attempting to fetch and play TTS audio from /api/tts");
     try {
-      const audio = new Audio("api/tts");
-      audio.play().catch((error) => {
-        console.error("Error playing TTS audio:", error);
-        try {
-          sendMessageToAChat(MessageSender.bot, {
-            message: `Failed to play audio: ${error.message}. Please try again.`,
-            emotion: "sad",
-            customClass: "error-message",
-          });
-        } catch (uiError) {
-          console.error("Failed to display error in chat:", uiError);
-          const chatContainer = document.querySelector("#chat-view") || document.querySelector(".chat-messages-container");
-          if (chatContainer) {
-            const errorElement = document.createElement("div");
-            errorElement.classList.add("chat-bot-message", "error-message");
-            errorElement.innerHTML = `
-              <div class="chat-bot-avatar sad"></div>
-              <div class="chat-bot-message-content">Failed to play audio: ${error.message}. Please try again.</div>
-            `;
-            chatContainer.appendChild(errorElement);
-            scrollChatToBottom();
-          }
-        }
-      });
+      const response = await fetch("/api/tts");
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      await audio.play();
     } catch (error) {
-      console.error("Error initiating TTS audio:", error);
+      console.error("Error playing TTS audio:", error);
       try {
         sendMessageToAChat(MessageSender.bot, {
-          message: `Failed to initiate audio: ${error.message}. Please try again.`,
+          message: `Failed to play audio: ${error.message}. Please try again.`,
           emotion: "sad",
           customClass: "error-message",
         });
@@ -641,12 +624,13 @@ async function initListeners(navigationEngine, messageFactory) {
           errorElement.classList.add("chat-bot-message", "error-message");
           errorElement.innerHTML = `
             <div class="chat-bot-avatar sad"></div>
-            <div class="chat-bot-message-content">Failed to initiate audio: ${error.message}. Please try again.</div>
+            <div class="chat-bot-message-content">Failed to play audio: ${error.message}. Please try again.</div>
           `;
           chatContainer.appendChild(errorElement);
           scrollChatToBottom();
         }
       }
+      return;
     }
   
     // Существующая логика голосового ввода остается без изменений
