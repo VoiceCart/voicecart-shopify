@@ -1,4 +1,4 @@
-import { generateTTSStream } from "../../utils/ttsGenerator.server";
+import { generateTTSStream } from "../../utils/ttsGenerator.server.js";
 
 export const loader = async () => {
   try {
