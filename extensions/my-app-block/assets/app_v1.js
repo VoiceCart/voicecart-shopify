@@ -601,7 +601,7 @@ async function initListeners(navigationEngine, messageFactory) {
   voiceButton.addEventListener("click", async () => {
     console.log("Attempting to play TTS audio from /api/tts");
     try {
-      const audio = new Audio("/apps/voicecart/api/tts");
+      const audio = new Audio("api/tts");
       audio.play().catch((error) => {
         console.error("Error playing TTS audio:", error);
         try {
