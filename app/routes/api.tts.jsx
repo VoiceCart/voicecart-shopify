@@ -1,5 +1,4 @@
 import { json } from "@remix-run/node";
-import { authenticate } from "../shopify.server";
 import { generateTTSStream } from "../utils/ttsGenerator.server.js";
 
 export const loader = async ({ request }) => {
