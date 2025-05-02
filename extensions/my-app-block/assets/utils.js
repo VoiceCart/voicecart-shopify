@@ -77,11 +77,10 @@ function deleteCookie(name) {
  * @returns {string} - Full URL for fetch requests
  */
 function getApiUrl(path) {
-  // если мы на витрине магазина — проксируем через App Proxy
   if (window.location.host.includes(".myshopify.com")) {
-    // prefix = "apps", значит /apps/<path> → https://your-app/api/<path>
-    return `/apps${path.startsWith("/") ? path : "/" + path}`;
+    // ProxyPrefix = apps, ProxySubpath = api
+    return `/apps/api${path.startsWith("/") ? path : "/" + path}`;
   }
-  // иначе — локальная разработка или embedded admin app
+  // embedded admin / локалка
   return path;
 }
