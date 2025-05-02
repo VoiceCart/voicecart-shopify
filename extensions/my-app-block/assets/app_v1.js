@@ -607,11 +607,7 @@ async function initListeners(navigationEngine, messageFactory) {
       // Добавляем заголовки для предотвращения кэширования
       const response = await fetch(fullApiUrl, {
         method: 'GET',
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        },
-        credentials: 'same-origin' // Важно для передачи сессионных куки
+        credentials: 'same-origin'
       });
       
       if (!response.ok) {
