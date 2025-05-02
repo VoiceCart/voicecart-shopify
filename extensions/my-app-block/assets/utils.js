@@ -77,11 +77,20 @@ function deleteCookie(name) {
  * @returns {string} - Full URL for fetch requests
  */
 function getApiUrl(path) {
-  // When in Shopify admin
+  // При работе в Shopify магазине
   if (window.location.host.includes('.myshopify.com')) {
+    // Проверяем доступность глобальной конфигурации
+    if (window.shopify && window.shopify.config) {
+      // Используем конфигурацию из глобального объекта shopify
+      const basePath = window.shopify.config.appPath || '/api';
+      return `${basePath}${path.startsWith('/') ? path : '/' + path}`;
+    }
+    
+    // Если конфигурация недоступна, используем относительный путь
+    // Это очень важно - не используем абсолютный URL, а только относительный путь
     return `/api${path.startsWith('/') ? path : '/' + path}`;
   }
   
-  // Local development
+  // Для локальной разработки
   return path;
 }

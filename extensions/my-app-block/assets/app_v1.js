@@ -602,9 +602,17 @@ async function initListeners(navigationEngine, messageFactory) {
     const apiPath = "/tts";
     const fullApiUrl = getApiUrl(apiPath);
     
-    console.log(`Attempting to fetch and play TTS audio from ${fullApiUrl}`);
+    console.log(`Attempting to fetch and play TTS audio from ${apiPath}`);
     try {
-      const response = await fetch(fullApiUrl);
+      // Добавляем заголовки для предотвращения кэширования
+      const response = await fetch(fullApiUrl, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        credentials: 'same-origin' // Важно для передачи сессионных куки
+      });
       
       if (!response.ok) {
         console.error(`HTTP Error: ${response.status}`);
