@@ -1,16 +1,21 @@
 import { generateTTSStream } from "../utils/ttsGenerator.server.js";
 
 export const loader = async ({ request }) => {
+  console.log("\n\n====== TTS API CALLED ======");
+  console.log(`TTS API URL: ${request.url}`);
+  console.log(`TTS API Method: ${request.method}`);
+  console.log(`TTS API Headers:`, Object.fromEntries(request.headers.entries()));
+  
   try {
-    console.log(`TTS API called from: ${request.url}`);
+    console.log("Generating TTS stream...");
     const mp3Stream = await generateTTSStream();
+    console.log("TTS stream generated successfully!");
 
     return new Response(mp3Stream, {
       status: 200,
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-store",
-        // Add CORS headers to ensure it works in embedded contexts
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET",
       },

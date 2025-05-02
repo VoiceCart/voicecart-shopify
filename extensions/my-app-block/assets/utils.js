@@ -70,3 +70,18 @@ function deleteCookie(name) {
   document.cookie =
     name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }
+
+/**
+ * Returns the correct URL for API requests based on the context
+ * @param {string} path - API path (e.g. '/api/tts')
+ * @returns {string} - Full URL for fetch requests
+ */
+function getApiUrl(path) {
+  // When in Shopify admin
+  if (window.location.host.includes('.myshopify.com')) {
+    return `/api${path.startsWith('/') ? path : '/' + path}`;
+  }
+  
+  // Local development
+  return path;
+}

@@ -599,18 +599,17 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
-    console.log("Attempting to fetch and play TTS audio from /api/tts");
+    const apiPath = "/tts";
+    const fullApiUrl = getApiUrl(apiPath);
+    
+    console.log(`Attempting to fetch and play TTS audio from ${fullApiUrl}`);
     try {
-      // Get the base URL of your app
-      // For Shopify embedded apps, we need to determine if we're in the admin context
-      const appUrl = window.shopify?.config?.apiKey 
-        ? `/apps/voicecart/api/tts`
-        : `/api/tts`;
+      const response = await fetch(fullApiUrl);
       
-      console.log(`Fetching TTS from: ${appUrl}`);
-      const response = await fetch(appUrl);
-      
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      if (!response.ok) {
+        console.error(`HTTP Error: ${response.status}`);
+        throw new Error(`HTTP ${response.status}`);
+      }
   
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
