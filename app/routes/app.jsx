@@ -9,24 +9,39 @@ import { authenticate } from "../shopify.server";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
-
-  return json({ apiKey: process.env.SHOPIFY_API_KEY || "" });
+  const { admin, session } = await authenticate.admin(request);
+  
+  return json({ 
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    shopOrigin: session.shop
+  });
 };
 
 export default function App() {
-  const { apiKey } = useLoaderData();
+  const { apiKey, shopOrigin } = useLoaderData();
 
   return (
-    <AppProvider isEmbeddedApp apiKey={apiKey}>
-      <NavMenu>
-        <Link to="/app" rel="home">
-          Home
-        </Link>
-        
-      </NavMenu>
-      <Outlet />
-    </AppProvider>
+    <>
+      <AppProvider isEmbeddedApp apiKey={apiKey}>
+        <NavMenu>
+          <Link to="/app" rel="home">
+            Home
+          </Link>
+        </NavMenu>
+        <Outlet />
+      </AppProvider>
+      
+      {/* Добавляем глобальную конфигурацию для клиентских скриптов */}
+      <script dangerouslySetInnerHTML={{ __html: `
+        window.shopify = {
+          config: {
+            apiKey: "${apiKey}",
+            shopOrigin: "${shopOrigin || ''}",
+            appPath: "/api" // Путь для API вызовов
+          }
+        };
+      `}} />
+    </>
   );
 }
 
