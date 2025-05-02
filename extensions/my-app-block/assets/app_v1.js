@@ -599,7 +599,7 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   voiceButton.addEventListener("click", async () => {
-    const apiPath = "/api.tts";
+    const apiPath = "/tts";
     const fullApiUrl = getApiUrl(apiPath);
     
     console.log(`Attempting to fetch and play TTS audio from ${apiPath}`);
