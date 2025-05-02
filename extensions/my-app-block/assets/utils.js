@@ -77,10 +77,10 @@ function deleteCookie(name) {
  * @returns {string} - Full URL for fetch requests
  */
 function getApiUrl(path) {
+  // если мы на myshopify.com — звоним прямо на ваш сервер
   if (window.location.host.includes(".myshopify.com")) {
-    // ProxyPrefix = apps, ProxySubpath = api
-    return `/apps/api${path.startsWith("/") ? path : "/" + path}`;
+    return `https://howmuchfor.site/api${path.startsWith("/") ? path : "/" + path}`;
   }
-  // embedded admin / локалка
+  // иначе (админка, локалка) — относительный путь к embedded-app
   return path;
 }
