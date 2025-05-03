@@ -603,23 +603,28 @@ async function initListeners(navigationEngine, messageFactory) {
     let apiPath;
 
     if (firstGreeting) {
-      // 1-е нажатие — только хардкодное приветствие (loader fallback)
+      // Первое нажатие — отдаем стандартное приветствие
       apiPath = "/tts";
       firstGreeting = false;
     } else {
-      // все последующие — берём последний текст бота и шлём в TTS
-      const lastBubble = document.querySelector(
-        ".chat-bot-message-content:last-of-type"
-      );
-      const text = encodeURIComponent(lastBubble?.textContent || "");
-      apiPath = `/tts?text=${text}`;
+      // Последующие — забираем последний бот-текст из DOM и шлём его на TTS
+      const bubbles     = document.querySelectorAll(".chat-bot-message-content");
+      const lastBubble  = bubbles[bubbles.length - 1];
+      const textRaw     = lastBubble?.textContent ?? "";
+      const text        = textRaw.trim();
+  
+      if (!text) {
+        console.error("Voice TTS: нет текста для озвучивания");
+        return;
+      }
+      apiPath = `/tts?text=${encodeURIComponent(text)}`;
     }
   
     const fullApiUrl = getApiUrl(apiPath);
   
     try {
       const response = await fetch(fullApiUrl, {
-        method: "GET",
+        method:      "GET",
         credentials: "same-origin",
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
