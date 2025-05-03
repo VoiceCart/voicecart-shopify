@@ -73,14 +73,29 @@ function deleteCookie(name) {
 
 /**
  * Returns the correct URL for API requests based on the context
- * @param {string} path - API path (e.g. '/api/tts')
+ * @param {string} path - API path (e.g. '/tts')
  * @returns {string} - Full URL for fetch requests
  */
 function getApiUrl(path) {
-  // если мы на myshopify.com — звоним прямо на ваш сервер
-  if (window.location.host.includes(".myshopify.com")) {
-    return `https://howmuchfor.site/api${path.startsWith("/") ? path : "/" + path}`;
+  // При работе в Shopify магазине
+  if (window.location.host.includes('.myshopify.com')) {
+    // маршрут прокси из shopify.app.toml: prefix = "apps", subpath = "api"
+    const proxyBase = '/apps/api';
+
+    // Если вы явно переопределяли appPath (обычно "/api"), 
+    // заменим его на прокси-путь
+    if (window.shopify && window.shopify.config) {
+      // если пользователь держал appPath="/api", то возьмём "/apps/api"
+      const basePath = window.shopify.config.appPath === '/api'
+        ? proxyBase
+        : window.shopify.config.appPath;
+      return `${basePath}${path.startsWith('/') ? path : '/' + path}`;
+    }
+
+    // если нет window.shopify.config — просто берём прокси
+    return `${proxyBase}${path.startsWith('/') ? path : '/' + path}`;
   }
-  // иначе (админка, локалка) — относительный путь к embedded-app
+
+  // Для локальной разработки — оставляем как есть
   return path;
 }
