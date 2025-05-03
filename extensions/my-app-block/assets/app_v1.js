@@ -89,6 +89,35 @@ const constantMessages = {
 // ===================== Helper Functions =====================
 
 let lastAppliedDiscountCode = null;
+let firstGreeting = true;
+let isVoiceMode = false;
+
+/**
+ * Helper to fetch TTS MP3 and play it.
+ */
+async function speakText(text) {
+  const apiPath   = `/tts?text=${encodeURIComponent(text)}`;
+  const fullApiUrl = getApiUrl(apiPath);
+  try {
+    const response = await fetch(fullApiUrl, {
+      method:      "GET",
+      credentials: "same-origin",
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const blob = await response.blob();
+    const url  = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    await audio.play();
+  } catch (error) {
+    console.error("Error playing TTS audio:", error);
+    sendMessageToAChat(MessageSender.bot, {
+      message:    `Failed to play audio: ${error.message}. Please try again.`,
+      emotion:    "sad",
+      customClass:"error-message",
+    });
+  }
+}
+
 
 // Add a function to generate the checkout URL using Shopify Storefront API
 async function generateCheckoutUrl(discountCode = null) {
@@ -474,6 +503,7 @@ async function initListeners(navigationEngine, messageFactory) {
       if (stopVoiceCycle) {
         stopVoiceCycle();
         navigationEngine.goToTextInput();
+        isVoiceMode = false;
       }
     });
   }
@@ -483,6 +513,7 @@ async function initListeners(navigationEngine, messageFactory) {
       if (stopVoiceCycle) {
         stopVoiceCycle();
         navigationEngine.goToTextInput();
+        isVoiceMode = false;
       }
     });
   }
@@ -597,31 +628,25 @@ async function initListeners(navigationEngine, messageFactory) {
   // Assign startVoiceCycle and stopVoiceCycle to be accessible
   const startVoiceCycle = voiceChatCycle.start;
   stopVoiceCycle = voiceChatCycle.stop;
-  let firstGreeting = true;
 
   voiceButton.addEventListener("click", async () => {
     let apiPath;
-
     if (firstGreeting) {
-      // Первое нажатие — отдаем стандартное приветствие
       apiPath = "/tts";
       firstGreeting = false;
     } else {
-      // Последующие — забираем последний бот-текст из DOM и шлём его на TTS
-      const bubbles     = document.querySelectorAll(".chat-bot-message-content");
-      const lastBubble  = bubbles[bubbles.length - 1];
-      const textRaw     = lastBubble?.textContent ?? "";
-      const text        = textRaw.trim();
-  
+      const bubbles    = document.querySelectorAll(".chat-bot-message-content");
+      const lastBubble = bubbles[bubbles.length - 1];
+      const textRaw    = lastBubble?.textContent ?? "";
+      const text       = textRaw.trim();
       if (!text) {
         console.error("Voice TTS: нет текста для озвучивания");
         return;
       }
       apiPath = `/tts?text=${encodeURIComponent(text)}`;
     }
-  
+
     const fullApiUrl = getApiUrl(apiPath);
-  
     try {
       const response = await fetch(fullApiUrl, {
         method:      "GET",
@@ -632,12 +657,14 @@ async function initListeners(navigationEngine, messageFactory) {
       const url  = URL.createObjectURL(blob);
       const audio = new Audio(url);
       await audio.play();
+      // now that we've spoken (greeting or last bot message), enter voice‐input mode
+      isVoiceMode = true;
     } catch (error) {
       console.error("Error playing TTS audio:", error);
       sendMessageToAChat(MessageSender.bot, {
-        message: `Failed to play audio: ${error.message}. Please try again.`,
-        emotion: "sad",
-        customClass: "error-message",
+        message:    `Failed to play audio: ${error.message}. Please try again.`,
+        emotion:    "sad",
+        customClass:"error-message",
       });
     }
   
@@ -1133,6 +1160,9 @@ function sendMessageToAChat(sender, config) {
   }
   messageBubble.classList.add("fade-in");
   appendMessageToGroup(sender, messageBubble);
+  if (sender === MessageSender.bot && isVoiceMode) {
+    speakText(config.message);
+  }
   return messageBubble;
 }
 
