@@ -597,51 +597,43 @@ async function initListeners(navigationEngine, messageFactory) {
   // Assign startVoiceCycle and stopVoiceCycle to be accessible
   const startVoiceCycle = voiceChatCycle.start;
   stopVoiceCycle = voiceChatCycle.stop;
+  let firstGreeting = true;
 
   voiceButton.addEventListener("click", async () => {
-    const apiPath = "/tts";
-    const fullApiUrl = getApiUrl(apiPath);
-    
-    console.log(`Attempting to fetch and play TTS audio from ${apiPath}`);
-    try {
-      // Добавляем заголовки для предотвращения кэширования
-      const response = await fetch(fullApiUrl, {
-        method: 'GET',
-        credentials: 'same-origin'
-      });
-      
-      if (!response.ok) {
-        console.error(`HTTP Error: ${response.status}`);
-        throw new Error(`HTTP ${response.status}`);
-      }
+    let apiPath;
+
+    if (firstGreeting) {
+      // 1-е нажатие — только хардкодное приветствие (loader fallback)
+      apiPath = "/tts";
+      firstGreeting = false;
+    } else {
+      // все последующие — берём последний текст бота и шлём в TTS
+      const lastBubble = document.querySelector(
+        ".chat-bot-message-content:last-of-type"
+      );
+      const text = encodeURIComponent(lastBubble?.textContent || "");
+      apiPath = `/tts?text=${text}`;
+    }
   
+    const fullApiUrl = getApiUrl(apiPath);
+  
+    try {
+      const response = await fetch(fullApiUrl, {
+        method: "GET",
+        credentials: "same-origin",
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const url  = URL.createObjectURL(blob);
       const audio = new Audio(url);
       await audio.play();
     } catch (error) {
       console.error("Error playing TTS audio:", error);
-      try {
-        sendMessageToAChat(MessageSender.bot, {
-          message: `Failed to play audio: ${error.message}. Please try again.`,
-          emotion: "sad",
-          customClass: "error-message",
-        });
-      } catch (uiError) {
-        console.error("Failed to display error in chat:", uiError);
-        const chatContainer = document.querySelector("#chat-view") || document.querySelector(".chat-messages-container");
-        if (chatContainer) {
-          const errorElement = document.createElement("div");
-          errorElement.classList.add("chat-bot-message", "error-message");
-          errorElement.innerHTML = `
-            <div class="chat-bot-avatar sad"></div>
-            <div class="chat-bot-message-content">Failed to play audio: ${error.message}. Please try again.</div>
-          `;
-          chatContainer.appendChild(errorElement);
-          scrollChatToBottom();
-        }
-      }
-      return;
+      sendMessageToAChat(MessageSender.bot, {
+        message: `Failed to play audio: ${error.message}. Please try again.`,
+        emotion: "sad",
+        customClass: "error-message",
+      });
     }
   
     // Существующая логика голосового ввода остается без изменений
