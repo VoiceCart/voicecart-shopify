@@ -65,6 +65,7 @@ const constantMessages = {
     de: "Entschuldigung, aber wir können nicht ohne Ihre Zustimmung zu Cookies arbeiten.",
     cs: "Omlouváme se, ale bez vašeho souhlasu s cookies nemůžeme pracovat."
   },
+  // New keys for cancel chat confirmation
   endChatConfirmation: {
     en: "Are you sure you want to end the chat?",
     ru: "Вы уверены, что хотите завершить чат?",
@@ -91,51 +92,34 @@ let lastAppliedDiscountCode = null;
 let lastBotMessageText = null;
 let firstGreeting = true;
 let isVoiceMode = false;
-let isMuted = false; // New flag for mute state
-let currentAudio = null; // Track current audio object
-
-/**
- * Stops the currently playing audio.
- */
-function stopCurrentAudio() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    URL.revokeObjectURL(currentAudio.src);
-    currentAudio = null;
-  }
-}
 
 /**
  * Helper to fetch TTS MP3 and play it.
  */
 async function speakText(text) {
-  if (isMuted) return; // Skip if muted
-  const apiPath = `/tts?text=${encodeURIComponent(text)}`;
+  const apiPath    = `/tts?text=${encodeURIComponent(text)}`;
   const fullApiUrl = getApiUrl(apiPath);
   try {
     const response = await fetch(fullApiUrl, {
-      method: "GET",
+      method:      "GET",
       credentials: "same-origin",
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    currentAudio = new Audio(url); // Store audio object
-    currentAudio.play().catch(console.error);
-    // Clean up after playback ends
-    currentAudio.onended = () => {
-      stopCurrentAudio();
-    };
+    const blob  = await response.blob();
+    const url   = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    // Kick off play, but do NOT await it:
+    audio.play().catch(console.error);
   } catch (error) {
     console.error("Error playing TTS audio:", error);
     sendMessageToAChat(MessageSender.bot, {
-      message: `Failed to play audio: ${error.message}. Please try again.`,
-      emotion: "sad",
-      customClass: "error-message",
+      message:    `Failed to play audio: ${error.message}. Please try again.`,
+      emotion:    "sad",
+      customClass:"error-message",
     });
   }
 }
+
 
 // Add a function to generate the checkout URL using Shopify Storefront API
 async function generateCheckoutUrl(discountCode = null) {
@@ -536,28 +520,6 @@ async function initListeners(navigationEngine, messageFactory) {
     });
   }
 
-  // Add listener for stop voice button
-  const stopVoiceButton = document.querySelector("#stop-voice-button");
-  if (stopVoiceButton) {
-    stopVoiceButton.addEventListener("click", () => {
-      stopCurrentAudio();
-    });
-  }
-
-  // Add listener for mute voice button
-  const muteVoiceButton = document.querySelector("#mute-voice-button");
-  if (muteVoiceButton) {
-    muteVoiceButton.addEventListener("click", () => {
-      isMuted = !isMuted;
-      // Update button icon based on mute state
-      const svg = muteVoiceButton.querySelector("svg");
-      svg.innerHTML = isMuted
-        ? `<path d="M19 11h2M17 9v6M12 5L6 9H3v6h3l6 4v-14zm-2 10l-4-3H5v-2h1l4-3v8z" stroke="#121212" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`
-        : `<path d="M12 5L6 9H3v6h3l6 4v-14zm-2 10l-4-3H5v-2h1l4-3v8z" stroke="#121212" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
-      console.log(`Voice mode ${isMuted ? "muted" : "unmuted"}`);
-    });
-  }
-
   // Query input & send button
   const queryInput = document.querySelector("#query-input");
   const sendButton = document.querySelector("#send-query-button");
@@ -654,26 +616,14 @@ async function initListeners(navigationEngine, messageFactory) {
   
     onTTSStart: (text) => {
       console.log("TTS started:", text);
-      // Stop voice recognition to prevent self-dictation
-      if (stopVoiceCycle) {
-        stopVoiceCycle();
-      }
     },
   
     onTTSEnd: (text) => {
       console.log("TTS ended:", text);
-      // Restart voice recognition after TTS ends
-      if (isVoiceMode && startVoiceCycle) {
-        startVoiceCycle();
-      }
     },
   
     onTTSError: (error) => {
       console.error("TTS error:", error);
-      // Restart voice recognition on error
-      if (isVoiceMode && startVoiceCycle) {
-        startVoiceCycle();
-      }
     }
   });
 
@@ -701,22 +651,22 @@ async function initListeners(navigationEngine, messageFactory) {
     const fullApiUrl = getApiUrl(apiPath);
     try {
       const response = await fetch(fullApiUrl, {
-        method: "GET",
+        method:      "GET",
         credentials: "same-origin",
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      currentAudio = new Audio(url);
-      await currentAudio.play();
+      const url  = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      await audio.play();
       // now that we've spoken (greeting or last bot message), enter voice‐input mode
       isVoiceMode = true;
     } catch (error) {
       console.error("Error playing TTS audio:", error);
       sendMessageToAChat(MessageSender.bot, {
-        message: `Failed to play audio: ${error.message}. Please try again.`,
-        emotion: "sad",
-        customClass: "error-message",
+        message:    `Failed to play audio: ${error.message}. Please try again.`,
+        emotion:    "sad",
+        customClass:"error-message",
       });
     }
   
@@ -883,7 +833,8 @@ async function handleUserQuery(messageText, options) {
                 });
               }
             } else {
-              console.log(`No additional units added. Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredQuantity}`);
+              console.log(`#pragma once
+No additional units added. Cart already has ${currentQuantity} units of variantId ${action.variantId}, desired ${desiredQuantity}`);
             }
           } catch (error) {
             console.error("Error adding item to cart:", error);
