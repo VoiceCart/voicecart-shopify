@@ -11,7 +11,7 @@ const openai = new OpenAI({
  */
 export async function generateTTSStream(text) {
   try {
-    const response = await openai.audio.speech.with_streaming_response.create({
+    const response = await openai.audio.speech.create({
       model:           "gpt-4o-mini-tts",
       voice:           "sage",
       input:           text,
