@@ -131,3 +131,58 @@
     </div>
   </div>
 </template>
+
+<!-- Подключаем CSS и JavaScript для блока -->
+<link rel="stylesheet" href="{{ 'styles_v1.css' | asset_url }}">
+<!-- Required Core Stylesheet -->
+<link rel="stylesheet" href="{{ 'glide.core.min.css' | asset_url }}">
+<!-- Optional Theme Stylesheet -->
+<link rel="stylesheet" href="{{ 'glide.theme.min.css' | asset_url }}">
+
+<script src="https://unpkg.com/@glidejs/glide"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+  rel="stylesheet"
+>
+<link href="https://fonts.googleapis.com/css2?family=Anek+Gujarati:wght@100..800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+
+<div
+  class="invisible"
+  id="eva-chat-pics"
+  eva-welcoming="{{ " eva-welcoming.png" | asset_url }}"
+  eva-thinking="
+    {{ "
+    eva-thinking.png" | asset_url }}
+  "
+  eva-sad="{{ " eva-sad.png" | asset_url }}"
+></div>
+
+<div id="chatbot-logo" chatbot-logo="{{ " eva-welcoming.png" | asset_url}}"></div>
+
+<script src="{{ 'productCards.js' | asset_url }}"></script>
+<script src="{{ 'navigation.js' | asset_url }}"></script>
+<script src="{{ 'factories.js' | asset_url }}"></script>
+<script src="{{ 'fetchers.js' | asset_url }}"></script>
+<script src="{{ 'utils.js' | asset_url }}"></script>
+<script src="{{ 'tw.js' | asset_url }}"></script>
+<script src="{{ 'speechRecognition.js' | asset_url }}"></script>
+<script src="{{ 'app_v1.js' | asset_url }}"></script>
+<script src="{{ 'cart.js' | asset_url }}"></script>
+
+{% schema %}
+{
+  "name": "App Window",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Eva Assistant"
+    }
+  ]
+}
+{% endschema %}
