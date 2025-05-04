@@ -92,11 +92,18 @@ let lastAppliedDiscountCode = null;
 let lastBotMessageText = null;
 let firstGreeting = true;
 let isVoiceMode = false;
+let currentAudio = null;
+let isMuted     = false;
 
 /**
  * Helper to fetch TTS MP3 and play it.
+ * – stops any current audio,
+ * – respects mute toggle,
+ * – locks input until playback ends.
  */
 async function speakText(text) {
+  if (isMuted) return;
+
   const apiPath    = `/tts?text=${encodeURIComponent(text)}`;
   const fullApiUrl = getApiUrl(apiPath);
   try {
@@ -105,11 +112,29 @@ async function speakText(text) {
       credentials: "same-origin",
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob  = await response.blob();
-    const url   = URL.createObjectURL(blob);
+    const blob = await response.blob();
+    const url  = URL.createObjectURL(blob);
+
+    // Stop any existing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
     const audio = new Audio(url);
-    // Kick off play, but do NOT await it:
-    audio.play().catch(console.error);
+    currentAudio = audio;
+
+    // Disable inputs while speaking
+    disableInputBar("tts");
+
+    audio.play()
+      .catch(console.error)
+      .finally(() => {
+        // Re-enable inputs when done
+        enableInputBar();
+        currentAudio = null;
+      });
+
   } catch (error) {
     console.error("Error playing TTS audio:", error);
     sendMessageToAChat(MessageSender.bot, {
@@ -555,6 +580,35 @@ async function initListeners(navigationEngine, messageFactory) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const isSpeechRecognitionSupported = !!SpeechRecognition;
 
+  // --- Voice footer buttons ---
+  const voiceFooter = document.querySelector('#eva-voice-footer');
+  // Stop TTS button
+  const stopBtn = document.createElement('button');
+  stopBtn.id = 'stop-tts-button';
+  stopBtn.textContent = 'Stop';
+  stopBtn.classList.add('eva-chat-button-base');
+  stopBtn.disabled = true; // only enabled during playback
+  voiceFooter.appendChild(stopBtn);
+  stopBtn.addEventListener('click', () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+      enableInputBar();
+    }
+  });
+
+  // Mute/Unmute toggle
+  const muteBtn = document.createElement('button');
+  muteBtn.id = 'mute-toggle-button';
+  muteBtn.textContent = 'Mute';
+  muteBtn.classList.add('eva-chat-button-base');
+  voiceFooter.appendChild(muteBtn);
+  muteBtn.addEventListener('click', () => {
+    isMuted = !isMuted;
+    muteBtn.textContent = isMuted ? 'Unmute' : 'Mute';
+  });
+
   // Create voice chat cycle
   const voiceChatCycle = createVoiceChatCycle({
     onProcessingStarted: () => {
@@ -614,12 +668,18 @@ async function initListeners(navigationEngine, messageFactory) {
       if (tempMessage) tempMessage.remove();
     },
   
-    onTTSStart: (text) => {
-      console.log("TTS started:", text);
+    onTTSStart: () => {
+      // stop listening for user
+      if (stopVoiceCycle) stopVoiceCycle();
+      // disable mic & send
+      disableInputBar("voice");
+      stopBtn.disabled = false;
     },
   
-    onTTSEnd: (text) => {
-      console.log("TTS ended:", text);
+    onTTSEnd: () => {
+      // after speaking, re-enable voice/text inputs
+      enableInputBar();
+      stopBtn.disabled = true;
     },
   
     onTTSError: (error) => {
@@ -1137,16 +1197,14 @@ function grayOutLastMessageBubble() {
  * If a constantKey is provided, the message bubble is tagged so that its content can be updated when the language changes.
  */
 function sendMessageToAChat(sender, config) {
-  // If it’s a bot message and exactly the same as the previous one, skip it:
+  // Skip duplicate bot messages
   if (sender === MessageSender.bot && config.message === lastBotMessageText) {
     return;
   }
-
-  // Otherwise, update our guard:
   if (sender === MessageSender.bot) {
     lastBotMessageText = config.message;
   }
-  
+
   let messageBubble;
   if (sender === MessageSender.customer) {
     if (config?.mode === "voice") {
@@ -1164,18 +1222,21 @@ function sendMessageToAChat(sender, config) {
       config.emotion,
       { customClass: config.customClass || "" }
     );
-    // Tag the bubble if it is a constant message
     if (config.constantKey) {
       messageBubble.dataset.constantKey = config.constantKey;
     }
   } else {
     throw new Error("Message type is not defined in sendMessageToAChatFunction");
   }
+
   messageBubble.classList.add("fade-in");
   appendMessageToGroup(sender, messageBubble);
-  if (sender === MessageSender.bot && isVoiceMode) {
+
+  // Only speak when in voice mode, bot sender, and unmuted
+  if (sender === MessageSender.bot && isVoiceMode && !isMuted) {
     speakText(config.message);
   }
+
   return messageBubble;
 }
 
