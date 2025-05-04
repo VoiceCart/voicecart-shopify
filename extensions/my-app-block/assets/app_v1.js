@@ -89,6 +89,7 @@ const constantMessages = {
 // ===================== Helper Functions =====================
 
 let lastAppliedDiscountCode = null;
+let lastBotMessageText = null;
 let firstGreeting = true;
 let isVoiceMode = false;
 
@@ -96,7 +97,7 @@ let isVoiceMode = false;
  * Helper to fetch TTS MP3 and play it.
  */
 async function speakText(text) {
-  const apiPath   = `/tts?text=${encodeURIComponent(text)}`;
+  const apiPath    = `/tts?text=${encodeURIComponent(text)}`;
   const fullApiUrl = getApiUrl(apiPath);
   try {
     const response = await fetch(fullApiUrl, {
@@ -104,10 +105,11 @@ async function speakText(text) {
       credentials: "same-origin",
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob = await response.blob();
-    const url  = URL.createObjectURL(blob);
+    const blob  = await response.blob();
+    const url   = URL.createObjectURL(blob);
     const audio = new Audio(url);
-    await audio.play();
+    // Kick off play, but do NOT await it:
+    audio.play().catch(console.error);
   } catch (error) {
     console.error("Error playing TTS audio:", error);
     sendMessageToAChat(MessageSender.bot, {
@@ -748,6 +750,7 @@ async function initListeners(navigationEngine, messageFactory) {
  * Main function to handle user input flow, including showing "Responding..." & possible abort.
  */
 async function handleUserQuery(messageText, options) {
+  lastBotMessageText = null;
   // Prevent new queries if a request is already in progress
   if (isProcessing) {
     console.log("Request already in progress, ignoring new query:", messageText);
@@ -1134,6 +1137,16 @@ function grayOutLastMessageBubble() {
  * If a constantKey is provided, the message bubble is tagged so that its content can be updated when the language changes.
  */
 function sendMessageToAChat(sender, config) {
+  // If it’s a bot message and exactly the same as the previous one, skip it:
+  if (sender === MessageSender.bot && config.message === lastBotMessageText) {
+    return;
+  }
+
+  // Otherwise, update our guard:
+  if (sender === MessageSender.bot) {
+    lastBotMessageText = config.message;
+  }
+  
   let messageBubble;
   if (sender === MessageSender.customer) {
     if (config?.mode === "voice") {
