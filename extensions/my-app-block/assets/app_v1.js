@@ -93,6 +93,7 @@ let lastBotMessageText = null;
 let firstGreeting = true;
 let isVoiceMode = false;
 let currentAudio = null;
+let isVoicePlaybackEnabled = true; // Default: voice playback is enabled in voice mode
 
 /**
  * Stops the currently playing audio.
@@ -109,6 +110,7 @@ function stopCurrentAudio() {
  * Helper to fetch TTS MP3 and play it.
  */
 async function speakText(text) {
+  if (!isVoicePlaybackEnabled) return; // Skip playback if disabled
   const apiPath    = `/tts?text=${encodeURIComponent(text)}`;
   const fullApiUrl = getApiUrl(apiPath);
   try {
@@ -585,7 +587,8 @@ async function initListeners(navigationEngine, messageFactory) {
       }
     },
   
-    onFinalTranscript: (transcript) => {
+    onFinalTranscript: (transcript) => 
+    {
       if (textParagraph) {
         textParagraph.innerHTML = transcript;
       }
@@ -642,6 +645,32 @@ async function initListeners(navigationEngine, messageFactory) {
   // Assign startVoiceCycle and stopVoiceCycle to be accessible
   const startVoiceCycle = voiceChatCycle.start;
   stopVoiceCycle = voiceChatCycle.stop;
+
+  // Add toggle voice playback button in voice input view
+  const voiceInputView = document.querySelector("#voice-input-view");
+  if (voiceInputView) {
+    const toggleVoiceButton = document.createElement("button");
+    toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
+    toggleVoiceButton.classList.add("toggle-voice-playback-button");
+    toggleVoiceButton.style.margin = "10px";
+    toggleVoiceButton.style.padding = "8px 12px";
+    toggleVoiceButton.style.backgroundColor = isVoicePlaybackEnabled ? "#ff4d4f" : "#4caf50";
+    toggleVoiceButton.style.color = "#fff";
+    toggleVoiceButton.style.border = "none";
+    toggleVoiceButton.style.borderRadius = "5px";
+    toggleVoiceButton.style.cursor = "pointer";
+
+    toggleVoiceButton.addEventListener("click", () => {
+      isVoicePlaybackEnabled = !isVoicePlaybackEnabled;
+      toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
+      toggleVoiceButton.style.backgroundColor = isVoicePlaybackEnabled ? "#ff4d4f" : "#4caf50";
+      if (!isVoicePlaybackEnabled) {
+        stopCurrentAudio(); // Stop any ongoing audio when disabling playback
+      }
+    });
+
+    voiceInputView.appendChild(toggleVoiceButton);
+  }
 
   voiceButton.addEventListener("click", async () => {
     let apiPath;
@@ -1180,8 +1209,8 @@ function sendMessageToAChat(sender, config) {
     if (config.constantKey) {
       messageBubble.dataset.constantKey = config.constantKey;
     }
-    // Add stop button for bot messages in voice mode
-    if (isVoiceMode) {
+    // Add stop button for bot messages in voice mode when playback is enabled
+    if (isVoiceMode && isVoicePlaybackEnabled) {
       const stopButton = document.createElement("button");
       stopButton.textContent = "Stop Voice";
       stopButton.classList.add("stop-voice-button");
@@ -1200,7 +1229,7 @@ function sendMessageToAChat(sender, config) {
   }
   messageBubble.classList.add("fade-in");
   appendMessageToGroup(sender, messageBubble);
-  if (sender === MessageSender.bot && isVoiceMode) {
+  if (sender === MessageSender.bot && isVoiceMode && isVoicePlaybackEnabled) {
     speakText(config.message);
   }
   return messageBubble;
