@@ -122,6 +122,25 @@ async function speakText(text) {
     const blob  = await response.blob();
     const url   = URL.createObjectURL(blob);
     currentAudio = new Audio(url);
+    
+    // Disable voice input button while audio is playing
+    const voiceButton = document.querySelector("#record-voice-button");
+    if (voiceButton) {
+      voiceButton.classList.add("greyed-out");
+      voiceButton.style.pointerEvents = "none";
+      voiceButton.style.cursor = "not-allowed";
+    }
+
+    // Re-enable voice input button when audio ends
+    currentAudio.addEventListener("ended", () => {
+      if (voiceButton) {
+        voiceButton.classList.remove("greyed-out");
+        voiceButton.style.pointerEvents = "all";
+        voiceButton.style.cursor = "pointer";
+      }
+      currentAudio = null;
+    });
+
     // Kick off play, but do NOT await it:
     currentAudio.play().catch(console.error);
   } catch (error) {
@@ -131,7 +150,71 @@ async function speakText(text) {
       emotion:    "sad",
       customClass:"error-message",
     });
+    // Ensure voice button is re-enabled on error
+    const voiceButton = document.querySelector("#record-voice-button");
+    if (voiceButton) {
+      voiceButton.classList.remove("greyed-out");
+      voiceButton.style.pointerEvents = "all";
+      voiceButton.style.cursor = "pointer";
+    }
   }
+}
+
+/**
+ * Disables the input bar.
+ */
+function disableInputBar(messageType = "default") {
+  const inputBar = document.querySelector("#eva-chat-footer");
+  const sendButton = document.querySelector("#send-query-button");
+  const voiceButton = document.querySelector("#record-voice-button");
+  const cancelButton = document.querySelector("#cancel-waiting-button");
+  inputBar.classList.add("greyed-out");
+
+  if (messageType !== "consent") {
+    cancelButton.classList.remove("invisible");
+    cancelButton.classList.add("visible", "cancel-exception");
+    cancelButton.style.pointerEvents = "all";
+    cancelButton.style.cursor = "pointer";
+    sendButton.classList.add("invisible");
+    voiceButton.classList.add("invisible", "greyed-out");
+    voiceButton.style.pointerEvents = "none";
+    voiceButton.style.cursor = "not-allowed";
+  }
+
+  if (!cancelButton.dataset.listenerAttached) {
+    cancelButton.addEventListener("click", async () => {
+      await cancelWaiting();
+    });
+    cancelButton.dataset.listenerAttached = "true";
+  }
+}
+
+/**
+ * Re-enables the input bar.
+ */
+function enableInputBar() {
+  const inputBar = document.querySelector("#eva-chat-footer");
+  const inputField = document.querySelector("#query-input");
+  const sendButton = document.querySelector("#send-query-button");
+  const voiceButton = document.querySelector("#record-voice-button");
+  const cancelButton = document.querySelector("#cancel-waiting-button");
+
+  cancelButton.classList.add("invisible");
+  sendButton.classList.remove("invisible");
+  voiceButton.classList.remove("invisible", "greyed-out");
+  
+  // Only enable voice button if no audio is playing
+  if (!currentAudio) {
+    voiceButton.style.pointerEvents = "all";
+    voiceButton.style.cursor = "pointer";
+  }
+
+  inputBar.style.opacity = "1";
+  inputBar.style.pointerEvents = "all";
+  inputField.removeAttribute("readonly");
+  inputField.style.cursor = "text";
+  cancelButton.style.pointerEvents = "none";
+  cancelButton.style.cursor = "not-allowed";
 }
 
 
@@ -587,8 +670,7 @@ async function initListeners(navigationEngine, messageFactory) {
       }
     },
   
-    onFinalTranscript: (transcript) => 
-    {
+    onFinalTranscript: (transcript) => {
       if (textParagraph) {
         textParagraph.innerHTML = transcript;
       }
@@ -647,7 +729,7 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   // Add toggle voice playback button in voice input view
-  const voiceInputView = document.querySelector("#eva-voice-footer");
+  const voiceInputView = document.querySelector("#voice-input-view");
   if (voiceInputView) {
     const toggleVoiceButton = document.createElement("button");
     toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
