@@ -207,10 +207,10 @@ function enableInputBar() {
   voiceButton.classList.remove("invisible", "greyed-out");
   
   // Only enable voice button if no audio is playing
-  if (!currentAudio && isVoiceMode && !isProcessing && startVoiceCycle) {
+  if (!currentAudio && isVoiceMode && !isProcessing && window.startVoiceCycle) {
     voiceButton.style.pointerEvents = "all";
     voiceButton.style.cursor = "pointer";
-    startVoiceCycle();
+    window.startVoiceCycle(); // Ensure voice cycle resumes when input bar is re-enabled
   } else {
     voiceButton.style.pointerEvents = "none";
     voiceButton.style.cursor = "not-allowed";
@@ -754,6 +754,8 @@ async function initListeners(navigationEngine, messageFactory) {
       toggleVoiceButton.style.backgroundColor = isVoicePlaybackEnabled ? "#ff4d4f" : "#4caf50";
       if (!isVoicePlaybackEnabled) {
         stopCurrentAudio(); // Stop any ongoing audio when disabling playback
+      } else if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
+        window.startVoiceCycle(); // Re-activate voice input when re-enabling playback
       }
     });
 
@@ -1309,7 +1311,12 @@ function sendMessageToAChat(sender, config) {
       stopButton.style.border = "none";
       stopButton.style.borderRadius = "5px";
       stopButton.style.cursor = "pointer";
-      stopButton.addEventListener("click", stopCurrentAudio);
+      stopButton.addEventListener("click", () => {
+        stopCurrentAudio();
+        if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
+          window.startVoiceCycle(); // Re-activate voice input after stopping audio
+        }
+      });
       messageBubble.appendChild(stopButton);
     }
   } else {
