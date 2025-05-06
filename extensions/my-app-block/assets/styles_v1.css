@@ -1083,6 +1083,10 @@ html {
   align-items: center;
 }
 
+.chat-customer-message.voice-temp {
+  padding: 5px 8px;
+}
+
 .product-action-btn.details-btn {
   background-color: #2196F3;
 }

@@ -92,6 +92,18 @@ let lastAppliedDiscountCode = null;
 let lastBotMessageText = null;
 let firstGreeting = true;
 let isVoiceMode = false;
+let currentAudio = null;
+
+/**
+ * Stops the currently playing audio.
+ */
+function stopCurrentAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+}
 
 /**
  * Helper to fetch TTS MP3 and play it.
@@ -107,9 +119,9 @@ async function speakText(text) {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const blob  = await response.blob();
     const url   = URL.createObjectURL(blob);
-    const audio = new Audio(url);
+    currentAudio = new Audio(url);
     // Kick off play, but do NOT await it:
-    audio.play().catch(console.error);
+    currentAudio.play().catch(console.error);
   } catch (error) {
     console.error("Error playing TTS audio:", error);
     sendMessageToAChat(MessageSender.bot, {
@@ -1167,6 +1179,21 @@ function sendMessageToAChat(sender, config) {
     // Tag the bubble if it is a constant message
     if (config.constantKey) {
       messageBubble.dataset.constantKey = config.constantKey;
+    }
+    // Add stop button for bot messages in voice mode
+    if (isVoiceMode) {
+      const stopButton = document.createElement("button");
+      stopButton.textContent = "Stop Voice";
+      stopButton.classList.add("stop-voice-button");
+      stopButton.style.marginLeft = "10px";
+      stopButton.style.padding = "5px 10px";
+      stopButton.style.backgroundColor = "#ff4d4f";
+      stopButton.style.color = "#fff";
+      stopButton.style.border = "none";
+      stopButton.style.borderRadius = "5px";
+      stopButton.style.cursor = "pointer";
+      stopButton.addEventListener("click", stopCurrentAudio);
+      messageBubble.appendChild(stopButton);
     }
   } else {
     throw new Error("Message type is not defined in sendMessageToAChatFunction");
