@@ -754,6 +754,9 @@ async function initListeners(navigationEngine, messageFactory) {
       toggleVoiceButton.style.backgroundColor = isVoicePlaybackEnabled ? "#ff4d4f" : "#4caf50";
       if (!isVoicePlaybackEnabled) {
         stopCurrentAudio(); // Stop any ongoing audio when disabling playback
+        if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
+          window.startVoiceCycle(); // Re-activate voice input immediately after stopping
+        }
       } else if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
         window.startVoiceCycle(); // Re-activate voice input when re-enabling playback
       }
