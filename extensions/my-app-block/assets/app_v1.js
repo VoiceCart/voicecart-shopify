@@ -122,6 +122,7 @@ async function speakText(text) {
     const blob  = await response.blob();
     const url   = URL.createObjectURL(blob);
     currentAudio = new Audio(url);
+    if (stopVoiceCycle) stopVoiceCycle();
     
     // Disable voice input button while audio is playing
     const voiceButton = document.querySelector("#record-voice-button");
@@ -138,6 +139,7 @@ async function speakText(text) {
         voiceButton.style.pointerEvents = "all";
         voiceButton.style.cursor = "pointer";
       }
+      if (isVoiceMode && !isProcessing && startVoiceCycle) startVoiceCycle(); // Resume voice input only if in voice mode and not processing
       currentAudio = null;
     });
 
@@ -179,6 +181,7 @@ function disableInputBar(messageType = "default") {
     voiceButton.classList.add("invisible", "greyed-out");
     voiceButton.style.pointerEvents = "none";
     voiceButton.style.cursor = "not-allowed";
+    if (stopVoiceCycle) stopVoiceCycle();
   }
 
   if (!cancelButton.dataset.listenerAttached) {
@@ -204,11 +207,14 @@ function enableInputBar() {
   voiceButton.classList.remove("invisible", "greyed-out");
   
   // Only enable voice button if no audio is playing
-  if (!currentAudio) {
+  if (!currentAudio && isVoiceMode && !isProcessing && startVoiceCycle) {
     voiceButton.style.pointerEvents = "all";
     voiceButton.style.cursor = "pointer";
+    startVoiceCycle();
+  } else {
+    voiceButton.style.pointerEvents = "none";
+    voiceButton.style.cursor = "not-allowed";
   }
-
   inputBar.style.opacity = "1";
   inputBar.style.pointerEvents = "all";
   inputField.removeAttribute("readonly");
@@ -729,7 +735,7 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   // Add toggle voice playback button in voice input view
-  const voiceInputView = document.querySelector("#voice-input-view");
+  const voiceInputView = document.querySelector("#eva-voice-footer");
   if (voiceInputView) {
     const toggleVoiceButton = document.createElement("button");
     toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
@@ -861,7 +867,7 @@ async function initListeners(navigationEngine, messageFactory) {
       });
       navigationEngine.goToVoiceInput();
       navigationEngine.goToChat();
-      startVoiceCycle();
+      if (startVoiceCycle) startVoiceCycle(); // Start voice cycle only after ensuring mode is set
     } catch (error) {
       console.error("Error accessing microphone:", error);
       createErrorMessage("Microphone access is required for voice mode. Please allow access to continue.");
