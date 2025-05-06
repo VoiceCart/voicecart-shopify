@@ -730,8 +730,8 @@ async function initListeners(navigationEngine, messageFactory) {
     }
   });
 
-  // Assign startVoiceCycle and stopVoiceCycle to be accessible
-  const startVoiceCycle = voiceChatCycle.start;
+  // Assign startVoiceCycle and stopVoiceCycle to be accessible globally
+  window.startVoiceCycle = voiceChatCycle.start;
   stopVoiceCycle = voiceChatCycle.stop;
 
   // Add toggle voice playback button in voice input view
@@ -867,7 +867,7 @@ async function initListeners(navigationEngine, messageFactory) {
       });
       navigationEngine.goToVoiceInput();
       navigationEngine.goToChat();
-      if (startVoiceCycle) startVoiceCycle(); // Start voice cycle only after ensuring mode is set
+      if (window.startVoiceCycle) window.startVoiceCycle(); // Start voice cycle only after ensuring mode is set
     } catch (error) {
       console.error("Error accessing microphone:", error);
       createErrorMessage("Microphone access is required for voice mode. Please allow access to continue.");

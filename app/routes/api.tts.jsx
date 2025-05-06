@@ -5,7 +5,7 @@ export const loader = async ({ request }) => {
   // Смотрим ?text=… из URL
   const url  = new URL(request.url);
   const text = url.searchParams.get("text") || 
-    `Hi! My name is Eva and I'm here to assist you with shopping, managing your cart, applying discounts, and checking out 😊`;
+    `Hey there!`;
 
   try {
     const mp3Stream = await generateTTSStream(text);
