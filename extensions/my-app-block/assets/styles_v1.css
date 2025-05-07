@@ -1129,8 +1129,9 @@ html {
 .action-buttons {
   display: flex;
   gap: 10px;
-  margin-top: 8px;
-  justify-content: flex-start;
+  margin-bottom: 10px;
+  justify-content: center;
+  padding: 5px 0;
 }
 
 .action-button {
@@ -1167,12 +1168,13 @@ html {
 
 @media (max-width: 640px) {
   .action-buttons {
-    flex-direction: column;
+    flex-direction: row;
     gap: 8px;
+    padding: 5px;
   }
 
   .action-button {
-    width: 100%;
+    flex: 1;
     text-align: center;
   }
 }

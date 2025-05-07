@@ -65,7 +65,6 @@ const constantMessages = {
     de: "Entschuldigung, aber wir können nicht ohne Ihre Zustimmung zu Cookies arbeiten.",
     cs: "Omlouváme se, ale bez vašeho souhlasu s cookies nemůžeme pracovat."
   },
-  // New keys for cancel chat confirmation
   endChatConfirmation: {
     en: "Are you sure you want to end the chat?",
     ru: "Вы уверены, что хотите завершить чат?",
@@ -84,7 +83,6 @@ const constantMessages = {
     de: "Nein",
     cs: "Ne"
   },
-  // New keys for action buttons
   showCart: {
     en: "Show Cart",
     ru: "Показать корзину",
@@ -481,6 +479,46 @@ async function initLoader() {
 let stopVoiceCycle = null;
 
 /**
+ * Renders the "Show Cart" and "Checkout" buttons in the #eva-footer-container above the typing area.
+ */
+function renderActionButtons() {
+  // Remove any existing action buttons to prevent duplicates
+  const existingButtons = document.querySelectorAll(".action-buttons");
+  existingButtons.forEach(button => button.remove());
+
+  const footerContainer = document.querySelector("#eva-footer-container");
+  if (!footerContainer) {
+    console.error("Could not find #eva-footer-container to render action buttons.");
+    return;
+  }
+
+  const actionButtons = document.createElement("div");
+  actionButtons.classList.add("action-buttons");
+
+  const showCartButton = document.createElement("button");
+  showCartButton.classList.add("action-button", "show-cart-button");
+  showCartButton.dataset.constantKey = "showCart";
+  showCartButton.textContent = constantMessages.showCart[currentLanguageKey] || constantMessages.showCart["en"];
+  showCartButton.addEventListener("click", async () => {
+    await sendCartSummaryToChat();
+  });
+
+  const checkoutButton = document.createElement("button");
+  checkoutButton.classList.add("action-button", "checkout-button");
+  checkoutButton.dataset.constantKey = "checkout";
+  checkoutButton.textContent = constantMessages.checkout[currentLanguageKey] || constantMessages.checkout["en"];
+  checkoutButton.addEventListener("click", async () => {
+    await handleUserQuery("checkout");
+  });
+
+  actionButtons.appendChild(showCartButton);
+  actionButtons.appendChild(checkoutButton);
+
+  // Insert the buttons at the top of the #eva-footer-container
+  footerContainer.insertBefore(actionButtons, footerContainer.firstChild);
+}
+
+/**
  * Initializes all UI event listeners (once the DOM is loaded).
  */
 async function initListeners(navigationEngine, messageFactory) {
@@ -639,7 +677,7 @@ async function initListeners(navigationEngine, messageFactory) {
   const queryInput = document.querySelector("#query-input");
   const sendButton = document.querySelector("#send-query-button");
 
-  // Initial grey state if empty
+  // Initial grey DETERMINATE state if empty
   sendButton.classList.toggle("greyed-out", !queryInput.value.trim());
 
   // Input validation
@@ -1343,29 +1381,8 @@ function sendMessageToAChat(sender, config) {
       });
       messageBubble.appendChild(stopButton);
     }
-    // Add action buttons for bot messages
-    const actionButtons = document.createElement("div");
-    actionButtons.classList.add("action-buttons");
-    
-    const showCartButton = document.createElement("button");
-    showCartButton.classList.add("action-button", "show-cart-button");
-    showCartButton.dataset.constantKey = "showCart";
-    showCartButton.textContent = constantMessages.showCart[currentLanguageKey] || constantMessages.showCart["en"];
-    showCartButton.addEventListener("click", async () => {
-      await sendCartSummaryToChat();
-    });
-    
-    const checkoutButton = document.createElement("button");
-    checkoutButton.classList.add("action-button", "checkout-button");
-    checkoutButton.dataset.constantKey = "checkout";
-    checkoutButton.textContent = constantMessages.checkout[currentLanguageKey] || constantMessages.checkout["en"];
-    checkoutButton.addEventListener("click", async () => {
-      await handleUserQuery("checkout");
-    });
-    
-    actionButtons.appendChild(showCartButton);
-    actionButtons.appendChild(checkoutButton);
-    messageBubble.appendChild(actionButtons);
+    // Render action buttons in the footer after bot message
+    renderActionButtons();
   } else {
     throw new Error("Message type is not defined in sendMessageToAChatFunction");
   }
@@ -1524,7 +1541,7 @@ async function renderChatHistory(messages, sessionId) {
               console.error("Error adding item to cart from history:", error);
               sendMessageToAChat(MessageSender.bot, {
                 message: "Sorry, I couldn’t add the item to your cart when loading the history.",
-                emotionbrooke: "sad",
+                emotion: "sad",
                 customClass: "error-message"
               });
             }
