@@ -1121,11 +1121,62 @@ html {
   background: #ccc !important;
 }
 
-
 ._bottom-right {
   bottom: 0 !important;
   right: 0 !important;
 }
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  justify-content: flex-start;
+}
+
+.action-button {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  color: #fff;
+  background-color: #121212;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.action-button:hover {
+  background-color: #333;
+}
+
+.show-cart-button {
+  background-color: #4caf50;
+}
+
+.show-cart-button:hover {
+  background-color: #45a049;
+}
+
+.checkout-button {
+  background-color: #007bff;
+}
+
+.checkout-button:hover {
+  background-color: #0056b3;
+}
+
+@media (max-width: 640px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
 /* 
 @media (max-width: 799px) {
   :where(#eva-assistant) {
