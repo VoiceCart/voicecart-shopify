@@ -777,6 +777,7 @@ html {
   background: #fff;
   cursor: pointer;
   transition: background 0.2s ease;
+  display: none;
 }
 .custom-dropdown:hover {
   background: #dadada;

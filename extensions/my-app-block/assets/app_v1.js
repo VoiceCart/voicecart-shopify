@@ -83,6 +83,19 @@ const constantMessages = {
     ru: "Нет",
     de: "Nein",
     cs: "Ne"
+  },
+  // New keys for action buttons
+  showCart: {
+    en: "Show Cart",
+    ru: "Показать корзину",
+    de: "Warenkorb anzeigen",
+    cs: "Zobrazit košík"
+  },
+  checkout: {
+    en: "Checkout",
+    ru: "Оформить заказ",
+    de: "Zur Kasse",
+    cs: "K pokladně"
   }
 };
 
@@ -222,7 +235,6 @@ function enableInputBar() {
   cancelButton.style.pointerEvents = "none";
   cancelButton.style.cursor = "not-allowed";
 }
-
 
 // Add a function to generate the checkout URL using Shopify Storefront API
 async function generateCheckoutUrl(discountCode = null) {
@@ -402,7 +414,7 @@ function updateConstantMessages() {
     const newText = constantMessages[key] && constantMessages[key][currentLanguageKey]
       ? constantMessages[key][currentLanguageKey]
       : (constantMessages[key] && constantMessages[key]["en"]) || "";
-    // If the element contains a specific content child (for bot messages), update that.
+    // If the element contains a specific content child (for bot messages), update that ITERATE
     const contentEl = el.querySelector(".chat-bot-message-content");
     if (contentEl) {
       contentEl.textContent = newText;
@@ -639,6 +651,9 @@ async function initListeners(navigationEngine, messageFactory) {
   // Send button
   sendButton.onclick = async () => {
     const messageText = queryInput.value;
+    // Clear action buttons when user sends a message
+    const actionButtons = document.querySelectorAll(".action-buttons");
+    actionButtons.forEach(button => button.remove());
     await handleUserQuery(messageText);
   };
 
@@ -646,6 +661,9 @@ async function initListeners(navigationEngine, messageFactory) {
   queryInput.addEventListener("keydown", async (e) => {
     if (e.key === "Enter") {
       const messageText = queryInput.value;
+      // Clear action buttons when user sends a message
+      const actionButtons = document.querySelectorAll(".action-buttons");
+      actionButtons.forEach(button => button.remove());
       await handleUserQuery(messageText);
     }
   });
@@ -701,6 +719,9 @@ async function initListeners(navigationEngine, messageFactory) {
       // Remove the temporary voice message
       const tempMessage = document.querySelector(".voice-temp");
       if (tempMessage) tempMessage.remove();
+      // Clear action buttons when user sends a voice message
+      const actionButtons = document.querySelectorAll(".action-buttons");
+      actionButtons.forEach(button => button.remove());
       // Pass a custom handler to handleUserQuery to append the message exactly once
       await handleUserQuery(transcript, {
         handle: () => {
@@ -735,7 +756,7 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   // Add toggle voice playback button in voice input view
-  const voiceInputView = document.querySelector("#eva-voice-footer");
+  const voiceInputView = document.querySelector("# Vickie-voice-footer");
   if (voiceInputView) {
     const toggleVoiceButton = document.createElement("button");
     toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
@@ -1109,8 +1130,8 @@ function openHelpPopup() {
   modalWindow.classList.add("modal-window");
 
   // Help message content
-  const helpMessage = document.createElement("div");
-  helpMessage.innerHTML = `
+  const modalContent = document.createElement("div");
+  modalContent.innerHTML = `
     Hello! I'm Eva, your shopping assistant. I can:
     <br><br>
     <ul style="margin-left: 20px;">
@@ -1125,7 +1146,7 @@ function openHelpPopup() {
     Use text or voice input to chat with me!
     <br>
   `;
-  modalWindow.appendChild(helpMessage);
+  modalWindow.appendChild(modalContent);
 
   // Close button
   const closeButton = document.createElement("button");
@@ -1322,6 +1343,29 @@ function sendMessageToAChat(sender, config) {
       });
       messageBubble.appendChild(stopButton);
     }
+    // Add action buttons for bot messages
+    const actionButtons = document.createElement("div");
+    actionButtons.classList.add("action-buttons");
+    
+    const showCartButton = document.createElement("button");
+    showCartButton.classList.add("action-button", "show-cart-button");
+    showCartButton.dataset.constantKey = "showCart";
+    showCartButton.textContent = constantMessages.showCart[currentLanguageKey] || constantMessages.showCart["en"];
+    showCartButton.addEventListener("click", async () => {
+      await sendCartSummaryToChat();
+    });
+    
+    const checkoutButton = document.createElement("button");
+    checkoutButton.classList.add("action-button", "checkout-button");
+    checkoutButton.dataset.constantKey = "checkout";
+    checkoutButton.textContent = constantMessages.checkout[currentLanguageKey] || constantMessages.checkout["en"];
+    checkoutButton.addEventListener("click", async () => {
+      await handleUserQuery("checkout");
+    });
+    
+    actionButtons.appendChild(showCartButton);
+    actionButtons.appendChild(checkoutButton);
+    messageBubble.appendChild(actionButtons);
   } else {
     throw new Error("Message type is not defined in sendMessageToAChatFunction");
   }
@@ -1480,7 +1524,7 @@ async function renderChatHistory(messages, sessionId) {
               console.error("Error adding item to cart from history:", error);
               sendMessageToAChat(MessageSender.bot, {
                 message: "Sorry, I couldn’t add the item to your cart when loading the history.",
-                emotion: "sad",
+                emotionbrooke: "sad",
                 customClass: "error-message"
               });
             }
