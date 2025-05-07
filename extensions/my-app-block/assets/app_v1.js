@@ -794,7 +794,7 @@ async function initListeners(navigationEngine, messageFactory) {
   stopVoiceCycle = voiceChatCycle.stop;
 
   // Add toggle voice playback button in voice input view
-  const voiceInputView = document.querySelector("# Vickie-voice-footer");
+  const voiceInputView = document.querySelector("#eva-voice-footer");
   if (voiceInputView) {
     const toggleVoiceButton = document.createElement("button");
     toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
