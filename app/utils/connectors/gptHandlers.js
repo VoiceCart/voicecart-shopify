@@ -459,7 +459,7 @@ const intentMapping = {
         const parsedAssistantResponse = JSON.parse(completionResult)["actions"][0];
     
         // Check for cartSummary intent first
-        if (content.toLowerCase().includes("what's in my cart") || content.toLowerCase().includes("show my cart")) {
+        if (content.toLowerCase().includes("what's in my cart") || content.toLowerCase().includes("show my cart") || content.toLowerCase().includes("show my card")) {
             return [{
                 type: "cartSummary",
                 value: "Show cart contents"
@@ -577,23 +577,6 @@ const intentMapping = {
                 type: "action",
                 value: {
                     action: "clearCart"
-                },
-            }
-        ];
-    },
-
-    cartSummary: async (content, { sessionId, signal, shop, lang }) => {
-        infoLog.log("info", "Showing results for the 'cartSummary' intent");
-        
-        return [
-            {
-                type: "message",
-                value: "Here's what you have in your cart:",
-            },
-            {
-                type: "action",
-                value: {
-                    action: "cartSummary"
                 },
             }
         ];
