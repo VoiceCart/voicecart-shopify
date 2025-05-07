@@ -1128,36 +1128,36 @@ html {
 
 /* Refined modern button styles to match Eva's UI */
 .action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin: 16px 0;
-  width: 100%;
-  padding: 0 16px;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 12px !important;
+  margin: 16px 0 !important;
+  width: 100% !important;
+  padding: 0 16px !important;
 }
 
 .action-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 120px;
-  padding: 12px 20px;
-  font-size: 15px;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-  font-weight: 500;
-  border: none;
-  border-radius: 9999px; /* Fully rounded like the existing UI buttons */
-  cursor: pointer;
-  transition: all 0.15s ease;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 120px !important;
+  padding: 12px 20px !important;
+  font-size: 15px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif !important;
+  font-weight: 500 !important;
+  border: none !important;
+  border-radius: 9999px !important; /* Fully rounded like the existing UI buttons */
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
 }
 
 /* Show Cart button - white with icon */
 .show-cart-button {
-  background-color: #f8f9fa; 
-  color: #333;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  position: relative;
-  padding-left: 42px; /* Space for icon */
+  background-color: #f8f9fa !important; 
+  color: #333 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+  position: relative !important;
+  padding-left: 42px !important; /* Space for icon */
 }
 
 .show-cart-button::before {
@@ -1180,9 +1180,9 @@ html {
 .checkout-button {
   background-color: #4d5bf9; /* Matching the blue in the screenshot */
   color: white;
-  box-shadow: 0 2px 5px rgba(77, 91, 249, 0.2);
+  box-shadow: 0 2px 5px rgba(77, 91, 249, 0.2) !important;
   position: relative;
-  padding-left: 42px; /* Space for icon */
+  padding-left: 42px !important; /* Space for icon */
 }
 
 .checkout-button::before {
@@ -1200,12 +1200,12 @@ html {
 .checkout-button:hover {
   background-color: #3c4ae0;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(77, 91, 249, 0.25);
+  box-shadow: 0 4px 8px rgba(77, 91, 249, 0.25) !important;
 }
 
 .checkout-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(77, 91, 249, 0.2);
+  box-shadow: 0 2px 4px rgba(77, 91, 249, 0.2) !important;
 }
 
 /* Focus states for accessibility */
@@ -1217,20 +1217,20 @@ html {
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .action-buttons {
-    padding: 0 12px;
+    padding: 0 12px !important;
   }
   
   .action-button {
-    padding: 10px 16px;
-    padding-left: 36px;
-    font-size: 14px;
-    min-width: 110px;
+    padding: 10px 16px !important;
+    padding-left: 36px !important;
+    font-size: 14px !important;
+    min-width: 110px !important;
   }
   
   .action-button::before {
-    left: 14px;
-    width: 16px;
-    height: 16px;
+    left: 14px !important;
+    width: 16px !important;
+    height: 16px !important;
   }
 }
 
