@@ -1126,56 +1126,112 @@ html {
   right: 0 !important;
 }
 
+/* Enhanced styles for chatbot action buttons */
 .action-buttons {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin: 16px 0;
   justify-content: center;
-  padding: 5px 0;
+  width: 100%;
+  padding: 0 16px;
 }
 
 .action-button {
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
   font-size: 14px;
-  font-family: 'Inter', sans-serif;
-  color: #fff;
-  background-color: #121212;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
   border: none;
-  border-radius: 5px;
+  border-radius: 18px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.action-button:hover {
-  background-color: #333;
+.action-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
 }
 
+/* Show Cart button - subtle neutral style */
 .show-cart-button {
-  background-color: #4caf50;
+  background-color: #f3f4f6;
+  color: #4b5563;
 }
 
 .show-cart-button:hover {
-  background-color: #45a049;
+  background-color: #e5e7eb;
 }
 
+/* Checkout button - primary action style */
 .checkout-button {
-  background-color: #007bff;
+  background-color: #6366f1; /* Indigo that fits with the purple theme in the UI */
+  color: white;
 }
 
 .checkout-button:hover {
-  background-color: #0056b3;
+  background-color: #4f46e5;
+  transform: translateY(-1px);
 }
 
+/* Add icons before text - can be included through :before pseudo elements */
+.show-cart-button:before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'%3E%3C/path%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.checkout-button:before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M17 8l4 4m0 0l-4 4m4-4H3'%3E%3C/path%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .show-cart-button {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #e5e7eb;
+  }
+  
+  .show-cart-button:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .checkout-button {
+    background-color: #818cf8;
+  }
+  
+  .checkout-button:hover {
+    background-color: #6366f1;
+  }
+}
+
+/* Responsive adjustments */
 @media (max-width: 640px) {
   .action-buttons {
-    flex-direction: row;
     gap: 8px;
-    padding: 5px;
+    padding: 0 12px;
   }
-
+  
   .action-button {
-    flex: 1;
-    text-align: center;
+    padding: 8px 16px;
+    font-size: 13px;
   }
 }
 
