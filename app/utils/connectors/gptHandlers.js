@@ -582,6 +582,23 @@ const intentMapping = {
         ];
     },
 
+    cartSummary: async (content, { sessionId, signal, shop, lang }) => {
+        infoLog.log("info", "Showing results for the 'cartSummary' intent");
+        
+        return [
+            {
+                type: "message",
+                value: "Here's what you have in your cart:",
+            },
+            {
+                type: "action",
+                value: {
+                    action: "cartSummary"
+                },
+            }
+        ];
+    },
+
     summarize: async (content, { sessionId, signal, shop, lang }) => {
         infoLog.log("info", "Showing results for the 'summarize' intent");
         const finalPrompt = addLanguageConstraint(SYSTEM_PROMPT.summarizer, lang);
