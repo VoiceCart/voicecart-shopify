@@ -115,6 +115,27 @@ function stopCurrentAudio() {
     currentAudio.currentTime = 0;
     currentAudio = null;
   }
+  // Switch back to speaking button SVG
+  const voiceToggleButton = document.querySelector("#voice-toggle-button");
+  if (voiceToggleButton) {
+    voiceToggleButton.innerHTML = `
+    <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g clip-path="url(#clip0_537_2056)">
+    <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#2647FF"/>
+    <path d="M68.0002 27.2002C69.1105 27.2004 70.1822 27.608 71.0118 28.3459C71.8419 29.0838 72.3718 30.1006 72.5018 31.2034L72.5333 31.7338V104.271C72.5323 105.427 72.09 106.539 71.2968 107.379C70.5037 108.219 69.4195 108.725 68.2657 108.793C67.1124 108.86 65.9765 108.485 65.0903 107.743C64.2047 107.002 63.6351 105.95 63.4986 104.802L63.467 104.271V31.7338C63.467 30.5314 63.9447 29.3783 64.7944 28.528C65.6447 27.6778 66.798 27.2002 68.0002 27.2002ZM49.8669 40.801C51.0692 40.801 52.2222 41.2787 53.0724 42.1289C53.9226 42.9791 54.4002 44.1322 54.4002 45.3347V90.6708C54.4002 91.8731 53.9226 93.0264 53.0724 93.8766C52.2222 94.7269 51.0692 95.2045 49.8669 95.2045C48.6645 95.2045 47.5115 94.7269 46.6613 93.8766C45.8111 93.0264 45.3335 91.8731 45.3335 90.6708V45.3347C45.3335 44.1322 45.8111 42.9791 46.6613 42.1289C47.5115 41.2787 48.6645 40.801 49.8669 40.801ZM86.1333 40.801C87.3356 40.801 88.4889 41.2787 89.3391 42.1289C90.1894 42.9791 90.667 44.1322 90.667 45.3347V90.6708C90.667 91.8731 90.1894 93.0264 89.3391 93.8766C88.4889 94.7269 87.3356 95.2045 86.1333 95.2045C84.9311 95.2045 83.7784 94.7269 82.9281 93.8766C82.0778 93.0264 81.6002 91.8731 81.6002 90.6708V45.3347C81.6002 44.1322 82.0778 42.9791 82.9281 42.1289C83.7784 41.2787 84.9311 40.801 86.1333 40.801ZM31.7335 54.4018C32.9359 54.4018 34.0889 54.8795 34.9391 55.7297C35.7892 56.58 36.2669 57.7333 36.2669 58.9355V77.0698C36.2669 78.2725 35.7892 79.4253 34.9391 80.2756C34.0889 81.1258 32.9359 81.6035 31.7335 81.6035C30.5312 81.6035 29.3782 81.1258 28.528 80.2756C27.6778 79.4253 27.2002 78.2725 27.2002 77.0698V58.9355C27.2002 57.7333 27.6778 56.58 28.528 55.7297C29.3782 54.8795 30.5312 54.4018 31.7335 54.4018ZM104.267 54.4018C105.377 54.4018 106.449 54.8098 107.279 55.5475C108.108 56.2857 108.639 57.3024 108.769 58.4051L108.8 58.9355V77.0698C108.799 78.2252 108.356 79.3372 107.563 80.1771C106.77 81.0176 105.686 81.5229 104.533 81.5909C103.379 81.6584 102.243 81.283 101.357 80.5416C100.471 79.7996 99.902 78.748 99.7654 77.6002L99.7333 77.0698V58.9355C99.7333 57.7333 100.211 56.58 101.061 55.7297C101.912 54.8795 103.065 54.4018 104.267 54.4018Z" fill="white"/>
+    </g>
+    <defs>
+    <clipPath id="clip0_537_2056">
+    <rect width="136" height="136" fill="white"/>
+    </clipPath>
+    </defs>
+    </svg>
+    `;
+  }
+  // Resume voice cycle if in voice mode and not processing
+  if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
+    window.startVoiceCycle();
+  }
 }
 
 /**
@@ -143,7 +164,25 @@ async function speakText(text) {
       voiceButton.style.cursor = "not-allowed";
     }
 
-    // Re-enable voice input button when audio ends
+    // Switch to stop button SVG
+    const voiceToggleButton = document.querySelector("#voice-toggle-button");
+    if (voiceToggleButton) {
+      voiceToggleButton.innerHTML = `
+        <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g clip-path="url(#clip0_537_2069)">
+            <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#121212"/>
+            <rect x="42" y="42" width="51" height="51" rx="10" fill="white"/>
+          </g>
+          <defs>
+            <clipPath id="clip0_537_2069">
+              <rect width="136" height="136" fill="white"/>
+            </clipPath>
+          </defs>
+        </svg>
+      `;
+    }
+
+    // Re-enable voice input button and switch back to speaking button when audio ends
     currentAudio.addEventListener("ended", () => {
       if (voiceButton) {
         voiceButton.classList.remove("greyed-out");
@@ -152,6 +191,22 @@ async function speakText(text) {
       }
       if (isVoiceMode && !isProcessing && startVoiceCycle) startVoiceCycle(); // Resume voice input only if in voice mode and not processing
       currentAudio = null;
+      // Switch back to speaking button SVG
+      if (voiceToggleButton) {
+        voiceToggleButton.innerHTML = `
+        <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip0_537_2056)">
+        <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#2647FF"/>
+        <path d="M68.0002 27.2002C69.1105 27.2004 70.1822 27.608 71.0118 28.3459C71.8419 29.0838 72.3718 30.1006 72.5018 31.2034L72.5333 31.7338V104.271C72.5323 105.427 72.09 106.539 71.2968 107.379C70.5037 108.219 69.4195 108.725 68.2657 108.793C67.1124 108.86 65.9765 108.485 65.0903 107.743C64.2047 107.002 63.6351 105.95 63.4986 104.802L63.467 104.271V31.7338C63.467 30.5314 63.9447 29.3783 64.7944 28.528C65.6447 27.6778 66.798 27.2002 68.0002 27.2002ZM49.8669 40.801C51.0692 40.801 52.2222 41.2787 53.0724 42.1289C53.9226 42.9791 54.4002 44.1322 54.4002 45.3347V90.6708C54.4002 91.8731 53.9226 93.0264 53.0724 93.8766C52.2222 94.7269 51.0692 95.2045 49.8669 95.2045C48.6645 95.2045 47.5115 94.7269 46.6613 93.8766C45.8111 93.0264 45.3335 91.8731 45.3335 90.6708V45.3347C45.3335 44.1322 45.8111 42.9791 46.6613 42.1289C47.5115 41.2787 48.6645 40.801 49.8669 40.801ZM86.1333 40.801C87.3356 40.801 88.4889 41.2787 89.3391 42.1289C90.1894 42.9791 90.667 44.1322 90.667 45.3347V90.6708C90.667 91.8731 90.1894 93.0264 89.3391 93.8766C88.4889 94.7269 87.3356 95.2045 86.1333 95.2045C84.9311 95.2045 83.7784 94.7269 82.9281 93.8766C82.0778 93.0264 81.6002 91.8731 81.6002 90.6708V45.3347C81.6002 44.1322 82.0778 42.9791 82.9281 42.1289C83.7784 41.2787 84.9311 40.801 86.1333 40.801ZM31.7335 54.4018C32.9359 54.4018 34.0889 54.8795 34.9391 55.7297C35.7892 56.58 36.2669 57.7333 36.2669 58.9355V77.0698C36.2669 78.2725 35.7892 79.4253 34.9391 80.2756C34.0889 81.1258 32.9359 81.6035 31.7335 81.6035C30.5312 81.6035 29.3782 81.1258 28.528 80.2756C27.6778 79.4253 27.2002 78.2725 27.2002 77.0698V58.9355C27.2002 57.7333 27.6778 56.58 28.528 55.7297C29.3782 54.8795 30.5312 54.4018 31.7335 54.4018ZM104.267 54.4018C105.377 54.4018 106.449 54.8098 107.279 55.5475C108.108 56.2857 108.639 57.3024 108.769 58.4051L108.8 58.9355V77.0698C108.799 78.2252 108.356 79.3372 107.563 80.1771C106.77 81.0176 105.686 81.5229 104.533 81.5909C103.379 81.6584 102.243 81.283 101.357 80.5416C100.471 79.7996 99.902 78.748 99.7654 77.6002L99.7333 77.0698V58.9355C99.7333 57.7333 100.211 56.58 101.061 55.7297C101.912 54.8795 103.065 54.4018 104.267 54.4018Z" fill="white"/>
+        </g>
+        <defs>
+        <clipPath id="clip0_537_2056">
+        <rect width="136" height="136" fill="white"/>
+        </clipPath>
+        </defs>
+        </svg>
+        `;
+      }
     });
 
     // Kick off play, but do NOT await it:
@@ -169,6 +224,22 @@ async function speakText(text) {
       voiceButton.classList.remove("greyed-out");
       voiceButton.style.pointerEvents = "all";
       voiceButton.style.cursor = "pointer";
+    }
+    // Switch back to speaking button SVG on error
+    const voiceToggleButton = document.querySelector("#voice-toggle-button");
+    if (voiceToggleButton) {
+      voiceToggleButton.innerHTML = `
+        <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g clip-path="url(#clip0_537_2056)">
+            <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#2647FF"/>
+            <path d="M68.0002 27.2002C69.1105 27.2004 70.1822 27.608 71.0118 28.3459C71.8419 29.0838 72.3718 30.1006 72.5018 31.2034L72.5333 31.7338V104.271C72.5323 105.427 72.09 106.539 71.2968 107.379C70.5037 108.219 69.4195 108.725 68.2657 108.793C67.1124 108.86 65.9765 108.485 65.0903 107.743C64.2047 107.002 63.6351 105.95 63.4986 104.802L63.467 104.271V31.7338C63.467 30.5314 63.9447 29.3783 64.7944 28.528C65.6447 27.6778 66.798 27.2002 68.0002 27.2002ZM49.8669 40.801C51.0692 40.801 52.2222 41.2787 53.0724 42.1289C53.9226 42.9791 54.4002 44.1322 54.4002 45.3347V90.6708C54.4002 91.8731 53.9226 93.0264 53.0724 93.8766C52.2222 94.7269 51.0692 95.2045 49.8669 95.2045C48.6645 95.2045 47.5115 94.7269 46.6613 93.8766C45.8111 93.0264 45.3335 91.8731 45.3335 90.6708V45.3347C45.3335 44.1322 45.8111 42.9791 46.6613 42.1289C47.5115 41.2787 48.6645 40.801 49.8669 40.801ZM86.1333 40.801C87.3356 40.801 88.4889 41.2787 89.3391 42.1289C90.1894 42.9791 90.667 44.1322 90.667 45.3347V90.6708C90.667 91.8731 90.1894 93.0264 89.3391 93.8766C88.4889 94.7269 87.3356 95.2045 86.1333 95.2045C84.9311 95.2045 83.7784 94.7269 82.9281 93.8766C82.0778 93.0264 81.6002 91.8731 81.6002 90.6708V45.3347C81.6002 44.1322 82.0778 42.9791 82.9281 42.1289C83.7784 41.2787 84.9311 40.801 86.1333 40.801ZM31.7335 54.4018C32.9359 54.4018 34.0889 54.8795 34.9391 55.7297C35.7892 56.58 36.2669 57.7333 36.2669 58.9355V77.0698C36.2669 78.2725 35.7892 79.4253 34.9391 80.2756C34.0889 81.1258 32.9359 81.6035 31.7335 81.6035C30.5312 81.6035 29.3782 81.1258 28.528 80.2756C27.6778 79.4253 27.2002 78.2725 27.2002 77.0698V58.9355C27.2002 57.7333 27.6778 56.58 28.528 55.7297C29.3782 54.8795 30.5312 54.4018 31.7335 54.4018ZM104.267 54.4018C105.377 54.4018 106.449 54.8098 107.279 55.5475C108.108 56.2857 108.639 57.3024 108.769 58.4051L108.8 58.9355V77.0698C108.799 78.2252 108.356 79.3372 107.563 80.1771C106.77 81.0176 105.686 81.5229 104.533 81.5909C103.379 81.6584 102.243 81.283 101.357 80.5416C100.471 79.7996 99.902 78.748 99.7654 77.6002L99.7333 77.0698V58.9355C99.7333 57.7333 100.211 56.58 101.061 55.7297C101.912 54.8795 103.065 54.4018 104.267 54.4018Z" fill="white"/>
+            </g>
+            <defs>
+              <clipPath id="clip0_537_2056">
+                <rect width="136" height="136" fill="white"/>
+              </clipPath>
+            </defs>
+          </svg>`;
     }
   }
 }
@@ -521,6 +592,9 @@ function renderActionButtons() {
 /**
  * Initializes all UI event listeners (once the DOM is loaded).
  */
+/**
+ * Initializes all UI event listeners (once the DOM is loaded).
+ */
 async function initListeners(navigationEngine, messageFactory) {
   // Attach .btn triggers
   const btns = document.querySelectorAll(".btn:not(.btn-without-sending-query)");
@@ -793,35 +867,32 @@ async function initListeners(navigationEngine, messageFactory) {
   window.startVoiceCycle = voiceChatCycle.start;
   stopVoiceCycle = voiceChatCycle.stop;
 
-  // Add toggle voice playback button in voice input view
+  // Add mute/unmute toggle button in voice input view
   const voiceInputView = document.querySelector("#eva-voice-footer");
   if (voiceInputView) {
-    const toggleVoiceButton = document.createElement("button");
-    toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
-    toggleVoiceButton.classList.add("toggle-voice-playback-button");
-    toggleVoiceButton.style.margin = "10px";
-    toggleVoiceButton.style.padding = "8px 12px";
-    toggleVoiceButton.style.backgroundColor = isVoicePlaybackEnabled ? "#ff4d4f" : "#4caf50";
-    toggleVoiceButton.style.color = "#fff";
-    toggleVoiceButton.style.border = "none";
-    toggleVoiceButton.style.borderRadius = "5px";
-    toggleVoiceButton.style.cursor = "pointer";
-
-    toggleVoiceButton.addEventListener("click", () => {
+    const muteToggleButton = document.querySelector("#mute-toggle-button");
+    muteToggleButton.addEventListener("click", () => {
       isVoicePlaybackEnabled = !isVoicePlaybackEnabled;
-      toggleVoiceButton.textContent = isVoicePlaybackEnabled ? "Disable Voice Playback" : "Enable Voice Playback";
-      toggleVoiceButton.style.backgroundColor = isVoicePlaybackEnabled ? "#ff4d4f" : "#4caf50";
+      muteToggleButton.innerHTML = isVoicePlaybackEnabled ? `
+        <svg width="35" height="35" viewBox="0 0 86 86" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M43 86C66.7482 86 86 66.7482 86 43C86 19.2518 66.7482 0 43 0C19.2518 0 0 19.2518 0 43C0 66.7482 19.2518 86 43 86Z" fill="#121212"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M60.3805 62.7969L56.4761 59.6946C65.179 50.2495 65.179 35.8108 56.476 26.3657L60.3804 23.2636C70.54 34.5304 70.5397 51.5301 60.3805 62.7969ZM50.482 31.1283L46.5731 34.234C51.241 39.1931 51.2409 46.8675 46.5732 51.8266L50.4821 54.9322C56.6058 48.1497 56.6058 37.9108 50.482 31.1283ZM40.4923 23L27.4891 33.1621H18V53.0443H27.5037L40.4923 63V23Z" fill="white"/>
+        </svg>
+      ` : `
+      <svg width="35" height="35" viewBox="0 0 86 86" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M43 86C66.7482 86 86 66.7482 86 43C86 19.2518 66.7482 0 43 0C19.2518 0 0 19.2518 0 43C0 66.7482 19.2518 86 43 86Z" fill="#121212"/>
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M24.9708 22L51.5304 48.898L52.104 49.4788L57.3268 54.7681V54.768L60.5848 58.0675L63.2576 60.7744L60.0725 64L40.243 43.9178L40.2431 61.4628L28.5533 52.3261H20V34.0793H28.5402L29.6526 33.1927L21.7857 25.2256L24.9708 22ZM58.1423 24.9952C65.2936 33.0821 66.8518 44.3874 62.8169 53.8767L59.3384 50.3539C61.8583 42.7626 60.2884 34.1058 54.6284 27.842L58.1423 24.9952ZM49.2337 32.2129C52.2558 35.626 53.6208 39.9931 53.3286 44.2677L48.1307 39.0037C47.6216 37.623 46.8483 36.318 45.8107 35.1672L45.7157 35.0631L49.2337 32.2129ZM40.2431 24.7533L40.243 31.0157L36.7824 27.511L40.2431 24.7533Z" fill="white"/>
+      </svg>
+      `;
       if (!isVoicePlaybackEnabled) {
-        stopCurrentAudio(); // Stop any ongoing audio when disabling playback
+        stopCurrentAudio(); // Stop any ongoing audio when muting
         if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
           window.startVoiceCycle(); // Re-activate voice input immediately after stopping
         }
       } else if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
-        window.startVoiceCycle(); // Re-activate voice input when re-enabling playback
+        window.startVoiceCycle(); // Re-activate voice input when unmuting
       }
     });
-
-    voiceInputView.appendChild(toggleVoiceButton);
   }
 
   voiceButton.addEventListener("click", async () => {
@@ -879,32 +950,6 @@ async function initListeners(navigationEngine, messageFactory) {
       return;
     }
   
-    // First create a direct DOM element for browser support message if needed
-    const createErrorMessage = (message) => {
-      try {
-        sendMessageToAChat(MessageSender.bot, {
-          message: message,
-          emotion: "sad",
-          customClass: "error-message",
-        });
-      } catch (err) {
-        console.error("Error in sendMessageToAChat:", err);
-        const messageElement = document.createElement("div");
-        messageElement.classList.add("chat-bot-message", "error-message");
-        messageElement.innerHTML = `
-          <div class="chat-bot-avatar sad"></div>
-          <div class="chat-bot-message-content">${message}</div>
-        `;
-        chatContainer.appendChild(messageElement);
-      }
-      try {
-        scrollChatToBottom();
-      } catch (err) {
-        console.error("Error in scrollChatToBottom:", err);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-    };
-  
     // Specifically detect Firefox
     if (navigator.userAgent.toLowerCase().includes("firefox")) {
       console.log("Firefox detected, showing message");
@@ -931,12 +976,27 @@ async function initListeners(navigationEngine, messageFactory) {
       });
       navigationEngine.goToVoiceInput();
       navigationEngine.goToChat();
-      if (window.startVoiceCycle) window.startVoiceCycle(); // Start voice cycle only after ensuring mode is set
+      
+      // Start the voice chat cycle for continuous voice input
+      if (window.startVoiceCycle) {
+        window.startVoiceCycle();
+      } else {
+        console.error("startVoiceCycle is not defined");
+        createErrorMessage("Voice mode failed to initialize. Please try again.");
+      }
     } catch (error) {
-      console.error("Error accessing microphone:", error);
-      createErrorMessage("Microphone access is required for voice mode. Please allow access to continue.");
+      console.error("Microphone access denied or error:", error);
+      createErrorMessage("Microphone access is required for voice mode. Please allow microphone access and try again.");
     }
   });
+
+  // Attach listener to voice toggle button for stopping audio
+  const voiceToggleButton = document.querySelector("#voice-toggle-button");
+  if (voiceToggleButton) {
+    voiceToggleButton.addEventListener("click", () => {
+      stopCurrentAudio(); // Stops any ongoing audio and switches to speaking button SVG
+    });
+  }
 }
 
 /**
@@ -1360,26 +1420,6 @@ function sendMessageToAChat(sender, config) {
     // Tag the bubble if it is a constant message
     if (config.constantKey) {
       messageBubble.dataset.constantKey = config.constantKey;
-    }
-    // Add stop button for bot messages in voice mode when playback is enabled
-    if (isVoiceMode && isVoicePlaybackEnabled) {
-      const stopButton = document.createElement("button");
-      stopButton.textContent = "Stop Voice";
-      stopButton.classList.add("stop-voice-button");
-      stopButton.style.marginLeft = "10px";
-      stopButton.style.padding = "5px 10px";
-      stopButton.style.backgroundColor = "#ff4d4f";
-      stopButton.style.color = "#fff";
-      stopButton.style.border = "none";
-      stopButton.style.borderRadius = "5px";
-      stopButton.style.cursor = "pointer";
-      stopButton.addEventListener("click", () => {
-        stopCurrentAudio();
-        if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
-          window.startVoiceCycle(); // Re-activate voice input after stopping audio
-        }
-      });
-      messageBubble.appendChild(stopButton);
     }
     // Render action buttons in the footer after bot message
     renderActionButtons();

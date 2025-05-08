@@ -463,6 +463,7 @@ html {
   flex-direction: row;
   justify-content: space-around;
   align-items: center;
+  padding-bottom: 10px !important;
 }
 #eva-assistant #eva-chat-waiting-text {
   border: none;
@@ -506,6 +507,10 @@ html {
   cursor: pointer;
   color: #333333;
   scale: 1.2;
+}
+
+#cancel-voice {
+  display: none !important;
 }
 
 /* Footer button hovers */
