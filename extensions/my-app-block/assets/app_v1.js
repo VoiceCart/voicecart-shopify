@@ -143,28 +143,47 @@ function stopCurrentAudio() {
  */
 async function speakText(text) {
   if (!isVoicePlaybackEnabled) return; // Skip playback if disabled
+
   const apiPath    = `/tts?text=${encodeURIComponent(text)}`;
   const fullApiUrl = getApiUrl(apiPath);
+
   try {
     const response = await fetch(fullApiUrl, {
       method:      "GET",
       credentials: "same-origin",
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const blob  = await response.blob();
-    const url   = URL.createObjectURL(blob);
-    currentAudio = new Audio(url);
+
+    // === begin streaming logic ===
+    const reader = response.body.getReader();
+    const mediaSource = new MediaSource();
+    currentAudio = new Audio(URL.createObjectURL(mediaSource));
+
+    mediaSource.addEventListener("sourceopen", () => {
+      const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
+      function pump() {
+        reader.read().then(({ done, value }) => {
+          if (done) {
+            mediaSource.endOfStream();
+            return;
+          }
+          sourceBuffer.appendBuffer(value);
+          pump();
+        });
+      }
+      pump();
+    });
+    // === end streaming logic ===
+
+    // existing playback UI logic unchanged:
     if (stopVoiceCycle) stopVoiceCycle();
-    
-    // Disable voice input button while audio is playing
+
     const voiceButton = document.querySelector("#record-voice-button");
     if (voiceButton) {
       voiceButton.classList.add("greyed-out");
       voiceButton.style.pointerEvents = "none";
       voiceButton.style.cursor = "not-allowed";
     }
-
-    // Switch to stop button SVG
     const voiceToggleButton = document.querySelector("#voice-toggle-button");
     if (voiceToggleButton) {
       voiceToggleButton.innerHTML = `

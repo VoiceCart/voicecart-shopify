@@ -12,7 +12,7 @@ export const loader = async ({ request }) => {
     return new Response(mp3Stream, {
       status: 200,
       headers: {
-        "Content-Type":               "audio/ogg; codecs=opus",
+        "Content-Type":               "audio/mpeg",
         "Cache-Control":              "no-store, no-cache, must-revalidate",
         "Pragma":                     "no-cache",
         "Expires":                    "0",
