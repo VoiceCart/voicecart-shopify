@@ -1,16 +1,21 @@
+// /app/routes/api.tts.jsx
 import { json } from "@remix-run/node";
+import { Readable } from "stream";                  // ← add this
 import { generateTTSStream } from "../utils/ttsGenerator.server.js";
-import { Readable } from "stream";
 
 export const loader = async ({ request }) => {
-  // Смотрим ?text=… из URL
   const url  = new URL(request.url);
-  const text = url.searchParams.get("text") || 
-    `Hey there!`;
+  const text = url.searchParams.get("text") || `Hey there!`;
 
   try {
-    const mp3Stream = await generateTTSStream(text);
-    return new Response(mp3Stream, {
+    // 1) get a Node.js Readable from your generator
+    const mp3NodeStream = await generateTTSStream(text);
+
+    // 2) convert it to a Web ReadableStream  
+    const mp3WebStream = Readable.toWeb(mp3NodeStream);
+
+    // 3) return it directly—no extra polyfill wrapping
+    return new Response(mp3WebStream, {
       status: 200,
       headers: {
         "Content-Type":               "audio/mpeg",
@@ -36,7 +41,6 @@ export const loader = async ({ request }) => {
 
 export const action = async ({ request }) => {
   if (request.method === "OPTIONS") {
-    // CORS preflight
     return new Response(null, {
       status: 204,
       headers: {
