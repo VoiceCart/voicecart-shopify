@@ -966,15 +966,15 @@ async function initListeners(navigationEngine, messageFactory) {
       const textRaw    = lastBubble?.textContent ?? "";
       const text       = textRaw.trim();
       if (!text) {
-        console.error("Voice TTS: нет текста для озвучивания");
+        console.error("Voice TTS: no text to speak");
         return;
       }
       apiPath = `/tts?text=${encodeURIComponent(text)}`;
     }
-
-    const fullApiUrl = getApiUrl(apiPath);
+  
+    // Play the TTS greeting or last bot message
     try {
-      const response = await fetch(fullApiUrl, {
+      const response = await fetch(getApiUrl(apiPath), {
         method:      "GET",
         credentials: "same-origin",
       });
@@ -983,7 +983,6 @@ async function initListeners(navigationEngine, messageFactory) {
       const url  = URL.createObjectURL(blob);
       const audio = new Audio(url);
       await audio.play();
-      // now that we've spoken (greeting or last bot message), enter voice‐input mode
       isVoiceMode = true;
     } catch (error) {
       console.error("Error playing TTS audio:", error);
@@ -992,40 +991,38 @@ async function initListeners(navigationEngine, messageFactory) {
         emotion:    "sad",
         customClass:"error-message",
       });
+      restoreVoiceUI();
+      return;
     }
   
-    // Существующая логика голосового ввода остается без изменений
+    // If we’re mid-request, bail out
     if (isProcessing) {
       console.log("Request in progress, voice input disabled.");
       return;
     }
   
-    // Debug logging to help troubleshoot
-    console.log("Voice button clicked");
-  
-    // Make sure we have the chat container to add messages to
-    const chatContainer = document.querySelector("#chat-view") || document.querySelector(".chat-messages-container");
-    if (!chatContainer) {
-      console.error("Could not find chat container");
-      return;
-    }
-  
-    // Specifically detect Firefox
+    // Browser checks
     if (navigator.userAgent.toLowerCase().includes("firefox")) {
-      console.log("Firefox detected, showing message");
-      createErrorMessage("Firefox does not support voice mode. Please use Chrome or another compatible browser.");
+      sendMessageToAChat(MessageSender.bot, {
+        message:    "Firefox does not support voice mode. Please use Chrome or another compatible browser.",
+        emotion:    "sad",
+        customClass:"error-message",
+      });
+      restoreVoiceUI();
       return;
     }
-  
-    // Check for Speech Recognition support in other browsers
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.log("Speech recognition not supported, showing message");
-      createErrorMessage("Your browser does not support voice mode. Please use Chrome or another compatible browser.");
+      sendMessageToAChat(MessageSender.bot, {
+        message:    "Your browser does not support voice mode. Please use Chrome or another compatible browser.",
+        emotion:    "sad",
+        customClass:"error-message",
+      });
+      restoreVoiceUI();
       return;
     }
   
-    // Request audio permission only when voice mode is activated
+    // Ask for mic permission and start voice cycle
     try {
       await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -1036,17 +1033,25 @@ async function initListeners(navigationEngine, messageFactory) {
       });
       navigationEngine.goToVoiceInput();
       navigationEngine.goToChat();
-      
-      // Start the voice chat cycle for continuous voice input
       if (window.startVoiceCycle) {
         window.startVoiceCycle();
       } else {
         console.error("startVoiceCycle is not defined");
-        createErrorMessage("Voice mode failed to initialize. Please try again.");
+        sendMessageToAChat(MessageSender.bot, {
+          message:    "Voice mode failed to initialize. Please try again.",
+          emotion:    "sad",
+          customClass:"error-message",
+        });
+        restoreVoiceUI();
       }
     } catch (error) {
       console.error("Microphone access denied or error:", error);
-      createErrorMessage("Microphone access is required for voice mode. Please allow microphone access and try again.");
+      sendMessageToAChat(MessageSender.bot, {
+        message:    "Microphone access is required for voice mode. Please allow microphone access and try again.",
+        emotion:    "sad",
+        customClass:"error-message",
+      });
+      restoreVoiceUI();
     }
   });
 
