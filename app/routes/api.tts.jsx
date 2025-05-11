@@ -1,5 +1,6 @@
 import { json } from "@remix-run/node";
 import { generateTTSStream } from "../utils/ttsGenerator.server.js";
+import { Readable } from "stream";
 
 export const loader = async ({ request }) => {
   // Смотрим ?text=… из URL
