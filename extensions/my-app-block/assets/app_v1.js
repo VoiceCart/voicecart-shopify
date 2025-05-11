@@ -955,6 +955,7 @@ async function initListeners(navigationEngine, messageFactory) {
     });
   }
 
+  // const voiceButton = document.querySelector("#record-voice-button");
   voiceButton.addEventListener("click", async () => {
     let apiPath;
     if (firstGreeting) {
@@ -972,7 +973,7 @@ async function initListeners(navigationEngine, messageFactory) {
       apiPath = `/tts?text=${encodeURIComponent(text)}`;
     }
   
-    // Play the TTS greeting or last bot message
+    // Play the greeting or last bot message
     try {
       const response = await fetch(getApiUrl(apiPath), {
         method:      "GET",
@@ -995,13 +996,13 @@ async function initListeners(navigationEngine, messageFactory) {
       return;
     }
   
-    // If we’re mid-request, bail out
+    // If a request is in progress, don’t start voice input
     if (isProcessing) {
       console.log("Request in progress, voice input disabled.");
       return;
     }
   
-    // Browser checks
+    // Browser support checks
     if (navigator.userAgent.toLowerCase().includes("firefox")) {
       sendMessageToAChat(MessageSender.bot, {
         message:    "Firefox does not support voice mode. Please use Chrome or another compatible browser.",
@@ -1022,15 +1023,9 @@ async function initListeners(navigationEngine, messageFactory) {
       return;
     }
   
-    // Ask for mic permission and start voice cycle
+    // **Request mic with minimal constraints** to avoid NotFoundError
     try {
-      await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      await navigator.mediaDevices.getUserMedia({ audio: true });
       navigationEngine.goToVoiceInput();
       navigationEngine.goToChat();
       if (window.startVoiceCycle) {
