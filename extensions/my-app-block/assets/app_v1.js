@@ -25,6 +25,7 @@ let currentGroup = null;
 let lastSender = null;
 let currentLanguageKey = null;  // Will be set on DOMContentLoaded
 let currentLanguage = null;
+let suppressTTSDuringCheckout = false;
 
 const languageMap = {
   en: "en-US",
@@ -142,124 +143,164 @@ function stopCurrentAudio() {
  * Helper to fetch TTS MP3 and play it.
  */
 async function speakText(text) {
-  if (!isVoicePlaybackEnabled) return; // Skip playback if disabled
+  if (!isVoicePlaybackEnabled) return;
 
-  const apiPath    = `/tts?text=${encodeURIComponent(text)}`;
-  const fullApiUrl = getApiUrl(apiPath);
+  // --- stop mic while TTS is playing ---
+  if (stopVoiceCycle) stopVoiceCycle();
 
+  const apiUrl = getApiUrl(`/tts?text=${encodeURIComponent(text)}`);
   try {
-    const response = await fetch(fullApiUrl, {
+    const response = await fetch(apiUrl, {
       method:      "GET",
       credentials: "same-origin",
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    // === begin streaming logic ===
+    // If MediaSource API is unavailable (e.g. iOS), fallback to blob()
+    if (typeof MediaSource === "undefined") {
+      const blob = await response.blob();
+      const url  = URL.createObjectURL(blob);
+      playAudioUrl(url);
+      return;
+    }
+
+    // ===== True streaming via MediaSource =====
     const reader = response.body.getReader();
     const mediaSource = new MediaSource();
     currentAudio = new Audio(URL.createObjectURL(mediaSource));
 
     mediaSource.addEventListener("sourceopen", () => {
       const sourceBuffer = mediaSource.addSourceBuffer("audio/mpeg");
-      function pump() {
+      const queue = [];
+      let doneReading = false;
+
+      function readChunk() {
         reader.read().then(({ done, value }) => {
           if (done) {
-            mediaSource.endOfStream();
+            doneReading = true;
+            if (!sourceBuffer.updating) {
+              mediaSource.endOfStream();
+            } else {
+              sourceBuffer.addEventListener(
+                "updateend",
+                () => mediaSource.endOfStream(),
+                { once: true }
+              );
+            }
             return;
           }
-          sourceBuffer.appendBuffer(value);
-          pump();
+          queue.push(value);
+          if (!sourceBuffer.updating) appendNext();
+          readChunk();
         });
       }
-      pump();
-    });
-    // === end streaming logic ===
 
-    // existing playback UI logic unchanged:
-    if (stopVoiceCycle) stopVoiceCycle();
-
-    const voiceButton = document.querySelector("#record-voice-button");
-    if (voiceButton) {
-      voiceButton.classList.add("greyed-out");
-      voiceButton.style.pointerEvents = "none";
-      voiceButton.style.cursor = "not-allowed";
-    }
-    const voiceToggleButton = document.querySelector("#voice-toggle-button");
-    if (voiceToggleButton) {
-      voiceToggleButton.innerHTML = `
-        <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g clip-path="url(#clip0_537_2069)">
-            <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#121212"/>
-            <rect x="42" y="42" width="51" height="51" rx="10" fill="white"/>
-          </g>
-          <defs>
-            <clipPath id="clip0_537_2069">
-              <rect width="136" height="136" fill="white"/>
-            </clipPath>
-          </defs>
-        </svg>
-      `;
-    }
-
-    // Re-enable voice input button and switch back to speaking button when audio ends
-    currentAudio.addEventListener("ended", () => {
-      if (voiceButton) {
-        voiceButton.classList.remove("greyed-out");
-        voiceButton.style.pointerEvents = "all";
-        voiceButton.style.cursor = "pointer";
+      function appendNext() {
+        if (queue.length === 0) {
+          if (doneReading) mediaSource.endOfStream();
+          return;
+        }
+        sourceBuffer.appendBuffer(queue.shift());
+        sourceBuffer.addEventListener("updateend", appendNext, { once: true });
       }
-      if (isVoiceMode && !isProcessing && startVoiceCycle) startVoiceCycle(); // Resume voice input only if in voice mode and not processing
-      currentAudio = null;
-      // Switch back to speaking button SVG
-      if (voiceToggleButton) {
-        voiceToggleButton.innerHTML = `
-        <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <g clip-path="url(#clip0_537_2056)">
-        <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#2647FF"/>
-        <path d="M68.0002 27.2002C69.1105 27.2004 70.1822 27.608 71.0118 28.3459C71.8419 29.0838 72.3718 30.1006 72.5018 31.2034L72.5333 31.7338V104.271C72.5323 105.427 72.09 106.539 71.2968 107.379C70.5037 108.219 69.4195 108.725 68.2657 108.793C67.1124 108.86 65.9765 108.485 65.0903 107.743C64.2047 107.002 63.6351 105.95 63.4986 104.802L63.467 104.271V31.7338C63.467 30.5314 63.9447 29.3783 64.7944 28.528C65.6447 27.6778 66.798 27.2002 68.0002 27.2002ZM49.8669 40.801C51.0692 40.801 52.2222 41.2787 53.0724 42.1289C53.9226 42.9791 54.4002 44.1322 54.4002 45.3347V90.6708C54.4002 91.8731 53.9226 93.0264 53.0724 93.8766C52.2222 94.7269 51.0692 95.2045 49.8669 95.2045C48.6645 95.2045 47.5115 94.7269 46.6613 93.8766C45.8111 93.0264 45.3335 91.8731 45.3335 90.6708V45.3347C45.3335 44.1322 45.8111 42.9791 46.6613 42.1289C47.5115 41.2787 48.6645 40.801 49.8669 40.801ZM86.1333 40.801C87.3356 40.801 88.4889 41.2787 89.3391 42.1289C90.1894 42.9791 90.667 44.1322 90.667 45.3347V90.6708C90.667 91.8731 90.1894 93.0264 89.3391 93.8766C88.4889 94.7269 87.3356 95.2045 86.1333 95.2045C84.9311 95.2045 83.7784 94.7269 82.9281 93.8766C82.0778 93.0264 81.6002 91.8731 81.6002 90.6708V45.3347C81.6002 44.1322 82.0778 42.9791 82.9281 42.1289C83.7784 41.2787 84.9311 40.801 86.1333 40.801ZM31.7335 54.4018C32.9359 54.4018 34.0889 54.8795 34.9391 55.7297C35.7892 56.58 36.2669 57.7333 36.2669 58.9355V77.0698C36.2669 78.2725 35.7892 79.4253 34.9391 80.2756C34.0889 81.1258 32.9359 81.6035 31.7335 81.6035C30.5312 81.6035 29.3782 81.1258 28.528 80.2756C27.6778 79.4253 27.2002 78.2725 27.2002 77.0698V58.9355C27.2002 57.7333 27.6778 56.58 28.528 55.7297C29.3782 54.8795 30.5312 54.4018 31.7335 54.4018ZM104.267 54.4018C105.377 54.4018 106.449 54.8098 107.279 55.5475C108.108 56.2857 108.639 57.3024 108.769 58.4051L108.8 58.9355V77.0698C108.799 78.2252 108.356 79.3372 107.563 80.1771C106.77 81.0176 105.686 81.5229 104.533 81.5909C103.379 81.6584 102.243 81.283 101.357 80.5416C100.471 79.7996 99.902 78.748 99.7654 77.6002L99.7333 77.0698V58.9355C99.7333 57.7333 100.211 56.58 101.061 55.7297C101.912 54.8795 103.065 54.4018 104.267 54.4018Z" fill="white"/>
-        </g>
-        <defs>
-        <clipPath id="clip0_537_2056">
-        <rect width="136" height="136" fill="white"/>
-        </clipPath>
-        </defs>
-        </svg>
-        `;
-      }
-    });
 
-    // Kick off play, but do NOT await it:
-    currentAudio.play().catch(console.error);
-  } catch (error) {
-    console.error("Error playing TTS audio:", error);
+      readChunk();
+    });
+    // ===== end streaming =====
+
+    playAudioNode(currentAudio);
+  } catch (err) {
+    console.error("TTS playback error:", err);
     sendMessageToAChat(MessageSender.bot, {
-      message:    `Failed to play audio: ${error.message}. Please try again.`,
+      message:    `Failed to play audio: ${err.message}. Please try again.`,
       emotion:    "sad",
       customClass:"error-message",
     });
-    // Ensure voice button is re-enabled on error
-    const voiceButton = document.querySelector("#record-voice-button");
-    if (voiceButton) {
-      voiceButton.classList.remove("greyed-out");
-      voiceButton.style.pointerEvents = "all";
-      voiceButton.style.cursor = "pointer";
+    // restore the mic button & UI even on error
+    restoreVoiceUI();
+  }
+}
+
+/** 
+ * Fallback & UI helper: play from a blob URL 
+ */
+function playAudioUrl(url) {
+  if (stopVoiceCycle) stopVoiceCycle();
+  const audio = new Audio(url);
+  playAudioNode(audio);
+}
+
+/** 
+ * Core UI handling & playback start 
+ */
+function playAudioNode(audio) {
+  const voiceButton = document.querySelector("#record-voice-button");
+  const toggle      = document.querySelector("#voice-toggle-button");
+
+  // Disable voice-input button while playing
+  if (voiceButton) {
+    voiceButton.classList.add("greyed-out");
+    voiceButton.style.pointerEvents = "none";
+    voiceButton.style.cursor = "not-allowed";
+  }
+
+  // Switch to STOP icon
+  if (toggle) {
+    toggle.innerHTML = `
+      <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip0_537_2069)">
+          <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#121212"/>
+          <rect x="42" y="42" width="51" height="51" rx="10" fill="white"/>
+        </g>
+        <defs>
+          <clipPath id="clip0_537_2069">
+            <rect width="136" height="136" fill="white"/>
+          </clipPath>
+        </defs>
+      </svg>
+    `;
+  }
+
+  currentAudio = audio;
+  audio.addEventListener("ended", () => {
+    // restore UI
+    restoreVoiceUI();
+    // resume mic
+    if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
+      window.startVoiceCycle();
     }
-    // Switch back to speaking button SVG on error
-    const voiceToggleButton = document.querySelector("#voice-toggle-button");
-    if (voiceToggleButton) {
-      voiceToggleButton.innerHTML = `
-        <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g clip-path="url(#clip0_537_2056)">
-            <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#2647FF"/>
-            <path d="M68.0002 27.2002C69.1105 27.2004 70.1822 27.608 71.0118 28.3459C71.8419 29.0838 72.3718 30.1006 72.5018 31.2034L72.5333 31.7338V104.271C72.5323 105.427 72.09 106.539 71.2968 107.379C70.5037 108.219 69.4195 108.725 68.2657 108.793C67.1124 108.86 65.9765 108.485 65.0903 107.743C64.2047 107.002 63.6351 105.95 63.4986 104.802L63.467 104.271V31.7338C63.467 30.5314 63.9447 29.3783 64.7944 28.528C65.6447 27.6778 66.798 27.2002 68.0002 27.2002ZM49.8669 40.801C51.0692 40.801 52.2222 41.2787 53.0724 42.1289C53.9226 42.9791 54.4002 44.1322 54.4002 45.3347V90.6708C54.4002 91.8731 53.9226 93.0264 53.0724 93.8766C52.2222 94.7269 51.0692 95.2045 49.8669 95.2045C48.6645 95.2045 47.5115 94.7269 46.6613 93.8766C45.8111 93.0264 45.3335 91.8731 45.3335 90.6708V45.3347C45.3335 44.1322 45.8111 42.9791 46.6613 42.1289C47.5115 41.2787 48.6645 40.801 49.8669 40.801ZM86.1333 40.801C87.3356 40.801 88.4889 41.2787 89.3391 42.1289C90.1894 42.9791 90.667 44.1322 90.667 45.3347V90.6708C90.667 91.8731 90.1894 93.0264 89.3391 93.8766C88.4889 94.7269 87.3356 95.2045 86.1333 95.2045C84.9311 95.2045 83.7784 94.7269 82.9281 93.8766C82.0778 93.0264 81.6002 91.8731 81.6002 90.6708V45.3347C81.6002 44.1322 82.0778 42.9791 82.9281 42.1289C83.7784 41.2787 84.9311 40.801 86.1333 40.801ZM31.7335 54.4018C32.9359 54.4018 34.0889 54.8795 34.9391 55.7297C35.7892 56.58 36.2669 57.7333 36.2669 58.9355V77.0698C36.2669 78.2725 35.7892 79.4253 34.9391 80.2756C34.0889 81.1258 32.9359 81.6035 31.7335 81.6035C30.5312 81.6035 29.3782 81.1258 28.528 80.2756C27.6778 79.4253 27.2002 78.2725 27.2002 77.0698V58.9355C27.2002 57.7333 27.6778 56.58 28.528 55.7297C29.3782 54.8795 30.5312 54.4018 31.7335 54.4018ZM104.267 54.4018C105.377 54.4018 106.449 54.8098 107.279 55.5475C108.108 56.2857 108.639 57.3024 108.769 58.4051L108.8 58.9355V77.0698C108.799 78.2252 108.356 79.3372 107.563 80.1771C106.77 81.0176 105.686 81.5229 104.533 81.5909C103.379 81.6584 102.243 81.283 101.357 80.5416C100.471 79.7996 99.902 78.748 99.7654 77.6002L99.7333 77.0698V58.9355C99.7333 57.7333 100.211 56.58 101.061 55.7297C101.912 54.8795 103.065 54.4018 104.267 54.4018Z" fill="white"/>
-            </g>
-            <defs>
-              <clipPath id="clip0_537_2056">
-                <rect width="136" height="136" fill="white"/>
-              </clipPath>
-            </defs>
-          </svg>`;
-    }
+    currentAudio = null;
+  });
+
+  audio.play().catch(console.error);
+}
+
+/** 
+ * Restore the voice button & toggle back to SPEAK icon 
+ */
+function restoreVoiceUI() {
+  const voiceButton = document.querySelector("#record-voice-button");
+  const toggle      = document.querySelector("#voice-toggle-button");
+
+  if (voiceButton) {
+    voiceButton.classList.remove("greyed-out");
+    voiceButton.style.pointerEvents = "all";
+    voiceButton.style.cursor = "pointer";
+  }
+  if (toggle) {
+    toggle.innerHTML = `
+      <svg width="80" height="80" viewBox="0 0 136 136" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip0_537_2056)">
+          <path d="M68 136C105.555 136 136 105.555 136 68C136 30.4446 105.555 0 68 0C30.4446 0 0 30.4446 0 68C0 105.555 30.4446 136 68 136Z" fill="#2647FF"/>
+          <path d="M68.0002 27.2002C69.1105 27.2004 70.1822 27.608 71.0118 28.3459C71.8419 29.0838 72.3718 30.1006 72.5018 31.2034L72.5333 31.7338V104.271C72.5323 105.427 72.09 106.539 71.2968 107.379C70.5037 108.219 69.4195 108.725 68.2657 108.793C67.1124 108.86 65.9765 108.485 65.0903 107.743C64.2047 107.002 63.6351 105.95 63.4986 104.802L63.467 104.271V31.7338C63.467 30.5314 63.9447 29.3783 64.7944 28.528C65.6447 27.6778 66.798 27.2002 68.0002 27.2002ZM49.8669 40.801C51.0692 40.801 52.2222 41.2787 53.0724 42.1289C53.9226 42.9791 54.4002 44.1322 54.4002 45.3347V90.6708C54.4002 91.8731 53.9226 93.0264 53.0724 93.8766C52.2222 94.7269 51.0692 95.2045 49.8669 95.2045C48.6645 95.2045 47.5115 94.7269 46.6613 93.8766C45.8111 93.0264 45.3335 91.8731 45.3335 90.6708V45.3347C45.3335 44.1322 45.8111 42.9791 46.6613 42.1289C47.5115 41.2787 48.6645 40.801 49.8669 40.801ZM86.1333 40.801C87.3356 40.801 88.4889 41.2787 89.3391 42.1289C90.1894 42.9791 90.667 44.1322 90.667 45.3347V90.6708C90.667 91.8731 90.1894 93.0264 89.3391 93.8766C88.4889 94.7269 87.3356 95.2045 86.1333 95.2045C84.9311 95.2045 83.7784 94.7269 82.9281 93.8766C82.0778 93.0264 81.6002 91.8731 81.6002 90.6708V45.3347C81.6002 44.1322 82.0778 42.9791 82.9281 42.1289C83.7784 41.2787 84.9311 40.801 86.1333 40.801ZM31.7335 54.4018C32.9359 54.4018 34.0889 54.8795 34.9391 55.7297C35.7892 56.58 36.2669 57.7333 36.2669 58.9355V77.0698C36.2669 78.2725 35.7892 79.4253 34.9391 80.2756C34.0889 81.1258 32.9359 81.6035 31.7335 81.6035C30.5312 81.6035 29.3782 81.1258 28.528 80.2756C27.6778 79.4253 27.2002 78.2725 27.2002 77.0698V58.9355C27.2002 57.7333 27.6778 56.58 28.528 55.7297C29.3782 54.8795 30.5312 54.4018 31.7335 54.4018ZM104.267 54.4018C105.377 54.4018 106.449 54.8098 107.279 55.5475C108.108 56.2857 108.639 57.3024 108.769 58.4051L108.8 58.9355V77.0698C108.799 78.2252 108.356 79.3372 107.563 80.1771C106.77 81.0176 105.686 81.5229 104.533 81.5909C103.379 81.6584 102.243 81.283 101.357 80.5416C100.471 79.7996 99.902 78.748 99.7654 77.6002L99.7333 77.0698V58.9355C99.7333 57.7333 100.211 56.58 101.061 55.7297C101.912 54.8795 103.065 54.4018 104.267 54.4018Z" fill="white"/>
+        </g>
+        <defs>
+          <clipPath id="clip0_537_2056">
+            <rect width="136" height="136" fill="white"/>
+          </clipPath>
+        </defs>
+      </svg>
+    `;
   }
 }
 
@@ -1060,6 +1101,12 @@ async function handleUserQuery(messageText, options) {
     const receivedMessage = await fetchMessage(messageText.trim(), controller.signal);
     if (thinkingBubble) thinkingBubble.remove();
 
+    // SUPPRESS TTS for checkout flow
+    const isCheckoutFlow = receivedMessage.messages.some(
+      m => m.type === "action" && m.value.action === "checkoutCart"
+    );
+    if (isCheckoutFlow) suppressTTSDuringCheckout = true;
+
     // Track the last action to deduplicate consecutive identical actions
     let lastActionKey = null;
 
@@ -1179,15 +1226,19 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
           }
         } else if (action.action === "checkoutCart") {
           try {
-            // Show cart summary before proceeding to checkout
+            // 1) Show cart summary (TTS suppressed)
             await sendCartSummaryToChat();
+            // 2) Generate & send checkout link
             const discountCode = action.discountCode || lastAppliedDiscountCode;
             const checkoutUrl = await generateCheckoutUrl(discountCode);
-            // Make the URL clickable by wrapping it in an <a> tag
             sendMessageToAChat(MessageSender.bot, {
               message: `Ready to checkout? Click here: <a href="${checkoutUrl}" target="_blank">${checkoutUrl}</a>`,
               emotion: "welcoming"
             });
+            // 3) Single TTS line
+            if (isVoiceMode && isVoicePlaybackEnabled) {
+              speakText("Here’s your checkout details");
+            }
           } catch (error) {
             console.error("Error generating checkout URL:", error.message);
             sendMessageToAChat(MessageSender.bot, {
@@ -1202,6 +1253,10 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
       }
       scrollChatToBottom();
     }
+
+    // RE-ENABLE TTS after checkout flow
+    if (isCheckoutFlow) suppressTTSDuringCheckout = false;
+
   } catch (err) {
     if (err.name === "AbortError") {
       console.log("User aborted request.");
@@ -1436,20 +1491,27 @@ function sendMessageToAChat(sender, config) {
       config.emotion,
       { customClass: config.customClass || "" }
     );
-    // Tag the bubble if it is a constant message
     if (config.constantKey) {
       messageBubble.dataset.constantKey = config.constantKey;
     }
-    // Render action buttons in the footer after bot message
     renderActionButtons();
   } else {
     throw new Error("Message type is not defined in sendMessageToAChatFunction");
   }
+
   messageBubble.classList.add("fade-in");
   appendMessageToGroup(sender, messageBubble);
-  if (sender === MessageSender.bot && isVoiceMode && isVoicePlaybackEnabled) {
+
+  // Only speak if voice mode is on, playback enabled, and not suppressed
+  if (
+    sender === MessageSender.bot &&
+    isVoiceMode &&
+    isVoicePlaybackEnabled &&
+    !suppressTTSDuringCheckout
+  ) {
     speakText(config.message);
   }
+
   return messageBubble;
 }
 
