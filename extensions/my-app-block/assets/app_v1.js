@@ -235,13 +235,11 @@ function playAudioUrl(url) {
  * Core UI handling & playback start 
  */
 function playAudioNode(audio) {
-  const voiceButton = document.querySelector("#record-voice-button");
-  const toggle      = document.querySelector("#voice-toggle-button");
-
+  // 1) As soon as TTS actually starts playing, clear the thinking‐bubble
   const thinking = document.querySelector(".thinking-message");
   if (thinking) thinking.remove();
 
-  // **NEW** show buffered bot message right at playback start
+  // 2) Show buffered bot message (voice‐mode only)
   if (pendingVoiceMessage) {
     const cfg = pendingVoiceMessage;
     const bubble = messageFactory.createBotMessage(
@@ -256,7 +254,10 @@ function playAudioNode(audio) {
     pendingVoiceMessage = null;
   }
 
-  // Disable voice-input button while playing
+  const voiceButton = document.querySelector("#record-voice-button");
+  const toggle      = document.querySelector("#voice-toggle-button");
+
+  // Disable voice-input button while (attempting to) play
   if (voiceButton) {
     voiceButton.classList.add("greyed-out");
     voiceButton.style.pointerEvents = "none";
@@ -281,17 +282,35 @@ function playAudioNode(audio) {
   }
 
   currentAudio = audio;
+  audio.playsInline = true;
+  audio.setAttribute("playsinline", "");
+
+  const playPromise = audio.play();
+  if (playPromise !== undefined) {
+    playPromise
+      .then(() => {
+        // playback actually began—nothing else to do until 'ended'
+      })
+      .catch(err => {
+        console.error("Audio playback failed:", err);
+        // teardown STOP icon & re-enable mic
+        restoreVoiceUI();
+        currentAudio = null;
+        if (isVoiceMode && window.startVoiceCycle) {
+          window.startVoiceCycle();
+        }
+      });
+  }
+
   audio.addEventListener("ended", () => {
     // restore UI
     restoreVoiceUI();
-    // resume mic
+    // resume voice cycle if in voice mode
     if (isVoiceMode && !isProcessing && window.startVoiceCycle) {
       window.startVoiceCycle();
     }
     currentAudio = null;
   });
-
-  audio.play().catch(console.error);
 }
 
 /** 
@@ -1490,7 +1509,7 @@ function sendMessageToAChat(sender, config) {
     lastBotMessageText = config.message;
   }
 
-  // In voice‐mode WITH playback on, buffer the bubble and kick off TTS only
+  // Voice-mode + playback on: buffer & fire TTS
   if (
     sender === MessageSender.bot &&
     isVoiceMode &&
@@ -1502,7 +1521,7 @@ function sendMessageToAChat(sender, config) {
     return;
   }
 
-  // Otherwise (text‐mode, muted, checkout‐suppressed, or customer), proceed as before:
+  // Otherwise render immediately
   let messageBubble;
   if (sender === MessageSender.customer) {
     if (config?.mode === "voice") {
@@ -1510,11 +1529,11 @@ function sendMessageToAChat(sender, config) {
     } else {
       const input = document.querySelector("#query-input");
       const textToShow = config?.message ?? input.value;
-      if (!textToShow.length) return;
+      if (!textToShow) return;
       messageBubble = messageFactory.createCustomerMessage(textToShow);
       input.value = "";
     }
-  } else if (sender === MessageSender.bot) {
+  } else { // bot
     messageBubble = messageFactory.createBotMessage(
       config.message,
       config.emotion,
@@ -1524,21 +1543,20 @@ function sendMessageToAChat(sender, config) {
       messageBubble.dataset.constantKey = config.constantKey;
     }
     renderActionButtons();
-  } else {
-    throw new Error("Message type is not defined in sendMessageToAChatFunction");
   }
 
   messageBubble.classList.add("fade-in");
   appendMessageToGroup(sender, messageBubble);
 
-  // In non-voice or muted cases, still speak if appropriate
+  // If muted (or checkout‐suppressed), immediately resume listening
   if (
     sender === MessageSender.bot &&
     isVoiceMode &&
-    isVoicePlaybackEnabled &&
-    !suppressTTSDuringCheckout
+    (!isVoicePlaybackEnabled || suppressTTSDuringCheckout)
   ) {
-    speakText(config.message);
+    if (window.startVoiceCycle && !isProcessing) {
+      window.startVoiceCycle();
+    }
   }
 
   return messageBubble;
