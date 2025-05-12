@@ -26,6 +26,7 @@ let lastSender = null;
 let currentLanguageKey = null;  // Will be set on DOMContentLoaded
 let currentLanguage = null;
 let suppressTTSDuringCheckout = false;
+let pendingVoiceMessage = null;
 
 const languageMap = {
   en: "en-US",
@@ -236,6 +237,21 @@ function playAudioUrl(url) {
 function playAudioNode(audio) {
   const voiceButton = document.querySelector("#record-voice-button");
   const toggle      = document.querySelector("#voice-toggle-button");
+
+  // **NEW** show buffered bot message right at playback start
+  if (pendingVoiceMessage) {
+    const cfg = pendingVoiceMessage;
+    const bubble = messageFactory.createBotMessage(
+      cfg.message,
+      cfg.emotion,
+      { customClass: cfg.customClass || "" }
+    );
+    if (cfg.constantKey) bubble.dataset.constantKey = cfg.constantKey;
+    renderActionButtons();
+    bubble.classList.add("fade-in");
+    appendMessageToGroup(MessageSender.bot, bubble);
+    pendingVoiceMessage = null;
+  }
 
   // Disable voice-input button while playing
   if (voiceButton) {
@@ -1463,16 +1479,27 @@ function grayOutLastMessageBubble() {
  * If a constantKey is provided, the message bubble is tagged so that its content can be updated when the language changes.
  */
 function sendMessageToAChat(sender, config) {
-  // If it’s a bot message and exactly the same as the previous one, skip it:
+  // Dedupe identical bot messages
   if (sender === MessageSender.bot && config.message === lastBotMessageText) {
     return;
   }
-
-  // Otherwise, update our guard:
   if (sender === MessageSender.bot) {
     lastBotMessageText = config.message;
   }
-  
+
+  // In voice‐mode WITH playback on, buffer the bubble and kick off TTS only
+  if (
+    sender === MessageSender.bot &&
+    isVoiceMode &&
+    isVoicePlaybackEnabled &&
+    !suppressTTSDuringCheckout
+  ) {
+    pendingVoiceMessage = config;
+    speakText(config.message);
+    return;
+  }
+
+  // Otherwise (text‐mode, muted, checkout‐suppressed, or customer), proceed as before:
   let messageBubble;
   if (sender === MessageSender.customer) {
     if (config?.mode === "voice") {
@@ -1501,7 +1528,7 @@ function sendMessageToAChat(sender, config) {
   messageBubble.classList.add("fade-in");
   appendMessageToGroup(sender, messageBubble);
 
-  // Only speak if voice mode is on, playback enabled, and not suppressed
+  // In non-voice or muted cases, still speak if appropriate
   if (
     sender === MessageSender.bot &&
     isVoiceMode &&
