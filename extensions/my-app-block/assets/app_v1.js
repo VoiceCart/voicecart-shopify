@@ -238,6 +238,9 @@ function playAudioNode(audio) {
   const voiceButton = document.querySelector("#record-voice-button");
   const toggle      = document.querySelector("#voice-toggle-button");
 
+  const thinking = document.querySelector(".thinking-message");
+  if (thinking) thinking.remove();
+
   // **NEW** show buffered bot message right at playback start
   if (pendingVoiceMessage) {
     const cfg = pendingVoiceMessage;
@@ -1115,7 +1118,7 @@ async function handleUserQuery(messageText, options) {
   try {
     const cartState = await getCartState(); // Fetch cart state for context
     const receivedMessage = await fetchMessage(messageText.trim(), controller.signal);
-    if (thinkingBubble) thinkingBubble.remove();
+    // if (thinkingBubble) thinkingBubble.remove();
 
     // SUPPRESS TTS for checkout flow
     const isCheckoutFlow = receivedMessage.messages.some(
