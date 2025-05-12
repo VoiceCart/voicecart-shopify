@@ -1,7 +1,7 @@
 /* app-window.css */
 
 /* Сброс и box-sizing */
-#eva-assistant, #eva-assistant * {
+#eva-assistant, #eva-assistant > * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;

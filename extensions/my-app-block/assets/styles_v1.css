@@ -2,7 +2,7 @@
 
 /* Reset and box-sizing */
 #eva-assistant,
-#eva-assistant * {
+#eva-assistant > eva-* {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
@@ -244,10 +244,10 @@
 }
 
 /* Global styles */
-html {
+/* html {
   background: pink;
   font-family: "Anek Gujarati", sans-serif;
-}
+} */
 .invisible {
   display: none !important;
 }

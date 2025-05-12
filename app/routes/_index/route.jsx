@@ -35,7 +35,7 @@ export default function App() {
             </button>
           </Form>
         )}
-        <ul className={styles.list}>
+        <ul className={styles.evaList}>
           <li>
             <strong>Product feature</strong>. Some detail about your feature and
             its benefit to your customer.
