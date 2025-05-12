@@ -1312,7 +1312,6 @@ function openHelpPopup() {
     <li>Show you a summary of your cart at any time.</li>
     <li>Apply discount codes to save you money.</li>
     <li>Generate a checkout link when you're ready to buy.</li>
-    <li>Support multiple languages (English, Russian, German, Czech).</li>
     </ul>
     <br>
     Use text or voice input to chat with me!
