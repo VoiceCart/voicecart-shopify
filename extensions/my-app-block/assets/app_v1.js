@@ -1501,15 +1501,17 @@ function grayOutLastMessageBubble() {
  * If a constantKey is provided, the message bubble is tagged so that its content can be updated when the language changes.
  */
 function sendMessageToAChat(sender, config) {
-  // Dedupe identical bot messages
+  // If it’s a bot message and exactly the same as the previous one, skip it:
   if (sender === MessageSender.bot && config.message === lastBotMessageText) {
     return;
   }
+
+  // Update the guard for bot messages
   if (sender === MessageSender.bot) {
     lastBotMessageText = config.message;
   }
 
-  // Voice-mode + playback on: buffer & fire TTS
+  // Voice-mode with TTS enabled: buffer the bubble and start TTS, but do NOT render yet
   if (
     sender === MessageSender.bot &&
     isVoiceMode &&
@@ -1521,34 +1523,45 @@ function sendMessageToAChat(sender, config) {
     return;
   }
 
-  // Otherwise render immediately
+  // —— Non-buffered path (text-mode OR muted voice OR checkout-suppressed) —— //
+  // Clear the thinking (“…”) bubble now that we’re about to render
+  document.querySelector(".thinking-message")?.remove();
+
   let messageBubble;
+
   if (sender === MessageSender.customer) {
+    // Customer messages: either interim voice transcript or text
     if (config?.mode === "voice") {
       messageBubble = messageFactory.createCustomerMessage("");
     } else {
       const input = document.querySelector("#query-input");
       const textToShow = config?.message ?? input.value;
-      if (!textToShow) return;
+      if (!textToShow.length) return;
       messageBubble = messageFactory.createCustomerMessage(textToShow);
       input.value = "";
     }
-  } else { // bot
+  } else if (sender === MessageSender.bot) {
+    // Bot messages: render immediately
     messageBubble = messageFactory.createBotMessage(
       config.message,
       config.emotion,
       { customClass: config.customClass || "" }
     );
+
     if (config.constantKey) {
       messageBubble.dataset.constantKey = config.constantKey;
     }
+
     renderActionButtons();
+  } else {
+    throw new Error("Message type is not defined in sendMessageToAChat");
   }
 
+  // Animate in and append
   messageBubble.classList.add("fade-in");
   appendMessageToGroup(sender, messageBubble);
 
-  // If muted (or checkout‐suppressed), immediately resume listening
+  // If in voice-mode but muted or in checkout flow, resume listening immediately
   if (
     sender === MessageSender.bot &&
     isVoiceMode &&
