@@ -79,7 +79,7 @@ function deleteCookie(name) {
 function getApiUrl(path) {
   // если мы на myshopify.com — звоним прямо на ваш сервер
   if (window.location.host.includes(".myshopify.com")) {
-    return `https://howmuchfor.site/api${path.startsWith("/") ? path : "/" + path}`;
+    return `https://api.getvoicecart.com/api${path.startsWith("/") ? path : "/" + path}`;
   }
   // иначе (админка, локалка) — относительный путь к embedded-app
   return path;
