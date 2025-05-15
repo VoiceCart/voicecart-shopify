@@ -9,11 +9,33 @@ import { authenticate } from "../shopify.server";
 export const links = () => [{ rel: "stylesheet", href: polarisStyles }];
 
 export const loader = async ({ request }) => {
-  const { admin, session } = await authenticate.admin(request);
-  
-  return json({ 
-    apiKey: process.env.SHOPIFY_API_KEY || "",
-    shopOrigin: session.shop
+  const authHeader = request.headers.get("Authorization");
+  let apiKey = process.env.SHOPIFY_API_KEY;
+  let shop = "";
+
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const payload = await api.session.decodeSessionToken(token);
+      shop = payload.shop;
+    } catch (error) {
+      console.error("JWT decode failed in /app loader:", error);
+      return new Response("Unauthorized", { status: 401 });
+    }
+  } else {
+    // fallback — iframe заход без токена (первый запуск)
+    try {
+      const { session } = await authenticate.admin(request);
+      shop = session.shop;
+    } catch (error) {
+      console.warn("No session in iframe init (probably first load)");
+      // не падаем! просто отдаем минимальные данные
+    }
+  }
+
+  return json({
+    apiKey,
+    shopOrigin: shop || "",
   });
 };
 
