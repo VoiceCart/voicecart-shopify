@@ -45,6 +45,7 @@ export async function fetchStoreInfoAndTags(request) {
       apiKey: process.env.SHOPIFY_API_KEY,
       apiSecretKey: process.env.SHOPIFY_API_SECRET,
       apiVersion: ApiVersion.April24,
+      hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ''),
     }).clients.graphql;
 
     const graphql = new client({
