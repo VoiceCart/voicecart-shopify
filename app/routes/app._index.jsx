@@ -2,7 +2,7 @@ import { useFetcher } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { Button, Card, Page, Text, ButtonGroup, Select } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { fetchWithToken } from "~/utils/fetchWithToken";
+import { fetchWithToken } from "../utils/fetchWithToken";
 
 export default function DownloadProducts() {
   const fetcher = useFetcher();
