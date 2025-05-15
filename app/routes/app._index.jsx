@@ -2,6 +2,7 @@ import { useFetcher } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { Button, Card, Page, Text, ButtonGroup, Select } from "@shopify/polaris";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { fetchWithToken } from "~/utils/fetchWithToken";
 
 export default function DownloadProducts() {
   const fetcher = useFetcher();
@@ -26,7 +27,7 @@ export default function DownloadProducts() {
   // Fetch store info and tags
   const fetchStoreInfoAndTags = async () => {
     try {
-      const response = await fetch("/api/generate-prompt", {
+      const response = await fetchWithToken("/api/generate-prompt", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -53,7 +54,7 @@ export default function DownloadProducts() {
   // Fetch the saved prompt directly from the DB
   const fetchPromptFromDB = async () => {
     try {
-      const response = await fetch("/api/get-saved-prompt", {
+      const response = await fetchWithToken("/api/get-saved-prompt", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -113,7 +114,7 @@ export default function DownloadProducts() {
   useEffect(() => {
     if (taskId) {
       const interval = setInterval(async () => {
-        const response = await fetch(`/api/status-task?taskId=${taskId}`);
+        const response = await fetchWithTokenф(`/api/status-task?taskId=${taskId}`);
         const data = await response.json();
         if (data.status === "success" || data.status === "failed") {
           setStatus(data.status === "success" ? "Completed" : "Failed");

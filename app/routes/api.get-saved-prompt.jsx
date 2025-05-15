@@ -1,18 +1,19 @@
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
-import { authenticate } from "../shopify.server";
+import { api } from "../shopify.server";
 
 export async function loader({ request }) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const token = authHeader.replace("Bearer ", "");
+
   try {
-    // 1) Use Shopify’s session to get the real shop domain
-    const { admin } = await authenticate.admin(request);
-    let shop = admin.rest.session.shop.trim().toLowerCase();
+    const payload = await api.session.decodeSessionToken(token);
+    let shop = payload.shop.trim().toLowerCase();
     if (!shop.endsWith(".myshopify.com")) {
       shop += ".myshopify.com";
     }
     console.log("api.get-saved-prompt: reading prompt for shop =>", shop);
 
-    // 2) Fetch the most recent prompt
     const savedPrompt = await prisma.prompt.findFirst({
       where: { shop },
       orderBy: { id: "desc" },
@@ -22,10 +23,9 @@ export async function loader({ request }) {
       return json({ error: "No prompt found for this shop" }, { status: 404 });
     }
 
-    // 3) Return it
     return json({ generalPrompt: savedPrompt.prompt });
   } catch (error) {
-    console.error("Error fetching saved prompt:", error);
-    return json({ error: error.message || "Failed to fetch saved prompt" }, { status: 500 });
+    console.error("Token validation or fetch error:", error);
+    return json({ error: error.message || "Unauthorized or failed to fetch prompt" }, { status: 401 });
   }
 }

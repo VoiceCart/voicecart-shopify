@@ -2,23 +2,23 @@ import { json } from "@remix-run/node";
 import { fetchStoreInfoAndTags } from "../utils/shopifyStoreInfoFetch.server";
 import { runChatCompletion } from "../utils/connectors/gptConnector.js";
 import prisma from "../db.server";
-import { authenticate } from "../shopify.server";
+import { api } from "../shopify.server"; // заменили authenticate
 
 export async function loader({ request }) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const token = authHeader.replace("Bearer ", "");
+
   try {
-    // 1) Use Shopify's session to get the real shop domain
-    const { admin } = await authenticate.admin(request);
-    let shop = admin.rest.session.shop.trim().toLowerCase();
+    const payload = await api.session.decodeSessionToken(token);
+    let shop = payload.shop.trim().toLowerCase();
     if (!shop.endsWith(".myshopify.com")) {
       shop += ".myshopify.com";
     }
     console.log("api.generate-prompt: saving prompt for shop =>", shop);
 
-    // 2) Fetch store info & tags
     const { uniqueTags, shopDescription } = await fetchStoreInfoAndTags(request);
     console.log(`Retrieved ${uniqueTags.length} unique tags for prompt generation`);
 
-    // 3) Build a more detailed prompt for a verbose description
     const openAiPrompt = `Create a comprehensive and detailed description of what this Shopify store sells based on the following data:
 
 TAGS: ${uniqueTags.join(", ")}
@@ -35,19 +35,16 @@ Your response should:
 
 Return only the store description as your response, without any additional commentary, preamble, or formatting.`;
 
-    // 4) Call OpenAI with enhanced settings
     const generalPrompt = await runChatCompletion({
       systemPrompt: "You are a retail analytics expert who creates detailed, insightful descriptions of e-commerce stores based on product data.",
       userQuery: openAiPrompt,
       sessionId: "store-info-session",
-      model: "gpt-4o-mini", // Keeping the same model
-      // temperature: 0.7,
+      model: "gpt-4o-mini",
       numberOfMessagesHistory: 0,
       responseFormat: "text",
       stream: false,
     });
 
-    // 5) Save in DB
     await prisma.prompt.create({
       data: {
         shop,
@@ -56,10 +53,9 @@ Return only the store description as your response, without any additional comme
     });
     console.log(`New prompt saved for shop: ${shop} => ${generalPrompt}`);
 
-    // 6) Return store info & tags
     return json({ uniqueTags, shopDescription });
   } catch (error) {
-    console.error("Error generating or saving prompt:", error);
-    return json({ error: error.message || "Failed to generate or save prompt" }, { status: 500 });
+    console.error("Token validation or prompt generation failed:", error);
+    return json({ error: error.message || "Unauthorized or failed to generate prompt" }, { status: 401 });
   }
 }
