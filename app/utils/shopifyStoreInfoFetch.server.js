@@ -1,6 +1,7 @@
 // app/utils/shopifyStoreInfoFetch.server.js
 import { authenticate } from "../shopify.server";
 import { shopifyApi, ApiVersion } from "@shopify/shopify-api";
+import { restResources } from "@shopify/shopify-api/rest/admin/2024-04";
 import { sessionStorage } from "../shopify.server";
 
 export async function fetchStoreInfoAndTags(request) {
