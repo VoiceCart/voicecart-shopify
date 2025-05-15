@@ -2,15 +2,12 @@ import { json } from "@remix-run/node";
 import { fetchStoreInfoAndTags } from "../utils/shopifyStoreInfoFetch.server";
 import { runChatCompletion } from "../utils/connectors/gptConnector.js";
 import prisma from "../db.server";
-import { api } from "../shopify.server"; // заменили authenticate
+import { authenticate } from "../shopify.server"; // заменили api
 
 export async function loader({ request }) {
-  const authHeader = request.headers.get("Authorization") || "";
-  const token = authHeader.replace("Bearer ", "");
-
   try {
-    const payload = await api.session.decodeSessionToken(token);
-    let shop = payload.shop.trim().toLowerCase();
+    const { session } = await authenticate.admin(request); // новое поведение
+    let shop = session.shop.trim().toLowerCase();
     if (!shop.endsWith(".myshopify.com")) {
       shop += ".myshopify.com";
     }

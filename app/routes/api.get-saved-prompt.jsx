@@ -1,14 +1,11 @@
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
-import { api } from "../shopify.server";
+import shopify from "../shopify.server";
 
 export async function loader({ request }) {
-  const authHeader = request.headers.get("Authorization") || "";
-  const token = authHeader.replace("Bearer ", "");
-
   try {
-    const payload = await api.session.decodeSessionToken(token);
-    let shop = payload.shop.trim().toLowerCase();
+    const { session } = await shopify.authenticate.public.appProxy(request);
+    let shop = session.shop.trim().toLowerCase();
     if (!shop.endsWith(".myshopify.com")) {
       shop += ".myshopify.com";
     }

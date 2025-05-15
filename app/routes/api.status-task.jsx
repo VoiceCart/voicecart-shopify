@@ -1,13 +1,10 @@
 import { json } from "@remix-run/node";
 import { getTaskById } from "../db.server.js";
-import { api } from "../shopify.server";
+import shopify from "../shopify.server";
 
 export async function loader({ request }) {
-  const authHeader = request.headers.get("Authorization") || "";
-  const token = authHeader.replace("Bearer ", "");
-
   try {
-    const payload = await api.session.decodeSessionToken(token);
+    const { session } = await shopify.authenticate.public.appProxy(request);
     const url = new URL(request.url);
     const taskId = url.searchParams.get("taskId");
 
