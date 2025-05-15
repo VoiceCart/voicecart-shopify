@@ -41,16 +41,15 @@ export async function fetchStoreInfoAndTags(request) {
     }
 
     // 2. GraphQL-запросы через клиент из @shopify/shopify-api
-    const client = new shopifyApi({
+    const { clients } = shopifyApi({
       apiKey: process.env.SHOPIFY_API_KEY,
       apiSecretKey: process.env.SHOPIFY_API_SECRET,
       apiVersion: ApiVersion.April24,
       hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ''),
-    }).clients.graphql;
-
-    const graphql = new client({
-      session,
+      restResources,
     });
+
+    const graphqlClient = clients.graphql({ session });
 
     let allProductTags = [];
     let hasNextPage = true;
@@ -79,7 +78,7 @@ export async function fetchStoreInfoAndTags(request) {
         }
       `;
 
-      const response = await graphql.query({ data: query });
+      const response = await graphqlClient.query({ data: query });
       const body = await response.json();
 
       if (body.errors) {
