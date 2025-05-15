@@ -4,7 +4,7 @@ import shopify from "../shopify.server";
 
 export async function loader({ request }) {
   try {
-    const { session } = await shopify.authenticate.public.appProxy(request);
+    const { session } = await shopify.authenticate.admin(request);
     const url = new URL(request.url);
     const taskId = url.searchParams.get("taskId");
 
