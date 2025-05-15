@@ -1,10 +1,8 @@
 // app/utils/shopifyStoreInfoFetch.server.js
 import { authenticate } from "../shopify.server";
-import { shopifyApi, ApiVersion, GraphqlClient } from "@shopify/shopify-api";
-import { restResources } from "@shopify/shopify-api/rest/admin/2024-04";
 
 export async function fetchStoreInfoAndTags(request) {
-  console.log("Starting fetchStoreInfoAndTags - version 9");
+  console.log("Starting fetchStoreInfoAndTags - version 10");
 
   let admin, session;
   try {
@@ -28,31 +26,23 @@ export async function fetchStoreInfoAndTags(request) {
 
     // 1. REST-запрос для описания магазина
     let shopDescription = "No description available";
-    console.log("Fetching shop info via REST...");
     try {
       const response = await admin.rest.get({
         path: "shop",
         query: { fields: "description,name" },
       });
-      console.log("Shop REST response:", response);
       shopDescription = response?.body?.shop?.description || "No description available";
     } catch (restError) {
       console.error("REST fetch failed:", restError);
     }
 
-    // 2. GraphQL-запросы через GraphqlClient
-    const graphqlClient = new GraphqlClient({
-      session,
-    });
-
+    // 2. GraphQL-запросы — используем admin.graphql
     let allProductTags = [];
     let hasNextPage = true;
     let cursor = null;
     const BATCH_SIZE = 250;
     const MAX_BATCHES = 20;
     let batchCount = 0;
-
-    console.log("Fetching products via GraphQL with pagination...");
 
     while (hasNextPage && batchCount < MAX_BATCHES) {
       batchCount++;
@@ -72,7 +62,7 @@ export async function fetchStoreInfoAndTags(request) {
         }
       `;
 
-      const response = await graphqlClient.query({ data: query });
+      const response = await admin.graphql(query);
       const body = await response.json();
 
       if (body.errors) {
