@@ -1,7 +1,7 @@
 import { useFetcher } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { Button, Card, Page, Text, ButtonGroup, Select } from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { TitleBar, useAppBridge, useToast } from "@shopify/app-bridge-react";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
 
 export default function DownloadProducts() {
@@ -11,6 +11,7 @@ export default function DownloadProducts() {
   const [currentTaskType, setCurrentTaskType] = useState(null);
   const [defaultLanguage, setDefaultLanguage] = useState("en");
   const shopify = useAppBridge();
+  const toast = useToast();
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
 
   const startTask = (taskType) => {
@@ -24,7 +25,6 @@ export default function DownloadProducts() {
   const createEmbeddings = () => startTask("create-embeddings");
   const deleteEmbeddings = () => startTask("delete-embeddings");
 
-  // Fetch store info and tags
   const fetchStoreInfoAndTags = async () => {
     try {
       const response = await fetchWithToken("/api/generate-prompt", {
@@ -38,20 +38,18 @@ export default function DownloadProducts() {
       if (response.ok) {
         console.log("Shop Description:", data.shopDescription);
         console.log("Unique Tags:", data.uniqueTags);
-        shopify.toast.show("Store info and tags printed to console. Fetching prompt...");
-        // After success, fetch the prompt from the DB
+        toast.show("Store info and tags printed to console. Fetching prompt...");
         await fetchPromptFromDB();
       } else {
         console.error("Error response from server:", data);
-        shopify.toast.show(`Error: ${data.error || "Failed to fetch store info"}`);
+        toast.show(`Error: ${data.error || "Failed to fetch store info"}`);
       }
     } catch (error) {
       console.error("Network error fetching store info:", error);
-      shopify.toast.show("Error processing store info");
+      toast.show("Error processing store info");
     }
   };
 
-  // Fetch the saved prompt directly from the DB
   const fetchPromptFromDB = async () => {
     try {
       const response = await fetchWithToken("/api/get-saved-prompt", {
@@ -64,14 +62,14 @@ export default function DownloadProducts() {
       const data = await response.json();
       if (response.ok && data.generalPrompt) {
         console.log("Generated Store Prompt (from DB):", data.generalPrompt);
-        shopify.toast.show("Prompt successfully retrieved from database and printed");
+        toast.show("Prompt successfully retrieved from database and printed");
       } else {
         console.error("No prompt found in DB or error:", data);
-        shopify.toast.show(`Error: ${data.error || "Prompt not found in DB"}`);
+        toast.show(`Error: ${data.error || "Prompt not found in DB"}`);
       }
     } catch (error) {
       console.error("Network error fetching prompt from DB:", error);
-      shopify.toast.show("Error fetching prompt from database");
+      toast.show("Error fetching prompt from database");
     }
   };
 
@@ -90,16 +88,16 @@ export default function DownloadProducts() {
       setStatus("In Progress");
       localStorage.setItem("taskId", taskId);
       localStorage.setItem("taskType", taskType);
-      shopify.toast.show(
+      toast.show(
         `${taskType === 'product-catalog' ? 'Download' : 'Embedding'} started...`
       );
     } else if (fetcher.data?.error) {
       setStatus("Failed");
-      shopify.toast.show(fetcher.data.error);
+      toast.show(fetcher.data.error);
     } else if (fetcher.data?.success) {
-      shopify.toast.show(`Global language set to ${defaultLanguage}`);
+      toast.show(`Global language set to ${defaultLanguage}`);
     }
-  }, [fetcher.data, shopify, defaultLanguage]);
+  }, [fetcher.data, toast, defaultLanguage]);
 
   useEffect(() => {
     const savedTaskId = localStorage.getItem("taskId");
@@ -118,7 +116,7 @@ export default function DownloadProducts() {
         const data = await response.json();
         if (data.status === "success" || data.status === "failed") {
           setStatus(data.status === "success" ? "Completed" : "Failed");
-          shopify.toast.show(
+          toast.show(
             `${currentTaskType === 'product-catalog' ? 'Download' : 'Embedding'} ${data.status}!`
           );
           localStorage.removeItem("taskId");
@@ -126,7 +124,7 @@ export default function DownloadProducts() {
           clearInterval(interval);
         } else if (data.error) {
           setStatus("Failed");
-          shopify.toast.show(data.error);
+          toast.show(data.error);
           localStorage.removeItem("taskId");
           localStorage.removeItem("taskType");
           clearInterval(interval);
@@ -136,7 +134,7 @@ export default function DownloadProducts() {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [taskId, shopify, currentTaskType]);
+  }, [taskId, toast, currentTaskType]);
 
   return (
     <Page title="VoiceCart - Admin panel">
