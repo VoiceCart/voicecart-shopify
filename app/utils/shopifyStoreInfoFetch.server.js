@@ -1,11 +1,10 @@
 // app/utils/shopifyStoreInfoFetch.server.js
 import { authenticate } from "../shopify.server";
-import { shopifyApi, ApiVersion } from "@shopify/shopify-api";
+import { shopifyApi, ApiVersion, GraphqlClient } from "@shopify/shopify-api";
 import { restResources } from "@shopify/shopify-api/rest/admin/2024-04";
-import { sessionStorage } from "../shopify.server";
 
 export async function fetchStoreInfoAndTags(request) {
-  console.log("Starting fetchStoreInfoAndTags - version 8");
+  console.log("Starting fetchStoreInfoAndTags - version 9");
 
   let admin, session;
   try {
@@ -41,16 +40,10 @@ export async function fetchStoreInfoAndTags(request) {
       console.error("REST fetch failed:", restError);
     }
 
-    // 2. GraphQL-запросы через клиент из @shopify/shopify-api
-    const { clients } = shopifyApi({
-      apiKey: process.env.SHOPIFY_API_KEY,
-      apiSecretKey: process.env.SHOPIFY_API_SECRET,
-      apiVersion: ApiVersion.April24,
-      hostName: process.env.SHOPIFY_APP_URL.replace(/^https?:\/\//, ''),
-      restResources,
+    // 2. GraphQL-запросы через GraphqlClient
+    const graphqlClient = new GraphqlClient({
+      session,
     });
-
-    const graphqlClient = clients.graphql({ session });
 
     let allProductTags = [];
     let hasNextPage = true;
