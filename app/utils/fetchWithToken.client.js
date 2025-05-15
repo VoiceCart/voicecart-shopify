@@ -2,7 +2,7 @@ import createApp from '@shopify/app-bridge';
 import { getSessionToken } from '@shopify/app-bridge-utils';
 
 const app = createApp({
-  apiKey: window.shopify.config.apiKey,
+  apiKey: process.env.SHOPIFY_API_KEY,
   host: new URLSearchParams(location.search).get("host"),
 });
 
