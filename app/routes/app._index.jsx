@@ -114,7 +114,7 @@ export default function DownloadProducts() {
   useEffect(() => {
     if (taskId) {
       const interval = setInterval(async () => {
-        const response = await fetchWithTokenф(`/api/status-task?taskId=${taskId}`);
+        const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
         const data = await response.json();
         if (data.status === "success" || data.status === "failed") {
           setStatus(data.status === "success" ? "Completed" : "Failed");
