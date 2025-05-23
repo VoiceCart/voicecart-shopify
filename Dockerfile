@@ -11,7 +11,7 @@ COPY package.json package-lock.json* ./
 
 # Устанавливаем ffmpeg, OpenSSL 1.1 и сертификаты
 RUN apt update && \
-    apt install -y ffmpeg openssl libssl1.1 ca-certificates && \
+    apt install -y ffmpeg openssl libssl3 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
 RUN npm ci --omit=dev && npm cache clean --force
