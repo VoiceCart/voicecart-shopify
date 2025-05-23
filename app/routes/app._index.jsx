@@ -131,6 +131,8 @@ export default function DownloadProducts() {
         await fetchPromptFromDB();
         clearInterval(progressInterval);
         completeProgress('create-prompt');
+        // Mark this step as completed
+        setCompletedSteps(prev => new Set([...prev, 'create-prompt']));
       } else {
         console.error("Error response from server:", data);
         showToast(`Error: ${data.error || "Failed to fetch store info"}`);
@@ -243,175 +245,452 @@ export default function DownloadProducts() {
     }
   }, [taskId, currentTaskType, showToast, completeProgress]);
 
-  // Check if embeddings can be created (catalog should be generated first)
+  // Check step dependencies
   const canCreateEmbeddings = completedSteps.has('product-catalog');
+  const canCreatePrompt = completedSteps.has('create-embeddings');
+
+  const pageStyle = {
+    background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
+    minHeight: '100vh'
+  };
 
   return (
     <Frame>
-      <Page title="VoiceCart - Admin panel">
-        <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
+      <div style={pageStyle}>
+        <Page title="VoiceCart - Admin panel">
+          <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
 
-        {/* Language Settings */}
-        {/* <Card sectioned style="display: none">
-          <Text variant="headingMd" as="h2">Global Settings</Text>
-          <div style={{ marginTop: '16px' }}>
-            <Text>Set the default global language for your store.</Text>
-            <div style={{ marginTop: '12px', marginBottom: '16px' }}>
-              <Select
-                label="Global Language"
-                options={[
-                  { label: "English", value: "en" },
-                  { label: "Russian", value: "ru" },
-                  { label: "German", value: "de" },
-                  { label: "Czech", value: "cs" },
-                ]}
-                onChange={(value) => setDefaultLanguage(value)}
-                value={defaultLanguage}
-              />
-            </div>
-            <Button onClick={setGlobalLanguage} primary disabled={isLoading}>
-              Set Global Language
-            </Button>
-          </div>
-        </Card> */}
-
-        {/* Progress Bar */}
-        {showProgress && (
-          <div style={{ marginBottom: '24px' }}>
-            <Card sectioned>
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{
-                  width: '100%',
-                  height: '8px',
-                  backgroundColor: '#f1f2f3',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
+          {/* Progress Bar */}
+          {showProgress && (
+            <div style={{ marginBottom: '24px' }}>
+              <Card sectioned>
+                <div style={{ marginBottom: '12px' }}>
                   <div style={{
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #008060, #00a67c)',
+                    width: '100%',
+                    height: '8px',
+                    backgroundColor: '#f1f2f3',
                     borderRadius: '4px',
-                    width: `${progress}%`,
-                    transition: 'width 0.3s ease'
-                  }} />
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #008060, #00a67c)',
+                      borderRadius: '4px',
+                      width: `${progress}%`,
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+                </div>
+                <Text variant="bodyMd" color="subdued" alignment="center">
+                  {progressText}
+                </Text>
+              </Card>
+            </div>
+          )}
+
+          {/* Setup Steps */}
+          <div style={{ marginBottom: '32px' }}>
+            <Card>
+              <div style={{ padding: '24px' }}>
+                <Text variant="headingLg" as="h2" fontWeight="semibold">Setup Steps</Text>
+                <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px', marginBottom: '32px' }}>
+                  Complete these steps in order to set up your VoiceCart
+                </Text>
+                
+                <div style={{ display: 'grid', gap: '24px' }}>
+                  {/* Step 1: Generate Product Catalog */}
+                  <div style={{
+                    border: completedSteps.has('product-catalog') ? '2px solid #00A651' : '1px solid #E1E3E5',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    position: 'relative',
+                    backgroundColor: '#fafbfc',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    {/* Step number badge */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      right: '20px',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: completedSteps.has('product-catalog') ? '#00A651' : '#1976d2',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}>
+                      {completedSteps.has('product-catalog') ? '✓' : '1'}
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        backgroundColor: '#E3F2FD',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        marginRight: '16px',
+                        flexShrink: 0
+                      }}>
+                        📦
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Text variant="headingMd" as="h3" fontWeight="semibold">Generate Product Catalog</Text>
+                        <Text variant="bodyMd" color="subdued" style={{ marginTop: '4px' }}>
+                          Create and store your product catalog on the server. This is the first step in setting up your VoiceCart.
+                        </Text>
+                        
+                        {/* Status badge */}
+                        {completedSteps.has('product-catalog') ? (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: '#F0FDF4',
+                              color: '#166534',
+                              border: '1px solid #BBF7D0'
+                            }}>
+                              ✓ Completed
+                            </span>
+                          </div>
+                        ) : status && currentTaskType === "product-catalog" && (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: status === 'In Progress' ? '#FEF7E0' : '#FEF2F2',
+                              color: status === 'In Progress' ? '#9C6500' : '#DC2626',
+                              border: status === 'In Progress' ? '1px solid #FCD34D' : '1px solid #FECACA'
+                            }}>
+                              {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={downloadProducts}
+                      primary={!completedSteps.has('product-catalog')}
+                      fullWidth
+                      size="large"
+                      loading={
+                        (isLoading && currentTaskType === "product-catalog") ||
+                        (status === "In Progress" && currentTaskType === "product-catalog")
+                      }
+                      disabled={status === "In Progress" && currentTaskType === "product-catalog"}
+                    >
+                      Generate Product Catalog
+                    </Button>
+                  </div>
+
+                  {/* Step 2: Create Product Embeddings */}
+                  <div style={{
+                    border: completedSteps.has('create-embeddings') ? '2px solid #00A651' : '1px solid #E1E3E5',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    position: 'relative',
+                    backgroundColor: '#fafbfc',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    opacity: canCreateEmbeddings ? 1 : 0.6,
+                    transition: 'all 0.2s ease'
+                  }}>
+                    {/* Step number badge */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      right: '20px',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: completedSteps.has('create-embeddings') ? '#00A651' : '#7b1fa2',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}>
+                      {completedSteps.has('create-embeddings') ? '✓' : '2'}
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        backgroundColor: '#F3E5F5',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        marginRight: '16px',
+                        flexShrink: 0
+                      }}>
+                        🧠
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Text variant="headingMd" as="h3" fontWeight="semibold">Create Product Embeddings</Text>
+                        <Text variant="bodyMd" color="subdued" style={{ marginTop: '4px' }}>
+                          Generate AI embeddings for your products to enable smart voice search and recommendations.
+                        </Text>
+                        
+                        {/* Status badge */}
+                        {completedSteps.has('create-embeddings') ? (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: '#F0FDF4',
+                              color: '#166534',
+                              border: '1px solid #BBF7D0'
+                            }}>
+                              ✓ Completed
+                            </span>
+                          </div>
+                        ) : !canCreateEmbeddings ? (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: '#FEF7E0',
+                              color: '#9C6500',
+                              border: '1px solid #FCD34D'
+                            }}>
+                              Complete Step 1 First
+                            </span>
+                          </div>
+                        ) : status && currentTaskType === "create-embeddings" && (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: status === 'In Progress' ? '#FEF7E0' : '#FEF2F2',
+                              color: status === 'In Progress' ? '#9C6500' : '#DC2626',
+                              border: status === 'In Progress' ? '1px solid #FCD34D' : '1px solid #FECACA'
+                            }}>
+                              {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={createEmbeddings}
+                      primary={canCreateEmbeddings && !completedSteps.has('create-embeddings')}
+                      fullWidth
+                      size="large"
+                      disabled={!canCreateEmbeddings || (status === "In Progress" && currentTaskType === "create-embeddings")}
+                      loading={
+                        (isLoading && currentTaskType === "create-embeddings") ||
+                        (status === "In Progress" && currentTaskType === "create-embeddings")
+                      }
+                    >
+                      Create Product Embeddings
+                    </Button>
+                  </div>
+
+                  {/* Step 3: Create System Prompt */}
+                  <div style={{
+                    border: completedSteps.has('create-prompt') ? '2px solid #00A651' : '1px solid #E1E3E5',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    position: 'relative',
+                    backgroundColor: '#fafbfc',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    opacity: canCreatePrompt ? 1 : 0.6,
+                    transition: 'all 0.2s ease'
+                  }}>
+                    {/* Step number badge */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '20px',
+                      right: '20px',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      backgroundColor: completedSteps.has('create-prompt') ? '#00A651' : '#f57c00',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}>
+                      {completedSteps.has('create-prompt') ? '✓' : '3'}
+                    </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        backgroundColor: '#FFF3E0',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px',
+                        marginRight: '16px',
+                        flexShrink: 0
+                      }}>
+                        💡
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Text variant="headingMd" as="h3" fontWeight="semibold">Create System Prompt</Text>
+                        <Text variant="bodyMd" color="subdued" style={{ marginTop: '4px' }}>
+                          Generate and save a system prompt with relevant shop assortment for better AI responses.
+                        </Text>
+                        
+                        {/* Status badge */}
+                        {completedSteps.has('create-prompt') ? (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: '#F0FDF4',
+                              color: '#166534',
+                              border: '1px solid #BBF7D0'
+                            }}>
+                              ✓ Completed
+                            </span>
+                          </div>
+                        ) : !canCreatePrompt ? (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: '#FEF7E0',
+                              color: '#9C6500',
+                              border: '1px solid #FCD34D'
+                            }}>
+                              Complete Step 2 First
+                            </span>
+                          </div>
+                        ) : showProgress && currentTaskType === 'create-prompt' ? (
+                          <div style={{ marginTop: '12px' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: '#FEF7E0',
+                              color: '#9C6500',
+                              border: '1px solid #FCD34D'
+                            }}>
+                              ⏳ Creating Prompt...
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={fetchStoreInfoAndTags}
+                      primary={canCreatePrompt && !completedSteps.has('create-prompt')}
+                      fullWidth
+                      size="large"
+                      disabled={!canCreatePrompt || (showProgress && currentTaskType === 'create-prompt')}
+                      loading={showProgress && currentTaskType === 'create-prompt'}
+                    >
+                      Create System Prompt
+                    </Button>
+                  </div>
                 </div>
               </div>
-              <Text variant="bodyMd" color="subdued" alignment="center">
-                {progressText}
-              </Text>
             </Card>
           </div>
-        )}
 
-        {/* Setup Steps */}
-        <div style={{ marginBottom: '32px' }}>
+          {/* Optional Actions */}
           <Card>
             <div style={{ padding: '24px' }}>
-              <Text variant="headingLg" as="h2" fontWeight="semibold">Setup Steps</Text>
+              <Text variant="headingLg" as="h2" fontWeight="semibold">Optional Actions</Text>
               <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px', marginBottom: '32px' }}>
-                Complete these steps in order to set up your VoiceCart
+                These actions can be performed at any time
               </Text>
               
-              <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))' }}>
-                {/* Step 1: Generate Product Catalog */}
+              <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
+                {/* Delete Embeddings */}
                 <div style={{
-                  border: completedSteps.has('product-catalog') ? '2px solid #00A651' : '1px solid #E1E3E5',
-                  borderRadius: '16px',
-                  padding: '32px',
-                  position: 'relative',
-                  backgroundColor: 'white',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  border: '1px solid #E1E3E5',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  backgroundColor: '#fafbfc',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                   transition: 'all 0.2s ease'
                 }}>
-                  {/* Step number badge */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '24px',
-                    right: '24px',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: completedSteps.has('product-catalog') ? '#00A651' : '#1976d2',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: 'bold'
-                  }}>
-                    {completedSteps.has('product-catalog') ? '✓' : '1'}
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '20px' }}>
                     <div style={{
-                      width: '56px',
-                      height: '56px',
-                      backgroundColor: '#E3F2FD',
-                      borderRadius: '16px',
+                      width: '48px',
+                      height: '48px',
+                      backgroundColor: '#FFEBEE',
+                      borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '24px',
+                      fontSize: '20px',
                       marginRight: '16px',
                       flexShrink: 0
                     }}>
-                      📦
+                      🗑️
                     </div>
-                    <div>
-                      <Text variant="headingMd" as="h3" fontWeight="semibold">Generate Product Catalog</Text>
+                    <div style={{ flex: 1 }}>
+                      <Text variant="headingMd" as="h3" fontWeight="semibold">Delete Product Embeddings</Text>
                       <Text variant="bodyMd" color="subdued" style={{ marginTop: '4px' }}>
-                        Create and store your product catalog on the server. This is the first step in setting up your VoiceCart.
+                        Remove product embeddings from the server. Use this to reset or clean up your data.
                       </Text>
-                      
-                      {/* Status badge */}
-                      {completedSteps.has('product-catalog') ? (
+                      {status && currentTaskType === "delete-embeddings" && (
                         <div style={{ marginTop: '12px' }}>
                           <span style={{
                             display: 'inline-flex',
                             alignItems: 'center',
-                            padding: '6px 12px',
-                            borderRadius: '20px',
+                            padding: '4px 12px',
+                            borderRadius: '16px',
                             fontSize: '12px',
                             fontWeight: '600',
-                            backgroundColor: '#F0FDF4',
-                            color: '#166534',
-                            border: '1px solid #BBF7D0'
+                            backgroundColor: status === 'Completed' ? '#F0FDF4' : '#FEF7E0',
+                            color: status === 'Completed' ? '#166534' : '#9C6500',
+                            border: status === 'Completed' ? '1px solid #BBF7D0' : '1px solid #FCD34D'
                           }}>
-                            ✓ Completed
-                          </span>
-                        </div>
-                      ) : status && currentTaskType === "product-catalog" && (
-                        <div style={{ marginTop: '12px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: status === 'In Progress' ? '#FEF7E0' : '#FEF2F2',
-                            color: status === 'In Progress' ? '#9C6500' : '#DC2626',
-                            border: status === 'In Progress' ? '1px solid #FCD34D' : '1px solid #FECACA'
-                          }}>
-                            {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {!completedSteps.has('product-catalog') && status !== "In Progress" && (
-                        <div style={{ marginTop: '12px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: '#FEF7E0',
-                            color: '#9C6500',
-                            border: '1px solid #FCD34D'
-                          }}>
-                            Required First
+                            {status === 'Completed' ? '✓ ' : '⏳ '}Status: {status}
                           </span>
                         </div>
                       )}
@@ -419,261 +698,24 @@ export default function DownloadProducts() {
                   </div>
                   
                   <Button
-                    onClick={downloadProducts}
-                    primary={!completedSteps.has('product-catalog')}
+                    onClick={deleteEmbeddings}
+                    destructive
                     fullWidth
                     size="large"
                     loading={
-                      (isLoading && currentTaskType === "product-catalog") ||
-                      (status === "In Progress" && currentTaskType === "product-catalog")
+                      (isLoading && currentTaskType === "delete-embeddings") ||
+                      (status === "In Progress" && currentTaskType === "delete-embeddings")
                     }
-                    disabled={status === "In Progress" && currentTaskType === "product-catalog"}
+                    disabled={status === "In Progress" && currentTaskType === "delete-embeddings"}
                   >
-                    Generate Product Catalog
-                  </Button>
-                </div>
-
-                {/* Step 2: Create Product Embeddings */}
-                <div style={{
-                  border: completedSteps.has('create-embeddings') ? '2px solid #00A651' : '1px solid #E1E3E5',
-                  borderRadius: '16px',
-                  padding: '32px',
-                  position: 'relative',
-                  backgroundColor: 'white',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  opacity: canCreateEmbeddings ? 1 : 0.6,
-                  transition: 'all 0.2s ease'
-                }}>
-                  {/* Step number badge */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '24px',
-                    right: '24px',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    backgroundColor: completedSteps.has('create-embeddings') ? '#00A651' : '#7b1fa2',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: 'bold'
-                  }}>
-                    {completedSteps.has('create-embeddings') ? '✓' : '2'}
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '24px' }}>
-                    <div style={{
-                      width: '56px',
-                      height: '56px',
-                      backgroundColor: '#F3E5F5',
-                      borderRadius: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '24px',
-                      marginRight: '16px',
-                      flexShrink: 0
-                    }}>
-                      🧠
-                    </div>
-                    <div>
-                      <Text variant="headingMd" as="h3" fontWeight="semibold">Create Product Embeddings</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '4px' }}>
-                        Generate AI embeddings for your products to enable smart voice search and recommendations.
-                      </Text>
-                      
-                      {/* Status badge */}
-                      {completedSteps.has('create-embeddings') ? (
-                        <div style={{ marginTop: '12px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: '#F0FDF4',
-                            color: '#166534',
-                            border: '1px solid #BBF7D0'
-                          }}>
-                            ✓ Completed
-                          </span>
-                        </div>
-                      ) : !canCreateEmbeddings ? (
-                        <div style={{ marginTop: '12px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: '#FEF7E0',
-                            color: '#9C6500',
-                            border: '1px solid #FCD34D'
-                          }}>
-                            Complete Step 1 First
-                          </span>
-                        </div>
-                      ) : status && currentTaskType === "create-embeddings" && (
-                        <div style={{ marginTop: '12px' }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: status === 'In Progress' ? '#FEF7E0' : '#FEF2F2',
-                            color: status === 'In Progress' ? '#9C6500' : '#DC2626',
-                            border: status === 'In Progress' ? '1px solid #FCD34D' : '1px solid #FECACA'
-                          }}>
-                            {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <Button
-                    onClick={createEmbeddings}
-                    primary={canCreateEmbeddings && !completedSteps.has('create-embeddings')}
-                    fullWidth
-                    size="large"
-                    disabled={!canCreateEmbeddings || (status === "In Progress" && currentTaskType === "create-embeddings")}
-                    loading={
-                      (isLoading && currentTaskType === "create-embeddings") ||
-                      (status === "In Progress" && currentTaskType === "create-embeddings")
-                    }
-                  >
-                    Create Product Embeddings
+                    Delete Product Embeddings
                   </Button>
                 </div>
               </div>
             </div>
           </Card>
-        </div>
-
-        {/* Optional Actions */}
-        <Card>
-          <div style={{ padding: '24px' }}>
-            <Text variant="headingLg" as="h2" fontWeight="semibold">Optional Actions</Text>
-            <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px', marginBottom: '32px' }}>
-              These actions can be performed at any time
-            </Text>
-            
-            <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))' }}>
-              {/* Delete Embeddings */}
-              <div style={{
-                border: '1px solid #E1E3E5',
-                borderRadius: '16px',
-                padding: '32px',
-                backgroundColor: 'white',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '24px' }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    backgroundColor: '#FFEBEE',
-                    borderRadius: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    marginRight: '16px',
-                    flexShrink: 0
-                  }}>
-                    🗑️
-                  </div>
-                  <div>
-                    <Text variant="headingMd" as="h3" fontWeight="semibold">Delete Product Embeddings</Text>
-                    <Text variant="bodyMd" color="subdued" style={{ marginTop: '4px' }}>
-                      Remove product embeddings from the server. Use this to reset or clean up your data.
-                    </Text>
-                    {status && currentTaskType === "delete-embeddings" && (
-                      <div style={{ marginTop: '12px' }}>
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          backgroundColor: status === 'Completed' ? '#F0FDF4' : '#FEF7E0',
-                          color: status === 'Completed' ? '#166534' : '#9C6500',
-                          border: status === 'Completed' ? '1px solid #BBF7D0' : '1px solid #FCD34D'
-                        }}>
-                          {status === 'Completed' ? '✓ ' : '⏳ '}Status: {status}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <Button
-                  onClick={deleteEmbeddings}
-                  destructive
-                  fullWidth
-                  size="large"
-                  loading={
-                    (isLoading && currentTaskType === "delete-embeddings") ||
-                    (status === "In Progress" && currentTaskType === "delete-embeddings")
-                  }
-                  disabled={status === "In Progress" && currentTaskType === "delete-embeddings"}
-                >
-                  Delete Product Embeddings
-                </Button>
-              </div>
-
-              {/* Create Prompt */}
-              <div style={{
-                border: '1px solid #E1E3E5',
-                borderRadius: '16px',
-                padding: '32px',
-                backgroundColor: 'white',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '24px' }}>
-                  <div style={{
-                    width: '56px',
-                    height: '56px',
-                    backgroundColor: '#E8F5E8',
-                    borderRadius: '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    marginRight: '16px',
-                    flexShrink: 0
-                  }}>
-                    💡
-                  </div>
-                  <div>
-                    <Text variant="headingMd" as="h3" fontWeight="semibold">Create System Prompt</Text>
-                    <Text variant="bodyMd" color="subdued" style={{ marginTop: '4px' }}>
-                      Generate and save a system prompt with relevant shop assortment for better AI responses.
-                    </Text>
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={fetchStoreInfoAndTags} 
-                  primary
-                  fullWidth
-                  size="large"
-                >
-                  Create Prompt
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </Page>
+        </Page>
+      </div>
 
       {toast.active && (
         <Toast content={toast.content} onDismiss={handleToastDismiss} duration={4000} />
