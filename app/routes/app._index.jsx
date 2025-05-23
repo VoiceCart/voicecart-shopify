@@ -9,10 +9,10 @@ import {
   Frame,
   Toast,
   ProgressBar,
+  Stack,
   Badge,
   Icon
 } from "@shopify/polaris";
-import { Stack } from '@shopify/polaris/build/esm/components/Stack/Stack.js';
 import { TitleBar } from "@shopify/app-bridge-react";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
 import {
