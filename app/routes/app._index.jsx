@@ -249,10 +249,10 @@ export default function DownloadProducts() {
   return (
     <Frame>
       <Page title="VoiceCart - Admin panel">
-        <TitleBar title="Shopify Product Catalog Management" primaryAction={null} />
+        <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
 
         {/* Language Settings */}
-        <Card sectioned>
+        <Card sectioned style="display: none">
           <Text variant="headingMd" as="h2">Global Settings</Text>
           <div style={{ marginTop: '16px' }}>
             <Text>Set the default global language for your store.</Text>
