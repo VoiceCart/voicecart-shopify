@@ -393,7 +393,7 @@ export default function DownloadProducts() {
 
         {/* Optional Actions */}
         <Card sectioned>
-          <VerticalStack spacing="loose"Stack vertical spacing="loose">
+        <VerticalStack spacing="loose">
             <Text variant="headingLg">Optional Actions</Text>
             <Text color="subdued">These actions can be performed at any time.</Text>
             
