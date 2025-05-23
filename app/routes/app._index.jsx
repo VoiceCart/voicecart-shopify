@@ -13,8 +13,6 @@ import {
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
 
-const [showLanguageSettings, setShowLanguageSettings] = useState(false);
-
 export default function DownloadProducts() {
   const fetcher = useFetcher();
   const [taskId, setTaskId] = useState(null);
@@ -254,8 +252,7 @@ export default function DownloadProducts() {
         <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
 
         {/* Language Settings */}
-        {showLanguageSettings && (
-        <Card sectioned>
+        <Card sectioned style="display: none">
           <Text variant="headingMd" as="h2">Global Settings</Text>
           <div style={{ marginTop: '16px' }}>
             <Text>Set the default global language for your store.</Text>
@@ -277,7 +274,6 @@ export default function DownloadProducts() {
             </Button>
           </div>
         </Card>
-        )}
 
         {/* Progress Bar */}
         {showProgress && (
