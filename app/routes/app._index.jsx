@@ -632,19 +632,6 @@ export default function DownloadProducts() {
                   Create System Prompt
                 </Button>
               </div>
-            </div>
-          </div>
-
-          {/* Optional Actions */}
-          <div style={{ 
-            display: 'grid', 
-            gap: '24px', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))'
-          }}>
-            <Text variant="headingLg" as="h2" fontWeight="semibold" style={{ gridColumn: '1 / -1' }}>
-              Optional Actions
-            </Text>
-            
             {/* Delete Embeddings */}
             <div style={{
               border: '1px solid #d1d5db',
@@ -708,6 +695,19 @@ export default function DownloadProducts() {
                 Delete Product Embeddings
               </Button>
             </div>
+            </div>
+          </div>
+
+          {/* Optional Actions */}
+          <div style={{ 
+            display: 'grid', 
+            gap: '24px', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))'
+          }}>
+            <Text variant="headingLg" as="h2" fontWeight="semibold" style={{ gridColumn: '1 / -1' }}>
+              Optional Actions
+            </Text>
+            
           </div>
         </Page>
       </div>
