@@ -308,22 +308,22 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '200px'
+                minHeight: '220px'
               }}>
                 {/* Step number badge */}
                 <div style={{
                   position: 'absolute',
                   top: '20px',
                   right: '20px',
-                  width: '24px',
-                  height: '24px',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '50%',
                   backgroundColor: completedSteps.has('product-catalog') ? '#00A651' : '#1976d2',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
+                  fontSize: '10px',
                   fontWeight: 'bold'
                 }}>
                   {completedSteps.has('product-catalog') ? '✓' : '1'}
@@ -347,7 +347,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Generate Product Catalog</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
                         Create and store your product catalog on the server. This is the first step in setting up your VoiceCart.
                       </Text>
                       
@@ -379,7 +379,7 @@ export default function DownloadProducts() {
                             fontWeight: '600',
                             backgroundColor: status === 'In Progress' ? '#fef3c7' : '#fee2e2',
                             color: status === 'In Progress' ? '#92400e' : '#dc2626',
-                            border: status === 'In Progress' ? '1px solid #fcd34d' : '1px solid #fecaca'
+                            border: '1px solid #fcd34d'
                           }}>
                             {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
                           </span>
@@ -400,7 +400,7 @@ export default function DownloadProducts() {
                       (status === "In Progress" && currentTaskType === "product-catalog")
                     }
                     disabled={status === "In Progress" && currentTaskType === "product-catalog"}
-                    style={{ backgroundColor: '#1976d2', borderColor: '#1976d2', color: 'white' }}
+                    style={{ backgroundColor: '#1976d2 !important', borderColor: '#1976d2 !important', color: 'white !important' }}
                   >
                     Generate Product Catalog
                   </Button>
@@ -420,22 +420,22 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '200px'
+                minHeight: '220px'
               }}>
                 {/* Step number badge */}
                 <div style={{
                   position: 'absolute',
                   top: '20px',
                   right: '20px',
-                  width: '24px',
-                  height: '24px',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '50%',
                   backgroundColor: completedSteps.has('create-embeddings') ? '#00A651' : '#7b1fa2',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
+                  fontSize: '10px',
                   fontWeight: 'bold'
                 }}>
                   {completedSteps.has('create-embeddings') ? '✓' : '2'}
@@ -459,7 +459,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Create Product Embeddings</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
                         Generate AI embeddings for your products to enable smart voice search and recommendations.
                       </Text>
                       
@@ -507,7 +507,7 @@ export default function DownloadProducts() {
                             fontWeight: '600',
                             backgroundColor: status === 'In Progress' ? '#fef3c7' : '#fee2e2',
                             color: status === 'In Progress' ? '#92400e' : '#dc2626',
-                            border: status === 'In Progress' ? '1px solid #fcd34d' : '1px solid #fecaca'
+                            border: '1px solid #fcd34d'
                           }}>
                             {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
                           </span>
@@ -528,7 +528,7 @@ export default function DownloadProducts() {
                       (isLoading && currentTaskType === "create-embeddings") ||
                       (status === "In Progress" && currentTaskType === "create-embeddings")
                     }
-                    style={{ backgroundColor: '#7b1fa2', borderColor: '#7b1fa2', color: 'white' }}
+                    style={{ backgroundColor: '#7b1fa2 !important', borderColor: '#7b1fa2 !important', color: 'white !important' }}
                   >
                     Create Product Embeddings
                   </Button>
@@ -548,22 +548,22 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '200px'
+                minHeight: '220px'
               }}>
                 {/* Step number badge */}
                 <div style={{
                   position: 'absolute',
                   top: '20px',
                   right: '20px',
-                  width: '24px',
-                  height: '24px',
+                  width: '20px',
+                  height: '20px',
                   borderRadius: '50%',
                   backgroundColor: completedSteps.has('create-prompt') ? '#00A651' : '#f57c00',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
+                  fontSize: '10px',
                   fontWeight: 'bold'
                 }}>
                   {completedSteps.has('create-prompt') ? '✓' : '3'}
@@ -587,7 +587,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Create System Prompt</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
                         Generate and save a system prompt with relevant shop assortment for better AI responses.
                       </Text>
                       
@@ -653,7 +653,7 @@ export default function DownloadProducts() {
                     size="large"
                     disabled={!canCreatePrompt || (showProgress && currentTaskType === 'create-prompt')}
                     loading={showProgress && currentTaskType === 'create-prompt'}
-                    style={{ backgroundColor: '#f57c00', borderColor: '#f57c00', color: 'white' }}
+                    style={{ backgroundColor: '#f57c00 !important', borderColor: '#f57c00 !important', color: 'white !important' }}
                   >
                     Create System Prompt
                   </Button>
@@ -671,7 +671,7 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '200px'
+                minHeight: '220px'
               }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'flex-start' }}>
@@ -691,7 +691,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Delete Product Embeddings</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
                         Remove product embeddings from the server. Use this to reset or clean up your data.
                       </Text>
                       {status && currentTaskType === "delete-embeddings" && (
@@ -705,7 +705,7 @@ export default function DownloadProducts() {
                             fontWeight: '600',
                             backgroundColor: status === 'Completed' ? '#dcfce7' : '#fef3c7',
                             color: status === 'Completed' ? '#166534' : '#92400e',
-                            border: status === 'Completed' ? '1px solid #bbf7d0' : '1px solid #fcd34d'
+                            border: '1px solid #bbf7d0'
                           }}>
                             {status === 'Completed' ? '✓ ' : '⏳ '}Status: {status}
                           </span>
@@ -726,7 +726,7 @@ export default function DownloadProducts() {
                       (status === "In Progress" && currentTaskType === "delete-embeddings")
                     }
                     disabled={status === "In Progress" && currentTaskType === "delete-embeddings"}
-                    style={{ backgroundColor: '#ef5350', borderColor: '#ef5350', color: 'white' }}
+                    style={{ backgroundColor: '#ef5350 !important', borderColor: '#ef5350 !important', color: 'white !important' }}
                   >
                     Delete Product Embeddings
                   </Button>
