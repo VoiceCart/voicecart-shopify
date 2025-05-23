@@ -9,9 +9,9 @@ import {
   Frame,
   Toast,
   ProgressBar,
-  Stack,
   Badge,
-  Icon
+  Icon,
+  Box
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
@@ -59,17 +59,17 @@ export default function DownloadProducts() {
     setCurrentTaskType("create-prompt");
     setProgress(0);
     setProgressText("Analyzing product catalog...");
-    
+
     try {
       setProgress(25);
       setProgressText("Fetching store information...");
-      
+
       const response = await fetchWithToken("/api/generate-prompt", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
       const data = await response.json();
-      
+
       if (response.ok) {
         console.log("Shop Description:", data.shopDescription);
         console.log("Unique Tags:", data.uniqueTags);
@@ -93,19 +93,19 @@ export default function DownloadProducts() {
     try {
       setProgress(80);
       setProgressText("Saving prompt configuration...");
-      
+
       const response = await fetchWithToken("/api/get-saved-prompt", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
       const data = await response.json();
-      
+
       if (response.ok && data.generalPrompt) {
         console.log("Generated Store Prompt (from DB):", data.generalPrompt);
         setProgress(100);
         setProgressText("System prompt created successfully!");
         showToast("Prompt successfully retrieved from database and printed");
-        
+
         setTimeout(() => {
           setCurrentTaskType(null);
           setProgress(0);
@@ -163,20 +163,20 @@ export default function DownloadProducts() {
     const messages = getProgressMessages(taskType);
     let currentProgress = 0;
     let messageIndex = 0;
-    
+
     const interval = setInterval(() => {
       currentProgress += Math.random() * 15 + 5;
       if (currentProgress > 100) currentProgress = 100;
-      
+
       messageIndex = Math.min(Math.floor(currentProgress / 20), messages.length - 1);
       setProgress(currentProgress);
       setProgressText(messages[messageIndex] || 'Processing...');
-      
+
       if (currentProgress >= 100) {
         clearInterval(interval);
       }
     }, 300);
-    
+
     return interval;
   };
 
@@ -188,10 +188,9 @@ export default function DownloadProducts() {
       setStatus("In Progress");
       localStorage.setItem("taskId", taskId);
       localStorage.setItem("taskType", taskType);
-      
-      // Start progress simulation
+
       simulateProgress(taskType);
-      
+
       showToast(
         `${taskType === "product-catalog" ? "Download" : "Embedding"} started...`
       );
@@ -219,21 +218,20 @@ export default function DownloadProducts() {
       const interval = setInterval(async () => {
         const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
         const data = await response.json();
-        
+
         if (data.status === "success" || data.status === "failed") {
           setStatus(data.status === "success" ? "Completed" : "Failed");
-          
+
           if (data.status === "success") {
             setProgress(100);
             const messages = getProgressMessages(currentTaskType);
             setProgressText(messages[messages.length - 1] || 'Completed successfully!');
-            
-            // Mark step as completed
+
             setCompletedSteps(prev => ({
               ...prev,
               [currentTaskType]: true
             }));
-            
+
             setTimeout(() => {
               setCurrentTaskType(null);
               setProgress(0);
@@ -244,7 +242,7 @@ export default function DownloadProducts() {
             setProgress(0);
             setProgressText("");
           }
-          
+
           showToast(
             `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} ${data.status}!`
           );
@@ -280,12 +278,11 @@ export default function DownloadProducts() {
       <Page title="VoiceCart - Admin panel">
         <TitleBar title="Shopify Product Catalog Management" primaryAction={null} />
 
-        {/* Language Settings */}
         <Card sectioned>
-          <Stack vertical spacing="tight">
+          <Box display="flex" flexDirection="column" gap="1">
             <Text variant="headingMd">Global Language Settings</Text>
             <Text color="subdued">Set the default global language for your store.</Text>
-            <Stack alignment="center">
+            <Box display="flex" alignItems="center" gap="4">
               <Select
                 label="Global Language"
                 options={[
@@ -300,42 +297,38 @@ export default function DownloadProducts() {
               <Button onClick={setGlobalLanguage} primary disabled={isLoading}>
                 Set Global Language
               </Button>
-            </Stack>
-          </Stack>
+            </Box>
+          </Box>
         </Card>
 
-        {/* Progress Bar */}
         {currentTaskType && (
           <Card sectioned>
-            <Stack vertical spacing="tight">
+            <Box display="flex" flexDirection="column" gap="1">
               <Text variant="headingMd">Processing...</Text>
               <ProgressBar progress={progress} size="large" />
               {progressText && (
                 <Text color="subdued" alignment="center">{progressText}</Text>
               )}
-            </Stack>
+            </Box>
           </Card>
         )}
 
-        {/* Required Steps */}
         <Card sectioned>
-          <Stack vertical spacing="loose">
+          <Box display="flex" flexDirection="column" gap="4">
             <Text variant="headingLg">Setup Steps</Text>
             <Text color="subdued">Complete these steps in order to set up your VoiceCart.</Text>
-            
-            <Stack distribution="fillEvenly" spacing="loose">
-              {/* Step 1: Generate Product Catalog */}
+            <Box display="flex" gap="4" justifyContent="space-evenly">
               <Card sectioned>
-                <Stack vertical spacing="tight">
-                  <Stack alignment="center">
+                <Box display="flex" flexDirection="column" gap="1">
+                  <Box display="flex" alignItems="center" gap="2">
                     <Icon source={ProductsIcon} color="primary" />
-                    <Stack vertical spacing="extraTight">
+                    <Box display="flex" flexDirection="column" gap="0">
                       <Text variant="headingMd">Generate Product Catalog</Text>
                       <Badge status={completedSteps['product-catalog'] ? 'success' : 'attention'}>
                         {completedSteps['product-catalog'] ? 'Completed' : 'Step 1'}
                       </Badge>
-                    </Stack>
-                  </Stack>
+                    </Box>
+                  </Box>
                   <Text color="subdued">
                     Create and store your product catalog on the server. This is the first step in setting up your VoiceCart.
                   </Text>
@@ -352,21 +345,20 @@ export default function DownloadProducts() {
                   >
                     Generate Product Catalog
                   </Button>
-                </Stack>
+                </Box>
               </Card>
 
-              {/* Step 2: Create Product Embeddings */}
               <Card sectioned>
-                <Stack vertical spacing="tight">
-                  <Stack alignment="center">
+                <Box display="flex" flexDirection="column" gap="1">
+                  <Box display="flex" alignItems="center" gap="2">
                     <Icon source={BrainIcon} color={canCreateEmbeddings ? "primary" : "subdued"} />
-                    <Stack vertical spacing="extraTight">
+                    <Box display="flex" flexDirection="column" gap="0">
                       <Text variant="headingMd">Create Product Embeddings</Text>
                       <Badge status={completedSteps['create-embeddings'] ? 'success' : canCreateEmbeddings ? 'info' : 'attention'}>
                         {completedSteps['create-embeddings'] ? 'Completed' : canCreateEmbeddings ? 'Ready' : 'Step 2'}
                       </Badge>
-                    </Stack>
-                  </Stack>
+                    </Box>
+                  </Box>
                   <Text color="subdued">
                     Generate AI embeddings for your products to enable smart voice search and recommendations.
                   </Text>
@@ -384,26 +376,23 @@ export default function DownloadProducts() {
                   >
                     Create Product Embeddings
                   </Button>
-                </Stack>
+                </Box>
               </Card>
-            </Stack>
-          </Stack>
+            </Box>
+          </Box>
         </Card>
 
-        {/* Optional Actions */}
         <Card sectioned>
-          <Stack vertical spacing="loose">
+          <Box display="flex" flexDirection="column" gap="4">
             <Text variant="headingLg">Optional Actions</Text>
             <Text color="subdued">These actions can be performed at any time.</Text>
-            
-            <Stack distribution="fillEvenly" spacing="loose">
-              {/* Delete Embeddings */}
+            <Box display="flex" gap="4" justifyContent="space-evenly">
               <Card sectioned>
-                <Stack vertical spacing="tight">
-                  <Stack alignment="center">
+                <Box display="flex" flexDirection="column" gap="1">
+                  <Box display="flex" alignItems="center" gap="2">
                     <Icon source={DeleteIcon} color="critical" />
                     <Text variant="headingMd">Delete Product Embeddings</Text>
-                  </Stack>
+                  </Box>
                   <Text color="subdued">
                     Remove product embeddings from the server. Use this to reset or clean up your data.
                   </Text>
@@ -420,16 +409,15 @@ export default function DownloadProducts() {
                   >
                     Delete Product Embeddings
                   </Button>
-                </Stack>
+                </Box>
               </Card>
 
-              {/* Create Prompt */}
               <Card sectioned>
-                <Stack vertical spacing="tight">
-                  <Stack alignment="center">
+                <Box display="flex" flexDirection="column" gap="1">
+                  <Box display="flex" alignItems="center" gap="2">
                     <Icon source={LightbulbIcon} color="primary" />
                     <Text variant="headingMd">Create System Prompt</Text>
-                  </Stack>
+                  </Box>
                   <Text color="subdued">
                     Generate and save a system prompt with relevant shop assortment for better AI responses.
                   </Text>
@@ -441,10 +429,10 @@ export default function DownloadProducts() {
                   >
                     Create Prompt
                   </Button>
-                </Stack>
+                </Box>
               </Card>
-            </Stack>
-          </Stack>
+            </Box>
+          </Box>
         </Card>
       </Page>
 
