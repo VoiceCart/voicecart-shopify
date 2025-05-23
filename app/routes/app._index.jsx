@@ -252,7 +252,7 @@ export default function DownloadProducts() {
         <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
 
         {/* Language Settings */}
-        <Card sectioned style="display: none">
+        {/* <Card sectioned style="display: none">
           <Text variant="headingMd" as="h2">Global Settings</Text>
           <div style={{ marginTop: '16px' }}>
             <Text>Set the default global language for your store.</Text>
@@ -273,7 +273,7 @@ export default function DownloadProducts() {
               Set Global Language
             </Button>
           </div>
-        </Card>
+        </Card> */}
 
         {/* Progress Bar */}
         {showProgress && (
