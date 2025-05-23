@@ -13,6 +13,8 @@ import {
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
 
+const [showLanguageSettings, setShowLanguageSettings] = useState(false);
+
 export default function DownloadProducts() {
   const fetcher = useFetcher();
   const [taskId, setTaskId] = useState(null);
