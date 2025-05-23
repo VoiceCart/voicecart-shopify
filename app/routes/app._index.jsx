@@ -9,10 +9,9 @@ import {
   Frame,
   Toast,
   ProgressBar,
+  Stack,
   Badge,
-  Icon,
-  InlineStack,
-  VerticalStack,
+  Icon
 } from "@shopify/polaris";
 import { TitleBar } from "@shopify/app-bridge-react";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
@@ -283,10 +282,10 @@ export default function DownloadProducts() {
 
         {/* Language Settings */}
         <Card sectioned>
-          <VerticalStack spacing="tight">
+          <Stack vertical spacing="tight">
             <Text variant="headingMd">Global Language Settings</Text>
             <Text color="subdued">Set the default global language for your store.</Text>
-            <InlineStack align="center">
+            <Stack alignment="center">
               <Select
                 label="Global Language"
                 options={[
@@ -301,42 +300,42 @@ export default function DownloadProducts() {
               <Button onClick={setGlobalLanguage} primary disabled={isLoading}>
                 Set Global Language
               </Button>
-            </InlineStack>
-          </VerticalStack>
+            </Stack>
+          </Stack>
         </Card>
 
         {/* Progress Bar */}
         {currentTaskType && (
           <Card sectioned>
-            <VerticalStack spacing="tight">
+            <Stack vertical spacing="tight">
               <Text variant="headingMd">Processing...</Text>
               <ProgressBar progress={progress} size="large" />
               {progressText && (
                 <Text color="subdued" alignment="center">{progressText}</Text>
               )}
-            </VerticalStack>
+            </Stack>
           </Card>
         )}
 
         {/* Required Steps */}
         <Card sectioned>
-          <VerticalStack spacing="loose">
+          <Stack vertical spacing="loose">
             <Text variant="headingLg">Setup Steps</Text>
             <Text color="subdued">Complete these steps in order to set up your VoiceCart.</Text>
             
-            <InlineStack gap="loose" wrap align="space-evenly">
+            <Stack distribution="fillEvenly" spacing="loose">
               {/* Step 1: Generate Product Catalog */}
               <Card sectioned>
-                <VerticalStack spacing="tight">
-                  <InlineStack align="center">
+                <Stack vertical spacing="tight">
+                  <Stack alignment="center">
                     <Icon source={ProductsIcon} color="primary" />
-                    <VerticalStack spacing="extraTight">
+                    <Stack vertical spacing="extraTight">
                       <Text variant="headingMd">Generate Product Catalog</Text>
                       <Badge status={completedSteps['product-catalog'] ? 'success' : 'attention'}>
                         {completedSteps['product-catalog'] ? 'Completed' : 'Step 1'}
                       </Badge>
-                    </VerticalStack>
-                  </InlineStack>
+                    </Stack>
+                  </Stack>
                   <Text color="subdued">
                     Create and store your product catalog on the server. This is the first step in setting up your VoiceCart.
                   </Text>
@@ -353,21 +352,21 @@ export default function DownloadProducts() {
                   >
                     Generate Product Catalog
                   </Button>
-                </VerticalStack>
+                </Stack>
               </Card>
 
               {/* Step 2: Create Product Embeddings */}
               <Card sectioned>
-                <VerticalStack spacing="tight">
-                  <InlineStack align="center">
+                <Stack vertical spacing="tight">
+                  <Stack alignment="center">
                     <Icon source={BrainIcon} color={canCreateEmbeddings ? "primary" : "subdued"} />
-                    <VerticalStack spacing="extraTight">
+                    <Stack vertical spacing="extraTight">
                       <Text variant="headingMd">Create Product Embeddings</Text>
                       <Badge status={completedSteps['create-embeddings'] ? 'success' : canCreateEmbeddings ? 'info' : 'attention'}>
                         {completedSteps['create-embeddings'] ? 'Completed' : canCreateEmbeddings ? 'Ready' : 'Step 2'}
                       </Badge>
-                    </VerticalStack>
-                  </InlineStack>
+                    </Stack>
+                  </Stack>
                   <Text color="subdued">
                     Generate AI embeddings for your products to enable smart voice search and recommendations.
                   </Text>
@@ -385,26 +384,26 @@ export default function DownloadProducts() {
                   >
                     Create Product Embeddings
                   </Button>
-                </VerticalStack>
+                </Stack>
               </Card>
-            </InlineStack>
-          </VerticalStack>
+            </Stack>
+          </Stack>
         </Card>
 
         {/* Optional Actions */}
         <Card sectioned>
-        <VerticalStack spacing="loose">
+          <Stack vertical spacing="loose">
             <Text variant="headingLg">Optional Actions</Text>
             <Text color="subdued">These actions can be performed at any time.</Text>
             
-            <InlineStack gap="loose" wrap align="space-evenly">
+            <Stack distribution="fillEvenly" spacing="loose">
               {/* Delete Embeddings */}
               <Card sectioned>
-                <VerticalStack spacing="tight">
-                  <InlineStack align="center">
+                <Stack vertical spacing="tight">
+                  <Stack alignment="center">
                     <Icon source={DeleteIcon} color="critical" />
                     <Text variant="headingMd">Delete Product Embeddings</Text>
-                  </InlineStack>
+                  </Stack>
                   <Text color="subdued">
                     Remove product embeddings from the server. Use this to reset or clean up your data.
                   </Text>
@@ -421,16 +420,16 @@ export default function DownloadProducts() {
                   >
                     Delete Product Embeddings
                   </Button>
-                </VerticalStack>
+                </Stack>
               </Card>
 
               {/* Create Prompt */}
               <Card sectioned>
-                <VerticalStack spacing="tight">
-                  <InlineStack align="center">
+                <Stack vertical spacing="tight">
+                  <Stack alignment="center">
                     <Icon source={LightbulbIcon} color="primary" />
                     <Text variant="headingMd">Create System Prompt</Text>
-                  </InlineStack>
+                  </Stack>
                   <Text color="subdued">
                     Generate and save a system prompt with relevant shop assortment for better AI responses.
                   </Text>
@@ -442,10 +441,10 @@ export default function DownloadProducts() {
                   >
                     Create Prompt
                   </Button>
-                </VerticalStack>
+                </Stack>
               </Card>
-            </InlineStack>
-          </VerticalStack>
+            </Stack>
+          </Stack>
         </Card>
       </Page>
 
