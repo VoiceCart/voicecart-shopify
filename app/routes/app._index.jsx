@@ -316,7 +316,7 @@ export default function DownloadProducts() {
     <Frame>
       <div style={pageStyle}>
         <Page title="VoiceCart - Admin panel">
-          <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
+          <TitleBar title="Catalog Configuration" primaryAction={null} />
 
           {/* Progress Bar */}
           {showProgress && (
