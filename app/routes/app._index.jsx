@@ -38,75 +38,6 @@ export default function DownloadProducts() {
 
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
 
-  // Progress messages for different tasks
-  const getProgressMessages = (taskType) => {
-    const messages = {
-      'product-catalog': [
-        'Connecting to product database...',
-        'Fetching product information...',
-        'Processing product data...',
-        'Generating catalog structure...',
-        'Saving catalog to server...',
-        'Product catalog generated successfully!'
-      ],
-      'create-embeddings': [
-        'Initializing AI model...',
-        'Processing product descriptions...',
-        'Generating embeddings...',
-        'Optimizing search vectors...',
-        'Storing embeddings...',
-        'Product embeddings created successfully!'
-      ],
-      'delete-embeddings': [
-        'Connecting to server...',
-        'Locating embedding files...',
-        'Removing embeddings...',
-        'Cleaning up references...',
-        'Embeddings deleted successfully!'
-      ],
-      'create-prompt': [
-        'Analyzing product catalog...',
-        'Generating system prompt...',
-        'Optimizing for voice interaction...',
-        'Saving prompt configuration...',
-        'System prompt created successfully!'
-      ]
-    };
-    return messages[taskType] || ['Processing...'];
-  };
-
-  // Simulate progress for visual feedback
-  const simulateProgress = useCallback((taskType) => {
-    setShowProgress(true);
-    setProgress(0);
-    
-    const messages = getProgressMessages(taskType);
-    let currentProgress = 0;
-    
-    const interval = setInterval(() => {
-      currentProgress += Math.random() * 15 + 5;
-      if (currentProgress > 95) currentProgress = 95; // Don't complete until real task finishes
-      
-      setProgress(currentProgress);
-      const messageIndex = Math.min(Math.floor(currentProgress / 20), messages.length - 2);
-      setProgressText(messages[messageIndex]);
-    }, 500);
-    
-    return interval;
-  }, []);
-
-  const completeProgress = useCallback((taskType) => {
-    const messages = getProgressMessages(taskType);
-    setProgress(100);
-    setProgressText(messages[messages.length - 1]);
-    
-    setTimeout(() => {
-      setShowProgress(false);
-      setProgress(0);
-      setProgressText("");
-    }, 2000);
-  }, []);
-
   const startTask = (taskType) => {
     fetcher.submit({ taskType }, { method: "POST", action: "/api/start-task" });
   };
@@ -116,7 +47,9 @@ export default function DownloadProducts() {
   const deleteEmbeddings = () => startTask("delete-embeddings");
 
   const fetchStoreInfoAndTags = async () => {
-    const progressInterval = simulateProgress('create-prompt');
+    setShowProgress(true);
+    setProgress(0);
+    setProgressText("Fetching store info...");
     
     try {
       const response = await fetchWithToken("/api/generate-prompt", {
@@ -129,20 +62,18 @@ export default function DownloadProducts() {
         console.log("Unique Tags:", data.uniqueTags);
         showToast("Store info and tags printed to console. Fetching prompt...");
         await fetchPromptFromDB();
-        clearInterval(progressInterval);
-        completeProgress('create-prompt');
-        // Mark this step as completed
+        setProgress(100);
+        setProgressText("System prompt created successfully!");
+        setTimeout(() => setShowProgress(false), 2000);
         setCompletedSteps(prev => new Set([...prev, 'create-prompt']));
       } else {
         console.error("Error response from server:", data);
         showToast(`Error: ${data.error || "Failed to fetch store info"}`);
-        clearInterval(progressInterval);
         setShowProgress(false);
       }
     } catch (error) {
       console.error("Network error fetching store info:", error);
       showToast("Error processing store info");
-      clearInterval(progressInterval);
       setShowProgress(false);
     }
   };
@@ -185,9 +116,9 @@ export default function DownloadProducts() {
       showToast(
         `${taskType === "product-catalog" ? "Download" : "Embedding"} started...`
       );
-      
-      // Start progress simulation
-      simulateProgress(taskType);
+      setShowProgress(true);
+      setProgress(0);
+      setProgressText("Starting embedding process...");
     } else if (fetcher.data?.error) {
       setStatus("Failed");
       showToast(fetcher.data.error);
@@ -195,7 +126,7 @@ export default function DownloadProducts() {
     } else if (fetcher.data?.success) {
       showToast(`Global language set to ${defaultLanguage}`);
     }
-  }, [fetcher.data, showToast, defaultLanguage, simulateProgress]);
+  }, [fetcher.data, showToast, defaultLanguage]);
 
   useEffect(() => {
     const savedTaskId = localStorage.getItem("taskId");
@@ -204,6 +135,7 @@ export default function DownloadProducts() {
       setTaskId(savedTaskId);
       setCurrentTaskType(savedTaskType);
       setStatus("In Progress");
+      setShowProgress(true);
     }
   }, []);
 
@@ -212,38 +144,40 @@ export default function DownloadProducts() {
       const interval = setInterval(async () => {
         const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
         const data = await response.json();
-        if (data.status === "success" || data.status === "failed") {
-          const newStatus = data.status === "success" ? "Completed" : "Failed";
-          setStatus(newStatus);
-          
-          if (data.status === "success") {
-            // Mark step as completed
-            setCompletedSteps(prev => new Set([...prev, currentTaskType]));
-            completeProgress(currentTaskType);
-          } else {
-            setShowProgress(false);
-          }
-          
+        if (data.status === "success") {
+          setStatus("Completed");
+          setProgress(100);
+          setProgressText(data.message || "Embedding completed!");
+          setCompletedSteps(prev => new Set([...prev, currentTaskType]));
           showToast(
-            `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} ${data.status}!`
+            `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} completed!`
           );
           localStorage.removeItem("taskId");
           localStorage.removeItem("taskType");
+          setTimeout(() => setShowProgress(false), 2000);
           clearInterval(interval);
-        } else if (data.error) {
+        } else if (data.status === "error") {
           setStatus("Failed");
-          showToast(data.error);
+          setProgress(0);
+          setProgressText(data.message || "Embedding failed");
+          showToast(data.message || "Embedding failed");
           localStorage.removeItem("taskId");
           localStorage.removeItem("taskType");
           setShowProgress(false);
           clearInterval(interval);
+        } else if (data.status === "progress") {
+          setStatus("In Progress");
+          setProgress(data.progress || 0);
+          setProgressText(data.message || "Processing...");
         } else {
           setStatus("In Progress");
+          setProgress(data.progress || 0);
+          setProgressText(data.message || "Processing...");
         }
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [taskId, currentTaskType, showToast, completeProgress]);
+  }, [taskId, currentTaskType, showToast]);
 
   // Check step dependencies
   const canCreateEmbeddings = completedSteps.has('product-catalog');
