@@ -8,43 +8,75 @@ const { ParquetSchema, ParquetWriter } = pkg;
 
 export async function startProductFetchTask(taskId, request) {
   try {
-    // Authenticate & shop name
+    // 1) Authenticate & shop name
     const { admin } = await authenticate.admin(request);
     const shopDomain = admin.rest.session.shop;
     const shopName = shopDomain.split('.')[0];
 
-    // Fetch products via GraphQL...
+    // 2) Fetch all products via GraphQL
     const products = [];
-    const query = `...`; // your existing GraphQL query
-    let hasNextPage = true, cursor = null;
+    const query = `
+      query ($cursor: String) {
+        products(first: 125, after: $cursor) {
+          pageInfo { hasNextPage }
+          edges {
+            cursor
+            node {
+              id
+              title
+              vendor
+              productType
+              descriptionHtml
+              onlineStoreUrl
+              handle
+              images(first: 1) {
+                edges { node { src } }
+              }
+              variants(first: 1) {
+                edges { node { price id } }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    let hasNextPage = true;
+    let cursor = null;
 
     while (hasNextPage) {
-      const resp = await admin.graphql(query, { variables:{cursor}, headers:{Accept:'application/json'} });
-      const json = JSON.parse(await resp.text());
-      for (const edge of json.data.products.edges) {
+      const response = await admin.graphql(query, {
+        variables: { cursor },
+        headers: { 'Accept': 'application/json' }
+      });
+      const json = JSON.parse(await response.text());
+      const edges = json.data.products.edges;
+
+      for (const edge of edges) {
         const node = edge.node;
-        const variant = node.variants.edges[0]?.node || {};
-        const image   = node.images.edges[0]?.node   || {};
-        const vidParts = variant.id.split('/');
+        const variantNode = node.variants.edges[0]?.node || {};
+        const imageNode   = node.images.edges[0]?.node   || {};
+        const vidParts = variantNode.id.split('/');
         products.push({
           id:          node.id,
           name:        node.title,
           brand:       node.vendor,
           category:    node.productType,
           description: node.descriptionHtml,
-          price:       variant.price ? parseFloat(variant.price) : null,
+          price:       variantNode.price ? parseFloat(variantNode.price) : null,
           handle:      node.handle || null,
-          image:       image.src || null,
+          image:       imageNode.src || null,
           variantId:   vidParts[vidParts.length - 1] || null,
         });
         cursor = edge.cursor;
       }
+
       hasNextPage = json.data.products.pageInfo.hasNextPage;
     }
 
     console.log(`Fetched ${products.length} products from Shopify`);
 
-    // Prepare Parquet schema
+    // 3) Prepare Parquet schema
     const schema = new ParquetSchema({
       id:          { type: 'UTF8', optional: true },
       name:        { type: 'UTF8', optional: true },
@@ -57,7 +89,7 @@ export async function startProductFetchTask(taskId, request) {
       variantId:   { type: 'UTF8', optional: true },
     });
 
-    // Use process.cwd() to get project root → app/utils/shopify_catalogs
+    // 4) Write to parquet under app/utils/shopify_catalogs
     const catalogDir = path.join(process.cwd(), 'app', 'utils', 'shopify_catalogs');
     if (!fs.existsSync(catalogDir)) {
       fs.mkdirSync(catalogDir, { recursive: true });
@@ -72,7 +104,7 @@ export async function startProductFetchTask(taskId, request) {
 
     console.log(`Product catalog saved to ${filePath}`);
 
-    // Mark task success
+    // 5) Mark task success
     await updateTaskStatus(taskId, 'success');
   } catch (error) {
     console.error("Error downloading products:", error);
