@@ -1,5 +1,3 @@
-// app/utils/createEmbedding.server.js
-
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
@@ -17,9 +15,11 @@ export async function createEmbeddingsTask(taskId, request) {
     const shopName = shopDomain.split('.')[0];
 
     // 2) Правильный путь к parquet-файлу
-    //    __dirname === .../app/utils
-    const catalogDir = path.join(__dirname, 'shopify_catalogs');
-    const filePath   = path.join(catalogDir, `${shopName}.parquet`);
+    const catalogDir = path.join(process.cwd(), 'app', 'utils', 'shopify_catalogs');
+    if (!fs.existsSync(catalogDir)) {
+      fs.mkdirSync(catalogDir, { recursive: true });
+    }
+    const filePath = path.join(catalogDir, `${shopName}.parquet`);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Parquet не найден по пути ${filePath}`);
     }
