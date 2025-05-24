@@ -38,10 +38,76 @@ export default function DownloadProducts() {
 
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
 
+  // Progress messages for different tasks
+  const getProgressMessages = (taskType) => {
+    const messages = {
+      'product-catalog': [
+        'Connecting to product database...',
+        'Fetching product information...',
+        'Processing product data...',
+        'Generating catalog structure...',
+        'Saving catalog to server...',
+        'Product catalog generated successfully!'
+      ],
+      'create-embeddings': [
+        'Initializing AI model...',
+        'Processing product descriptions...',
+        'Generating embeddings...',
+        'Optimizing search vectors...',
+        'Storing embeddings...',
+        'Product embeddings created successfully!'
+      ],
+      'delete-embeddings': [
+        'Connecting to server...',
+        'Locating embedding files...',
+        'Removing embeddings...',
+        'Cleaning up references...',
+        'Embeddings deleted successfully!'
+      ],
+      'create-prompt': [
+        'Analyzing product catalog...',
+        'Generating system prompt...',
+        'Optimizing for voice interaction...',
+        'Saving prompt configuration...',
+        'System prompt created successfully!'
+      ]
+    };
+    return messages[taskType] || ['Processing...'];
+  };
+
+  // Simulate progress for visual feedback
+  const simulateProgress = useCallback((taskType) => {
+    setShowProgress(true);
+    setProgress(0);
+    
+    const messages = getProgressMessages(taskType);
+    let currentProgress = 0;
+    
+    const interval = setInterval(() => {
+      currentProgress += Math.random() * 15 + 5;
+      if (currentProgress > 95) currentProgress = 95; // Don't complete until real task finishes
+      
+      setProgress(currentProgress);
+      const messageIndex = Math.min(Math.floor(currentProgress / 20), messages.length - 2);
+      setProgressText(messages[messageIndex]);
+    }, 500);
+    
+    return interval;
+  }, []);
+
+  const completeProgress = useCallback((taskType) => {
+    const messages = getProgressMessages(taskType);
+    setProgress(100);
+    setProgressText(messages[messages.length - 1]);
+    
+    setTimeout(() => {
+      setShowProgress(false);
+      setProgress(0);
+      setProgressText("");
+    }, 2000);
+  }, []);
+
   const startTask = (taskType) => {
-    // Clear localStorage to avoid stale taskId
-    localStorage.removeItem("taskId");
-    localStorage.removeItem("taskType");
     fetcher.submit({ taskType }, { method: "POST", action: "/api/start-task" });
   };
 
@@ -50,9 +116,7 @@ export default function DownloadProducts() {
   const deleteEmbeddings = () => startTask("delete-embeddings");
 
   const fetchStoreInfoAndTags = async () => {
-    setShowProgress(true);
-    setProgress(0);
-    setProgressText("Fetching store info...");
+    const progressInterval = simulateProgress('create-prompt');
     
     try {
       const response = await fetchWithToken("/api/generate-prompt", {
@@ -65,18 +129,20 @@ export default function DownloadProducts() {
         console.log("Unique Tags:", data.uniqueTags);
         showToast("Store info and tags printed to console. Fetching prompt...");
         await fetchPromptFromDB();
-        setProgress(100);
-        setProgressText("System prompt created successfully!");
-        setTimeout(() => setShowProgress(false), 2000);
+        clearInterval(progressInterval);
+        completeProgress('create-prompt');
+        // Mark this step as completed
         setCompletedSteps(prev => new Set([...prev, 'create-prompt']));
       } else {
         console.error("Error response from server:", data);
         showToast(`Error: ${data.error || "Failed to fetch store info"}`);
+        clearInterval(progressInterval);
         setShowProgress(false);
       }
     } catch (error) {
       console.error("Network error fetching store info:", error);
       showToast("Error processing store info");
+      clearInterval(progressInterval);
       setShowProgress(false);
     }
   };
@@ -109,95 +175,75 @@ export default function DownloadProducts() {
   };
 
   useEffect(() => {
-    if (fetcher.data) {
-      console.log("Fetcher data:", fetcher.data); // Debug log
-      if (fetcher.data.taskId && fetcher.data.taskType) {
-        setTaskId(fetcher.data.taskId);
-        setCurrentTaskType(fetcher.data.taskType);
-        setStatus("In Progress");
-        setShowProgress(true);
-        setProgress(0);
-        setProgressText("Starting embedding process...");
-        localStorage.setItem("taskId", fetcher.data.taskId);
-        localStorage.setItem("taskType", fetcher.data.taskType);
-        showToast(
-          `${fetcher.data.taskType === "product-catalog" ? "Download" : "Embedding"} started...`
-        );
-      } else if (fetcher.data.error) {
-        setStatus("Failed");
-        setShowProgress(false);
-        setProgress(0);
-        setProgressText("Task failed");
-        showToast(`Error: ${fetcher.data.error}`);
-        localStorage.removeItem("taskId");
-        localStorage.removeItem("taskType");
-      } else if (fetcher.data.success) {
-        showToast(`Global language set to ${defaultLanguage}`);
-      }
+    if (fetcher.data?.taskId) {
+      const { taskId, taskType } = fetcher.data;
+      setTaskId(taskId);
+      setCurrentTaskType(taskType);
+      setStatus("In Progress");
+      localStorage.setItem("taskId", taskId);
+      localStorage.setItem("taskType", taskType);
+      showToast(
+        `${taskType === "product-catalog" ? "Download" : "Embedding"} started...`
+      );
+      
+      // Start progress simulation
+      simulateProgress(taskType);
+    } else if (fetcher.data?.error) {
+      setStatus("Failed");
+      showToast(fetcher.data.error);
+      setShowProgress(false);
+    } else if (fetcher.data?.success) {
+      showToast(`Global language set to ${defaultLanguage}`);
     }
-  }, [fetcher.data, showToast, defaultLanguage]);
+  }, [fetcher.data, showToast, defaultLanguage, simulateProgress]);
 
   useEffect(() => {
     const savedTaskId = localStorage.getItem("taskId");
     const savedTaskType = localStorage.getItem("taskType");
-    if (savedTaskId && savedTaskType && !taskId) {
+    if (savedTaskId) {
       setTaskId(savedTaskId);
       setCurrentTaskType(savedTaskType);
       setStatus("In Progress");
-      setShowProgress(true);
-      setProgress(0);
-      setProgressText("Resuming task...");
     }
-  }, [taskId]);
+  }, []);
 
   useEffect(() => {
     if (taskId) {
       const interval = setInterval(async () => {
-        try {
-          const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
-          const data = await response.json();
-          console.log("Status task response:", data); // Debug log
+        const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
+        const data = await response.json();
+        if (data.status === "success" || data.status === "failed") {
+          const newStatus = data.status === "success" ? "Completed" : "Failed";
+          setStatus(newStatus);
+          
           if (data.status === "success") {
-            setStatus("Completed");
-            setProgress(100);
-            setProgressText(data.message || "Embedding completed!");
+            // Mark step as completed
             setCompletedSteps(prev => new Set([...prev, currentTaskType]));
-            showToast(
-              `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} completed!`
-            );
-            localStorage.removeItem("taskId");
-            localStorage.removeItem("taskType");
-            setTimeout(() => setShowProgress(false), 2000);
-            clearInterval(interval);
-          } else if (data.status === "error") {
-            setStatus("Failed");
-            setProgress(0);
-            setProgressText(data.message || "Embedding failed");
-            showToast(data.message || "Embedding failed");
-            localStorage.removeItem("taskId");
-            localStorage.removeItem("taskType");
-            setShowProgress(false);
-            clearInterval(interval);
+            completeProgress(currentTaskType);
           } else {
-            setStatus("In Progress");
-            setProgress(data.progress || 0);
-            setProgressText(data.message || "Processing...");
+            setShowProgress(false);
           }
-        } catch (error) {
-          console.error("Error polling task status:", error);
+          
+          showToast(
+            `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} ${data.status}!`
+          );
+          localStorage.removeItem("taskId");
+          localStorage.removeItem("taskType");
+          clearInterval(interval);
+        } else if (data.error) {
           setStatus("Failed");
-          setProgress(0);
-          setProgressText("Error checking task status");
-          showToast("Error checking task status");
+          showToast(data.error);
           localStorage.removeItem("taskId");
           localStorage.removeItem("taskType");
           setShowProgress(false);
           clearInterval(interval);
+        } else {
+          setStatus("In Progress");
         }
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [taskId, currentTaskType, showToast]);
+  }, [taskId, currentTaskType, showToast, completeProgress]);
 
   // Check step dependencies
   const canCreateEmbeddings = completedSteps.has('product-catalog');
@@ -262,22 +308,22 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '220px'
+                minHeight: '200px'
               }}>
                 {/* Step number badge */}
                 <div style={{
                   position: 'absolute',
                   top: '20px',
                   right: '20px',
-                  width: '20px',
-                  height: '20px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
                   backgroundColor: completedSteps.has('product-catalog') ? '#00A651' : '#1976d2',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '10px',
+                  fontSize: '12px',
                   fontWeight: 'bold'
                 }}>
                   {completedSteps.has('product-catalog') ? '✓' : '1'}
@@ -301,7 +347,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Generate Product Catalog</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
                         Create and store your product catalog on the server. This is the first step in setting up your VoiceCart.
                       </Text>
                       
@@ -333,7 +379,7 @@ export default function DownloadProducts() {
                             fontWeight: '600',
                             backgroundColor: status === 'In Progress' ? '#fef3c7' : '#fee2e2',
                             color: status === 'In Progress' ? '#92400e' : '#dc2626',
-                            border: '1px solid #fcd34d'
+                            border: status === 'In Progress' ? '1px solid #fcd34d' : '1px solid #fecaca'
                           }}>
                             {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
                           </span>
@@ -353,8 +399,8 @@ export default function DownloadProducts() {
                       (isLoading && currentTaskType === "product-catalog") ||
                       (status === "In Progress" && currentTaskType === "product-catalog")
                     }
-                    disabled={status === "In Progress"}
-                    style={{ backgroundColor: '#1976d2 !important', borderColor: '#1976d2 !important', color: 'white !important' }}
+                    disabled={status === "In Progress" && currentTaskType === "product-catalog"}
+                    style={{ backgroundColor: '#1976d2', borderColor: '#1976d2', color: 'white' }}
                   >
                     Generate Product Catalog
                   </Button>
@@ -374,22 +420,22 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '220px'
+                minHeight: '200px'
               }}>
                 {/* Step number badge */}
                 <div style={{
                   position: 'absolute',
                   top: '20px',
                   right: '20px',
-                  width: '20px',
-                  height: '20px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
                   backgroundColor: completedSteps.has('create-embeddings') ? '#00A651' : '#7b1fa2',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '10px',
+                  fontSize: '12px',
                   fontWeight: 'bold'
                 }}>
                   {completedSteps.has('create-embeddings') ? '✓' : '2'}
@@ -413,7 +459,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Create Product Embeddings</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
                         Generate AI embeddings for your products to enable smart voice search and recommendations.
                       </Text>
                       
@@ -461,7 +507,7 @@ export default function DownloadProducts() {
                             fontWeight: '600',
                             backgroundColor: status === 'In Progress' ? '#fef3c7' : '#fee2e2',
                             color: status === 'In Progress' ? '#92400e' : '#dc2626',
-                            border: '1px solid #fcd34d'
+                            border: status === 'In Progress' ? '1px solid #fcd34d' : '1px solid #fecaca'
                           }}>
                             {status === 'In Progress' ? '⏳ ' : '❌ '}Status: {status}
                           </span>
@@ -477,12 +523,12 @@ export default function DownloadProducts() {
                     primary={canCreateEmbeddings && !completedSteps.has('create-embeddings')}
                     fullWidth
                     size="large"
-                    disabled={!canCreateEmbeddings || status === "In Progress"}
+                    disabled={!canCreateEmbeddings || (status === "In Progress" && currentTaskType === "create-embeddings")}
                     loading={
                       (isLoading && currentTaskType === "create-embeddings") ||
                       (status === "In Progress" && currentTaskType === "create-embeddings")
                     }
-                    style={{ backgroundColor: '#7b1fa2 !important', borderColor: '#7b1fa2 !important', color: 'white !important' }}
+                    style={{ backgroundColor: '#7b1fa2', borderColor: '#7b1fa2', color: 'white' }}
                   >
                     Create Product Embeddings
                   </Button>
@@ -502,22 +548,22 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '220px'
+                minHeight: '200px'
               }}>
                 {/* Step number badge */}
                 <div style={{
                   position: 'absolute',
                   top: '20px',
                   right: '20px',
-                  width: '20px',
-                  height: '20px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
                   backgroundColor: completedSteps.has('create-prompt') ? '#00A651' : '#f57c00',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '10px',
+                  fontSize: '12px',
                   fontWeight: 'bold'
                 }}>
                   {completedSteps.has('create-prompt') ? '✓' : '3'}
@@ -541,7 +587,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Create System Prompt</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
                         Generate and save a system prompt with relevant shop assortment for better AI responses.
                       </Text>
                       
@@ -607,7 +653,7 @@ export default function DownloadProducts() {
                     size="large"
                     disabled={!canCreatePrompt || (showProgress && currentTaskType === 'create-prompt')}
                     loading={showProgress && currentTaskType === 'create-prompt'}
-                    style={{ backgroundColor: '#f57c00 !important', borderColor: '#f57c00 !important', color: 'white !important' }}
+                    style={{ backgroundColor: '#f57c00', borderColor: '#f57c00', color: 'white' }}
                   >
                     Create System Prompt
                   </Button>
@@ -625,7 +671,7 @@ export default function DownloadProducts() {
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                minHeight: '220px'
+                minHeight: '200px'
               }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'flex-start' }}>
@@ -645,7 +691,7 @@ export default function DownloadProducts() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <Text variant="headingMd" as="h3" fontWeight="semibold">Delete Product Embeddings</Text>
-                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '12px' }}>
+                      <Text variant="bodyMd" color="subdued" style={{ marginTop: '8px' }}>
                         Remove product embeddings from the server. Use this to reset or clean up your data.
                       </Text>
                       {status && currentTaskType === "delete-embeddings" && (
@@ -659,7 +705,7 @@ export default function DownloadProducts() {
                             fontWeight: '600',
                             backgroundColor: status === 'Completed' ? '#dcfce7' : '#fef3c7',
                             color: status === 'Completed' ? '#166534' : '#92400e',
-                            border: '1px solid #bbf7d0'
+                            border: status === 'Completed' ? '1px solid #bbf7d0' : '1px solid #fcd34d'
                           }}>
                             {status === 'Completed' ? '✓ ' : '⏳ '}Status: {status}
                           </span>
@@ -679,8 +725,8 @@ export default function DownloadProducts() {
                       (isLoading && currentTaskType === "delete-embeddings") ||
                       (status === "In Progress" && currentTaskType === "delete-embeddings")
                     }
-                    disabled={status === "In Progress"}
-                    style={{ backgroundColor: '#ef5350 !important', borderColor: '#ef5350 !important', color: 'white !important' }}
+                    disabled={status === "In Progress" && currentTaskType === "delete-embeddings"}
+                    style={{ backgroundColor: '#ef5350', borderColor: '#ef5350', color: 'white' }}
                   >
                     Delete Product Embeddings
                   </Button>

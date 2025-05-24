@@ -12,6 +12,7 @@ export async function loader({ request }) {
       return json({ error: "Task ID is required" }, { status: 400 });
     }
 
+    // Fetch task status from the ML server
     const mlServerResponse = await fetchWithToken(
       `http://ml-api:5556/task_status/${taskId}`,
       {
@@ -22,10 +23,11 @@ export async function loader({ request }) {
 
     const data = await mlServerResponse.json();
 
+    // Map ML server response to frontend expected format
     const response = {
-      status: data.status,
-      progress: data.progress || 0,
-      message: data.message || "Processing...",
+      status: data.status, // e.g., "pending", "started", "progress", "success", "error"
+      progress: data.progress || 0, // Progress percentage (0-100)
+      message: data.message || "Processing...", // Descriptive message
     };
 
     return json(response, { status: 200 });
