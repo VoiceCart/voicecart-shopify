@@ -13,6 +13,8 @@ import {
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
 
+const apiKey = process.env.SHOPIFY_API_KEY;
+
 export default function DownloadProducts() {
   const fetcher = useFetcher();
   const [taskId, setTaskId] = useState(null);
@@ -266,10 +268,38 @@ export default function DownloadProducts() {
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storeUrl = window.location.hostname.replace('.myshopify.com', '');
-      setDeeplinkUrl(`https://admin.shopify.com/store/${storeUrl}/themes/current/editor`);
-    }
+    const fetchThemeIdAndSetUrl = async () => {
+      if (typeof window === 'undefined') return;
+      const hostname = window.location.hostname;
+      const store = hostname.split(".")[0];
+
+      try {
+        const res = await fetchWithToken("/api/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            query: `{
+              themes(first: 1, role: MAIN) {
+                edges {
+                  node {
+                    id
+                  }
+                }
+              }
+            }`
+          })
+        });
+        const json = await res.json();
+        const themeGid = json?.data?.themes?.edges?.[0]?.node?.id;
+        const themeId = themeGid?.split("/").pop();
+        if (themeId) {
+          setDeeplinkUrl(`https://admin.shopify.com/store/${store}/themes/${themeId}/editor?template=index&addAppBlockId=${apiKey}/app-window&target=footer`);
+        }
+      } catch (err) {
+        console.error("Failed to get theme ID:", err);
+      }
+    };
+    fetchThemeIdAndSetUrl();
   }, []);
 
   return (
@@ -772,20 +802,27 @@ export default function DownloadProducts() {
               borderRadius: '16px',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
             }}>
+              <iframe
+                width="100%"
+                height="315"
+                style={{ borderRadius: '12px' }}
+                src="https://www.youtube.com/embed/Z6R71_SrMNw?si=oFHR9GSajJJ6EWgZ"
+                title="VoiceCart Setup"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
               <div>
-                <iframe width="100%" height="315" src="https://www.youtube.com/embed/Z6R71_SrMNw?si=oFHR9GSajJJ6EWgZ" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
-              </div>
-              <div>
-                <Text variant="bodyMd" as="p">
-                  To install the VoiceCart widget in your Shopify store:
+                <Text variant="bodyMd" as="p" fontWeight="medium">
+                  To install the VoiceCart widget:
                 </Text>
                 <ul style={{ paddingLeft: '20px', marginTop: '12px', marginBottom: '20px', listStyleType: 'disc' }}>
-                  <li>Open your theme’s Customize area</li>
+                  <li>Open theme editor (Customize)</li>
                   <li>Find the Footer section</li>
                   <li>Click “Add section”</li>
-                  <li>Switch to the “Apps” tab</li>
-                  <li>Select “App Window - VoiceCart”</li>
-                  <li>Click “Save” on the top right corner</li>
+                  <li>Switch to “Apps” tab</li>
+                  <li>Select “App Window – VoiceCart”</li>
+                  <li>Click “Save”</li>
                 </ul>
                 {deeplinkUrl && (
                   <Button url={deeplinkUrl} external primary>
