@@ -39,6 +39,9 @@ export default function DownloadProducts() {
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
 
   const startTask = (taskType) => {
+    // Clear localStorage to avoid stale taskId
+    localStorage.removeItem("taskId");
+    localStorage.removeItem("taskType");
     fetcher.submit({ taskType }, { method: "POST", action: "/api/start-task" });
   };
 
@@ -106,73 +109,90 @@ export default function DownloadProducts() {
   };
 
   useEffect(() => {
-    if (fetcher.data?.taskId) {
-      const { taskId, taskType } = fetcher.data;
-      setTaskId(taskId);
-      setCurrentTaskType(taskType);
-      setStatus("In Progress");
-      localStorage.setItem("taskId", taskId);
-      localStorage.setItem("taskType", taskType);
-      showToast(
-        `${taskType === "product-catalog" ? "Download" : "Embedding"} started...`
-      );
-      setShowProgress(true);
-      setProgress(0);
-      setProgressText("Starting embedding process...");
-    } else if (fetcher.data?.error) {
-      setStatus("Failed");
-      showToast(fetcher.data.error);
-      setShowProgress(false);
-    } else if (fetcher.data?.success) {
-      showToast(`Global language set to ${defaultLanguage}`);
+    if (fetcher.data) {
+      console.log("Fetcher data:", fetcher.data); // Debug log
+      if (fetcher.data.taskId && fetcher.data.taskType) {
+        setTaskId(fetcher.data.taskId);
+        setCurrentTaskType(fetcher.data.taskType);
+        setStatus("In Progress");
+        setShowProgress(true);
+        setProgress(0);
+        setProgressText("Starting embedding process...");
+        localStorage.setItem("taskId", fetcher.data.taskId);
+        localStorage.setItem("taskType", fetcher.data.taskType);
+        showToast(
+          `${fetcher.data.taskType === "product-catalog" ? "Download" : "Embedding"} started...`
+        );
+      } else if (fetcher.data.error) {
+        setStatus("Failed");
+        setShowProgress(false);
+        setProgress(0);
+        setProgressText("Task failed");
+        showToast(`Error: ${fetcher.data.error}`);
+        localStorage.removeItem("taskId");
+        localStorage.removeItem("taskType");
+      } else if (fetcher.data.success) {
+        showToast(`Global language set to ${defaultLanguage}`);
+      }
     }
   }, [fetcher.data, showToast, defaultLanguage]);
 
   useEffect(() => {
     const savedTaskId = localStorage.getItem("taskId");
     const savedTaskType = localStorage.getItem("taskType");
-    if (savedTaskId) {
+    if (savedTaskId && savedTaskType && !taskId) {
       setTaskId(savedTaskId);
       setCurrentTaskType(savedTaskType);
       setStatus("In Progress");
       setShowProgress(true);
+      setProgress(0);
+      setProgressText("Resuming task...");
     }
-  }, []);
+  }, [taskId]);
 
   useEffect(() => {
     if (taskId) {
       const interval = setInterval(async () => {
-        const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
-        const data = await response.json();
-        if (data.status === "success") {
-          setStatus("Completed");
-          setProgress(100);
-          setProgressText(data.message || "Embedding completed!");
-          setCompletedSteps(prev => new Set([...prev, currentTaskType]));
-          showToast(
-            `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} completed!`
-          );
-          localStorage.removeItem("taskId");
-          localStorage.removeItem("taskType");
-          setTimeout(() => setShowProgress(false), 2000);
-          clearInterval(interval);
-        } else if (data.status === "error") {
+        try {
+          const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
+          const data = await response.json();
+          console.log("Status task response:", data); // Debug log
+          if (data.status === "success") {
+            setStatus("Completed");
+            setProgress(100);
+            setProgressText(data.message || "Embedding completed!");
+            setCompletedSteps(prev => new Set([...prev, currentTaskType]));
+            showToast(
+              `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} completed!`
+            );
+            localStorage.removeItem("taskId");
+            localStorage.removeItem("taskType");
+            setTimeout(() => setShowProgress(false), 2000);
+            clearInterval(interval);
+          } else if (data.status === "error") {
+            setStatus("Failed");
+            setProgress(0);
+            setProgressText(data.message || "Embedding failed");
+            showToast(data.message || "Embedding failed");
+            localStorage.removeItem("taskId");
+            localStorage.removeItem("taskType");
+            setShowProgress(false);
+            clearInterval(interval);
+          } else {
+            setStatus("In Progress");
+            setProgress(data.progress || 0);
+            setProgressText(data.message || "Processing...");
+          }
+        } catch (error) {
+          console.error("Error polling task status:", error);
           setStatus("Failed");
           setProgress(0);
-          setProgressText(data.message || "Embedding failed");
-          showToast(data.message || "Embedding failed");
+          setProgressText("Error checking task status");
+          showToast("Error checking task status");
           localStorage.removeItem("taskId");
           localStorage.removeItem("taskType");
           setShowProgress(false);
           clearInterval(interval);
-        } else if (data.status === "progress") {
-          setStatus("In Progress");
-          setProgress(data.progress || 0);
-          setProgressText(data.message || "Processing...");
-        } else {
-          setStatus("In Progress");
-          setProgress(data.progress || 0);
-          setProgressText(data.message || "Processing...");
         }
       }, 1000);
       return () => clearInterval(interval);
@@ -333,7 +353,7 @@ export default function DownloadProducts() {
                       (isLoading && currentTaskType === "product-catalog") ||
                       (status === "In Progress" && currentTaskType === "product-catalog")
                     }
-                    disabled={status === "In Progress" && currentTaskType === "product-catalog"}
+                    disabled={status === "In Progress"}
                     style={{ backgroundColor: '#1976d2 !important', borderColor: '#1976d2 !important', color: 'white !important' }}
                   >
                     Generate Product Catalog
@@ -457,7 +477,7 @@ export default function DownloadProducts() {
                     primary={canCreateEmbeddings && !completedSteps.has('create-embeddings')}
                     fullWidth
                     size="large"
-                    disabled={!canCreateEmbeddings || (status === "In Progress" && currentTaskType === "create-embeddings")}
+                    disabled={!canCreateEmbeddings || status === "In Progress"}
                     loading={
                       (isLoading && currentTaskType === "create-embeddings") ||
                       (status === "In Progress" && currentTaskType === "create-embeddings")
@@ -659,7 +679,7 @@ export default function DownloadProducts() {
                       (isLoading && currentTaskType === "delete-embeddings") ||
                       (status === "In Progress" && currentTaskType === "delete-embeddings")
                     }
-                    disabled={status === "In Progress" && currentTaskType === "delete-embeddings"}
+                    disabled={status === "In Progress"}
                     style={{ backgroundColor: '#ef5350 !important', borderColor: '#ef5350 !important', color: 'white !important' }}
                   >
                     Delete Product Embeddings
