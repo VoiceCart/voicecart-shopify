@@ -208,41 +208,49 @@ export default function DownloadProducts() {
   }, []);
 
   useEffect(() => {
-    if (taskId) {
-      const interval = setInterval(async () => {
-        const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
-        const data = await response.json();
-        if (data.status === "success" || data.status === "failed") {
-          const newStatus = data.status === "success" ? "Completed" : "Failed";
-          setStatus(newStatus);
-          
-          if (data.status === "success") {
-            // Mark step as completed
-            setCompletedSteps(prev => new Set([...prev, currentTaskType]));
-            completeProgress(currentTaskType);
-          } else {
-            setShowProgress(false);
-          }
-          
-          showToast(
-            `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} ${data.status}!`
-          );
-          localStorage.removeItem("taskId");
-          localStorage.removeItem("taskType");
-          clearInterval(interval);
-        } else if (data.error) {
-          setStatus("Failed");
-          showToast(data.error);
-          localStorage.removeItem("taskId");
-          localStorage.removeItem("taskType");
-          setShowProgress(false);
-          clearInterval(interval);
+    if (!taskId) return;
+    const interval = setInterval(async () => {
+      const response = await fetchWithToken(`/api/status-task?taskId=${taskId}`);
+      const data = await response.json();
+  
+      if (data.status === "success" || data.status === "error") {
+        const newStatus = data.status === "success" ? "Completed" : "Failed";
+        setStatus(newStatus);
+  
+        if (data.status === "success") {
+          setCompletedSteps(prev => new Set([...prev, currentTaskType]));
+          completeProgress(currentTaskType);
         } else {
-          setStatus("In Progress");
+          setShowProgress(false);
         }
-      }, 1000);
-      return () => clearInterval(interval);
-    }
+  
+        showToast(
+          `${currentTaskType === "product-catalog" ? "Download" : "Embedding"} ${data.status}!`
+        );
+        localStorage.removeItem("taskId");
+        localStorage.removeItem("taskType");
+        clearInterval(interval);
+  
+      } else if (["pending", "started", "progress"].includes(data.status)) {
+        setStatus("In Progress");
+        if (typeof data.progress === "number") {
+          setProgress(data.progress);
+        }
+        if (data.message) {
+          setProgressText(data.message);
+        }
+  
+      } else if (data.error) {
+        setStatus("Failed");
+        showToast(data.error);
+        setShowProgress(false);
+        localStorage.removeItem("taskId");
+        localStorage.removeItem("taskType");
+        clearInterval(interval);
+      }
+    }, 1000);
+  
+    return () => clearInterval(interval);
   }, [taskId, currentTaskType, showToast, completeProgress]);
 
   // Check step dependencies
