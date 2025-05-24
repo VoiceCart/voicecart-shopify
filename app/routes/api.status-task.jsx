@@ -1,41 +1,61 @@
 import { json } from "@remix-run/node";
-import shopify from "../shopify.server";
-import { fetchWithToken } from "../utils/fetchWithToken.client";
+import { getTaskById, updateTaskStatus } from "../db.server.js";
+import { authenticate } from "../shopify.server";
 
 export async function loader({ request }) {
   try {
-    const { session } = await shopify.authenticate.admin(request);
+    // 1) Authenticate admin + get shop
+    const { admin } = await authenticate.admin(request);
+    const shopName = admin.rest.session.shop.split(".")[0];
+
+    // 2) Grab our internal taskId param
     const url = new URL(request.url);
     const taskId = url.searchParams.get("taskId");
-
     if (!taskId) {
       return json({ error: "Task ID is required" }, { status: 400 });
     }
 
-    // Fetch task status from the ML server
-    const mlServerResponse = await fetchWithToken(
-      `http://ml-api:5556/task_status/${taskId}`,
-      {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      }
+    // 3) Load from Prisma
+    const task = await getTaskById(taskId);
+    if (!task) {
+      // no record => assume done
+      return json({ status: "success", progress: 100, message: "" }, { status: 200 });
+    }
+
+    // 4) Parse out saved celeryTaskId
+    let details = {};
+    try {
+      details = JSON.parse(task.additionalDetails || "{}");
+    } catch {
+      details = {};
+    }
+    const celeryTaskId = details.celeryTaskId;
+
+    // 5) If none, just return our DB status
+    if (!celeryTaskId) {
+      return json({ status: task.status }, { status: 200 });
+    }
+
+    // 6) Poll the ML server
+    const res = await fetch(
+      `http://ml-api:5556/task_status/${celeryTaskId}`,
+      { headers: { "X-Shop-Name": shopName } }
     );
+    const mlData = await res.json(); // { status, progress, message }
 
-    const data = await mlServerResponse.json();
+    // 7) Persist final
+    if (mlData.status === "success" || mlData.status === "error") {
+      await updateTaskStatus(
+        taskId,
+        mlData.status === "success" ? "success" : "failed",
+        { celeryTaskId }
+      );
+    }
 
-    // Map ML server response to frontend expected format
-    const response = {
-      status: data.status, // e.g., "pending", "started", "progress", "success", "error"
-      progress: data.progress || 0, // Progress percentage (0-100)
-      message: data.message || "Processing...", // Descriptive message
-    };
-
-    return json(response, { status: 200 });
+    // 8) Return ML’s response
+    return json(mlData, { status: 200 });
   } catch (error) {
-    console.error("Error fetching task status from ML server:", error);
-    return json(
-      { error: "Failed to fetch task status", message: error.message },
-      { status: 500 }
-    );
+    console.error("Error fetching task status:", error);
+    return json({ error: error.message }, { status: 500 });
   }
 }
