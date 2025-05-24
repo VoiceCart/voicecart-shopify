@@ -12,44 +12,23 @@ const { ParquetSchema, ParquetWriter } = pkg;
 
 export async function startProductFetchTask(taskId, request) {
   try {
+    // 1) Authenticate & determine shop
     const { admin } = await authenticate.admin(request);
     const shopDomain = admin.rest.session.shop;
     const shopName = shopDomain.split('.')[0];
 
+    // 2) Fetch all products via GraphQL
     const products = [];
-
-    // GraphQL-запрос для получения продуктов
     const query = `
       query ($cursor: String) {
         products(first: 125, after: $cursor) {
-          pageInfo {
-            hasNextPage
-          }
+          pageInfo { hasNextPage }
           edges {
             cursor
             node {
-              id
-              title
-              vendor
-              productType
-              descriptionHtml
-              onlineStoreUrl
-              handle
-              images(first: 1) {
-                edges {
-                  node {
-                    src
-                  }
-                }
-              }
-              variants(first: 1) {
-                edges {
-                  node {
-                    price
-                    id
-                  }
-                }
-              }
+              id title vendor productType descriptionHtml handle
+              images(first: 1) { edges { node { src } } }
+              variants(first: 1) { edges { node { price id } } }
             }
           }
         }
@@ -62,53 +41,57 @@ export async function startProductFetchTask(taskId, request) {
     while (hasNextPage) {
       const response = await admin.graphql(query, {
         variables: { cursor },
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
       });
+      const json = JSON.parse(await response.text());
+      const edges = json.data.products.edges;
 
-      const responseText = await response.text();
-      const data = JSON.parse(responseText);
-
-      const edges = data.data.products.edges;
-      edges.forEach(edge => {
+      for (const edge of edges) {
         const node = edge.node;
-        const variant = node.variants.edges[0]?.node || {};
-        const image = node.images.edges[0]?.node || {};
-        const variantIdUrl = variant.id.split('/');
-        const productVariantId = variantIdUrl[variantIdUrl.length-1];
+        const variantNode = node.variants.edges[0]?.node || {};
+        const imageNode   = node.images.edges[0]?.node   || {};
+        const variantUrlParts = variantNode.id.split('/');
+        const variantId = variantUrlParts[variantUrlParts.length - 1];
+
         products.push({
-          id: node.id,
-          name: node.title,
-          brand: node.vendor,
-          category: node.productType,
+          id:          node.id,
+          name:        node.title,
+          brand:       node.vendor,
+          category:    node.productType,
           description: node.descriptionHtml,
-          price: variant.price ? parseFloat(variant.price) : null,
-          handle: node.handle || null,
-          image: image.src || null,
-          variantId: productVariantId || null
+          price:       variantNode.price ? parseFloat(variantNode.price) : null,
+          handle:      node.handle || null,
+          image:       imageNode.src   || null,
+          variantId,
         });
+
         cursor = edge.cursor;
-      });
-      hasNextPage = data.data.products.pageInfo.hasNextPage;
+      }
+
+      hasNextPage = json.data.products.pageInfo.hasNextPage;
     }
+
     console.log(`Fetched ${products.length} products from Shopify`);
 
+    // 3) Prepare Parquet schema & directory
     const schema = new ParquetSchema({
-      id: { type: 'UTF8', optional: true },
-      name: { type: 'UTF8', optional: true },
-      brand: { type: 'UTF8', optional: true },
+      id:          { type: 'UTF8', optional: true },
+      name:        { type: 'UTF8', optional: true },
+      brand:       { type: 'UTF8', optional: true },
       description: { type: 'UTF8', optional: true },
-      category: { type: 'UTF8', optional: true },
-      price: { type: 'DOUBLE', optional: true },
-      handle: { type: 'UTF8', optional: true },
-      image: { type: 'UTF8', optional: true },
-      variantId: { type: 'UTF8', optional: true }
+      category:    { type: 'UTF8', optional: true },
+      price:       { type: 'DOUBLE', optional: true },
+      handle:      { type: 'UTF8', optional: true },
+      image:       { type: 'UTF8', optional: true },
+      variantId:   { type: 'UTF8', optional: true },
     });
 
-    const directoryPath = '..\\test\\app\\utils\\shopify_catalogs'
-    if (!fs.existsSync(directoryPath)) {
-      fs.mkdirSync(directoryPath, { recursive: true });
+    // 4) Write to a local parquet file under app/utils/shopify_catalogs
+    const catalogDir = path.join(__dirname, 'shopify_catalogs');
+    if (!fs.existsSync(catalogDir)) {
+      fs.mkdirSync(catalogDir, { recursive: true });
     }
-    const filePath = path.join(directoryPath, `${shopName}.parquet`);
+    const filePath = path.join(catalogDir, `${shopName}.parquet`);
     const writer = await ParquetWriter.openFile(schema, filePath);
 
     for (const product of products) {
@@ -118,15 +101,10 @@ export async function startProductFetchTask(taskId, request) {
 
     console.log(`Product catalog saved to ${filePath}`);
 
-    // Обновляем статус задачи на 'success'
+    // 5) Mark task success
     await updateTaskStatus(taskId, 'success');
-
   } catch (error) {
     console.error("Error downloading products:", error);
-
-    // Обновляем статус задачи на 'failed'
     await updateTaskStatus(taskId, 'failed');
   }
 }
-
-

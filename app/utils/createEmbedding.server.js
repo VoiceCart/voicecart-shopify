@@ -1,3 +1,5 @@
+// app/utils/createEmbedding.server.js
+
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
@@ -8,106 +10,97 @@ const { ParquetReader, ParquetWriter, ParquetSchema } = pkg;
 import { Writable } from 'stream';
 
 export async function createEmbeddingsTask(taskId, request) {
-  let embeddingResponse;
   try {
-    // Authenticate and get the shop name
+    // 1) Auth
     const { admin } = await authenticate.admin(request);
     const shopDomain = admin.rest.session.shop;
     const shopName = shopDomain.split('.')[0];
-    console.log("Creating embeddings for:", shopName);
 
-    // Path to existing Parquet
-    const directoryPath = '..\\test\\app\\utils\\shopify_catalogs';
-    const filePath = path.join(directoryPath, `${shopName}.parquet`);
+    // 2) Правильный путь к parquet-файлу
+    //    __dirname === .../app/utils
+    const catalogDir = path.join(__dirname, 'shopify_catalogs');
+    const filePath   = path.join(catalogDir, `${shopName}.parquet`);
     if (!fs.existsSync(filePath)) {
-      throw new Error('Product catalog not found. Please generate the catalog first.');
+      throw new Error(`Parquet не найден по пути ${filePath}`);
     }
 
-    // Read Parquet into array
+    // 3) Читаем Parquet
     const reader = await ParquetReader.openFile(filePath);
     const products = [];
     try {
       const cursor = reader.getCursor();
-      let product;
-      while ((product = await cursor.next())) {
+      let rec;
+      while ((rec = await cursor.next())) {
         products.push({
-          variantId: product.variantId,
-          name: product.name,
-          description: product.description,
-          category: product.category,
-          brand: product.brand,
-          price: product.price,
-          handle: product.handle,
-          image: product.image,
+          variantId:  rec.variantId,
+          name:       rec.name,
+          description:rec.description,
+          category:   rec.category,
+          brand:      rec.brand,
+          price:      rec.price,
+          handle:     rec.handle,
         });
       }
     } finally {
       await reader.close();
     }
 
-    console.log(`Preparing to create embeddings for ${products.length} products`);
-
-    // Serialize to Parquet in memory
+    // 4) Сериализуем в память
     const schema = new ParquetSchema({
-      variantId: { type: 'UTF8' },
-      name:      { type: 'UTF8' },
+      variantId:  { type: 'UTF8' },
+      name:       { type: 'UTF8' },
       description:{ type: 'UTF8' },
-      category:  { type: 'UTF8' },
-      brand:     { type: 'UTF8' },
-      price:     { type: 'DOUBLE' },
-      handle:    { type: 'UTF8' },
+      category:   { type: 'UTF8' },
+      brand:      { type: 'UTF8' },
+      price:      { type: 'DOUBLE' },
+      handle:     { type: 'UTF8' },
     });
-
     const parquetBuffer = await new Promise(async (resolve, reject) => {
       const chunks = [];
       const writable = new Writable({
-        write(chunk, encoding, callback) {
+        write(chunk, _enc, cb) {
           chunks.push(chunk);
-          callback();
-        },
+          cb();
+        }
       });
       try {
         const writer = await ParquetWriter.openStream(schema, writable);
-        for (const record of products) {
-          await writer.appendRow(record);
+        for (const row of products) {
+          await writer.appendRow(row);
         }
         await writer.close();
         resolve(Buffer.concat(chunks));
-      } catch (e) {
-        reject(e);
+      } catch (err) {
+        reject(err);
       }
     });
 
-    // Enqueue with ML‐server; get back a Celery task_id
-    embeddingResponse = await axios.post(
+    // 5) POST в ML‐сервис
+    const resp = await axios.post(
       'http://ml-api:5556/create_embeddings',
       parquetBuffer,
       {
         headers: {
           'Content-Type': 'application/octet-stream',
-          'Content-Disposition': `attachment; filename="${shopName}.parquet"`,
-          'X-Shop-Name': shopName,
+          'X-Shop-Name': shopName
         },
         timeout: 3600000,
       }
     );
-
-    if (embeddingResponse.status === 200) {
-      const { task_id: celeryTaskId } = embeddingResponse.data;
-      // Store Celery ID but keep status=started
-      await updateTaskStatus(taskId, 'started', {
-        celeryTaskId,
-        productsCount: products.length,
-      });
-      console.log(`Embeddings enqueued (Celery task ${celeryTaskId})`);
-    } else {
-      throw new Error('Embedding service enqueue failed with a non-200 response');
+    if (resp.status !== 200 || !resp.data.task_id) {
+      throw new Error(`ML-сервис вернул ${resp.status}`);
     }
-  } catch (error) {
-    console.error('Error creating embeddings:', error);
+
+    // 6) Сохраняем real Celery task_id
+    await updateTaskStatus(taskId, 'started', {
+      celeryTaskId: resp.data.task_id
+    });
+
+  } catch (err) {
+    console.error("createEmbeddingsTask error:", err);
     await updateTaskStatus(taskId, 'failed', {
-      errorMessage: error.message,
-      errorDetails: error.toString(),
+      errorMessage: err.message,
+      errorStack:   err.stack,
     });
   }
 }
