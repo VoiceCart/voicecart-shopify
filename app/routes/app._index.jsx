@@ -20,8 +20,6 @@ export default function DownloadProducts() {
   const [currentTaskType, setCurrentTaskType] = useState(null);
   const [defaultLanguage, setDefaultLanguage] = useState("en");
   const [toast, setToast] = useState({ active: false, content: "" });
-  const storeUrl = window.location.hostname.replace('.myshopify.com', '');
-  const deeplinkUrl = `https://admin.shopify.com/store/${storeUrl}/themes/current/editor`;
   
   // Progress tracking states
   const [progress, setProgress] = useState(0);
@@ -264,6 +262,15 @@ export default function DownloadProducts() {
     minHeight: '100vh',
     padding: '24px'
   };
+
+  const [deeplinkUrl, setDeeplinkUrl] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storeUrl = window.location.hostname.replace('.myshopify.com', '');
+      setDeeplinkUrl(`https://admin.shopify.com/store/${storeUrl}/themes/current/editor`);
+    }
+  }, []);
 
   return (
     <Frame>
@@ -745,7 +752,7 @@ export default function DownloadProducts() {
             </div>
           </div>
 
-          {/* VoiceCart Widget Setup */}
+          {/* Widget Setup Section */}
           <div style={{
             display: 'grid',
             gap: '24px',
@@ -780,9 +787,11 @@ export default function DownloadProducts() {
                   <li>Select “App Window - VoiceCart”</li>
                   <li>Click “Save” on the top right corner</li>
                 </ul>
-                <Button url={deeplinkUrl} external primary>
-                  Go to Customize Theme
-                </Button>
+                {deeplinkUrl && (
+                  <Button url={deeplinkUrl} external primary>
+                    Go to Customize Theme
+                  </Button>
+                )}
               </div>
             </div>
           </div>
