@@ -265,13 +265,10 @@ export default function DownloadProducts() {
     padding: '24px'
   };
 
-  const [deeplinkUrl, setDeeplinkUrl] = useState(null);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     // Получаем shop domain из параметров URL или sessionStorage/localStorage
-    // В Shopify приложениях обычно shop передается как параметр
     const urlParams = new URLSearchParams(window.location.search);
     const shopParam = urlParams.get('shop');
     
@@ -301,17 +298,17 @@ export default function DownloadProducts() {
       }
     }
     
-    if (shopDomain) {
+    if (shopDomain && apiKey) {
       // Убеждаемся что домен в правильном формате
       if (!shopDomain.includes('.myshopify.com')) {
         shopDomain = `${shopDomain.replace('.myshopify.com', '')}.myshopify.com`;
       }
       
-      // Создаем правильный deeplink
+      // Создаем правильный deeplink согласно документации Shopify
       const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?addAppBlockId=${apiKey}/app-window&target=newAppsSection`;
       setDeeplinkUrl(customizeUrl);
     }
-  }, []);
+  }, [apiKey]);
 
   return (
     <Frame>
