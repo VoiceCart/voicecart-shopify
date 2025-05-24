@@ -289,7 +289,9 @@ export default function DownloadProducts() {
             }`
           })
         });
-        const json = await res.json();
+
+        const text = await res.text();
+        const json = JSON.parse(text);
         const themeGid = json?.data?.themes?.edges?.[0]?.node?.id;
         const themeId = themeGid?.split("/").pop();
         if (themeId) {
@@ -783,37 +785,36 @@ export default function DownloadProducts() {
           </div>
 
           {/* Widget Setup Section */}
-          <div style={{
-            display: 'grid',
-            gap: '24px',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))'
-          }}>
-            <Text variant="headingLg" as="h2" fontWeight="semibold" style={{ gridColumn: '1 / -1' }}>
+          <div style={{ padding: '0 0 32px 0' }}>
+            <Text variant="headingLg" as="h2" fontWeight="semibold" style={{ marginBottom: '24px' }}>
               VoiceCart Widget Setup
             </Text>
 
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              display: 'flex',
+              flexDirection: 'row',
+              flexWrap: 'wrap',
               gap: '24px',
-              alignItems: 'start',
               backgroundColor: 'white',
               padding: '24px',
               borderRadius: '16px',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+              alignItems: 'flex-start'
             }}>
-              <iframe
-                width="100%"
-                height="315"
-                style={{ borderRadius: '12px' }}
-                src="https://www.youtube.com/embed/Z6R71_SrMNw?si=oFHR9GSajJJ6EWgZ"
-                title="VoiceCart Setup"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-              <div>
-                <Text variant="bodyMd" as="p" fontWeight="medium">
+              <div style={{ flex: '1 1 380px' }}>
+                <iframe
+                  width="100%"
+                  height="315"
+                  style={{ borderRadius: '12px', width: '100%', maxWidth: '100%' }}
+                  src="https://www.youtube.com/embed/Z6R71_SrMNw?si=oFHR9GSajJJ6EWgZ"
+                  title="VoiceCart Setup"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              </div>
+              <div style={{ flex: '1 1 380px' }}>
+                <Text variant="bodyMd" as="p" fontWeight="medium" style={{ marginBottom: '8px' }}>
                   To install the VoiceCart widget:
                 </Text>
                 <ul style={{ paddingLeft: '20px', marginTop: '12px', marginBottom: '20px', listStyleType: 'disc' }}>
@@ -835,7 +836,7 @@ export default function DownloadProducts() {
         </Page>
       </div>
 
-      {toast.active && (
+      {toast?.active && (
         <Toast content={toast.content} onDismiss={handleToastDismiss} duration={4000} />
       )}
     </Frame>
