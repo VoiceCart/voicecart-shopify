@@ -311,7 +311,7 @@ export default function DownloadProducts() {
       setDeeplinkUrl(customizeUrl);
     }
   }, [apiKey]);
-  
+
   return (
     <Frame>
       <div style={pageStyle}>
@@ -809,7 +809,7 @@ export default function DownloadProducts() {
                   width="100%"
                   height="315"
                   style={{ borderRadius: '12px', width: '100%', maxWidth: '100%' }}
-                  src="https://www.youtube.com/embed/Z6R71_SrMNw?si=oFHR9GSajJJ6EWgZ"
+                  src="https://www.youtube.com/embed/UxginYhvU7Y?si=qPY4qQu3x3C6rPfh"
                   title="VoiceCart Setup"
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
