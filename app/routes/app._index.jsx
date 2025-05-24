@@ -268,40 +268,19 @@ export default function DownloadProducts() {
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
 
   useEffect(() => {
-    const fetchThemeIdAndSetUrl = async () => {
-      if (typeof window === 'undefined') return;
-      const hostname = window.location.hostname;
-      const store = hostname.split(".")[0];
-
-      try {
-        const res = await fetchWithToken("/api/graphql", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            query: `{
-              themes(first: 1, role: MAIN) {
-                edges {
-                  node {
-                    id
-                  }
-                }
-              }
-            }`
-          })
-        });
-
-        const text = await res.text();
-        const json = JSON.parse(text);
-        const themeGid = json?.data?.themes?.edges?.[0]?.node?.id;
-        const themeId = themeGid?.split("/").pop();
-        if (themeId) {
-          setDeeplinkUrl(`https://admin.shopify.com/store/${store}/themes/${themeId}/editor?template=index&addAppBlockId=${apiKey}/app-window&target=footer`);
-        }
-      } catch (err) {
-        console.error("Failed to get theme ID:", err);
-      }
-    };
-    fetchThemeIdAndSetUrl();
+    if (typeof window === 'undefined') return;
+    
+    // Получаем myshopify domain из URL
+    const hostname = window.location.hostname;
+    const myshopifyDomain = hostname.includes('admin.shopify.com') 
+      ? hostname.replace('admin.shopify.com', `${hostname.split('.')[0]}.myshopify.com`)
+      : hostname;
+    
+    // Создаем правильный Shopify deeplink согласно документации
+    // Добавляет app block в новую Apps секцию
+    const customizeUrl = `https://${myshopifyDomain}/admin/themes/current/editor?addAppBlockId=${apiKey}/app-window&target=newAppsSection`;
+    
+    setDeeplinkUrl(customizeUrl);
   }, []);
 
   return (
