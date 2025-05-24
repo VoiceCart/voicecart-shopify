@@ -20,6 +20,8 @@ export default function DownloadProducts() {
   const [currentTaskType, setCurrentTaskType] = useState(null);
   const [defaultLanguage, setDefaultLanguage] = useState("en");
   const [toast, setToast] = useState({ active: false, content: "" });
+  const storeUrl = window.location.hostname.replace('.myshopify.com', '');
+  const deeplinkUrl = `https://admin.shopify.com/store/${storeUrl}/themes/current/editor`;
   
   // Progress tracking states
   const [progress, setProgress] = useState(0);
@@ -267,7 +269,7 @@ export default function DownloadProducts() {
     <Frame>
       <div style={pageStyle}>
         <Page title="VoiceCart - Admin panel">
-          <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
+          <TitleBar title="Catalog Configuration" primaryAction={null} />
 
           {/* Progress Bar */}
           {showProgress && (
@@ -743,15 +745,46 @@ export default function DownloadProducts() {
             </div>
           </div>
 
-          {/* Optional Actions */}
-          <div style={{ 
-            display: 'grid', 
-            gap: '24px', 
+          {/* VoiceCart Widget Setup */}
+          <div style={{
+            display: 'grid',
+            gap: '24px',
             gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))'
           }}>
             <Text variant="headingLg" as="h2" fontWeight="semibold" style={{ gridColumn: '1 / -1' }}>
-              Optional Actions
+              VoiceCart Widget Setup
             </Text>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '24px',
+              alignItems: 'start',
+              backgroundColor: 'white',
+              padding: '24px',
+              borderRadius: '16px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            }}>
+              <div>
+                <iframe width="100%" height="315" src="https://www.youtube.com/embed/Z6R71_SrMNw?si=oFHR9GSajJJ6EWgZ" title="YouTube video player" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+              </div>
+              <div>
+                <Text variant="bodyMd" as="p">
+                  To install the VoiceCart widget in your Shopify store:
+                </Text>
+                <ul style={{ paddingLeft: '20px', marginTop: '12px', marginBottom: '20px', listStyleType: 'disc' }}>
+                  <li>Open your theme’s Customize area</li>
+                  <li>Find the Footer section</li>
+                  <li>Click “Add section”</li>
+                  <li>Switch to the “Apps” tab</li>
+                  <li>Select “App Window - VoiceCart”</li>
+                  <li>Click “Save” on the top right corner</li>
+                </ul>
+                <Button url={deeplinkUrl} external primary>
+                  Go to Customize Theme
+                </Button>
+              </div>
+            </div>
           </div>
         </Page>
       </div>
