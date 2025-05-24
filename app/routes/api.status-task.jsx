@@ -1,6 +1,6 @@
 import { json } from "@remix-run/node";
 import shopify from "../shopify.server";
-import { fetchWithToken } from "../utils/fetchWithToken.server";
+import { fetchWithToken } from "../utils/fetchWithToken.client";
 
 export async function loader({ request }) {
   try {
