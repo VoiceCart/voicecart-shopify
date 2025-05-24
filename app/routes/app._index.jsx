@@ -265,6 +265,8 @@ export default function DownloadProducts() {
     padding: '24px'
   };
 
+  const [deeplinkUrl, setDeeplinkUrl] = useState(null);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -309,7 +311,7 @@ export default function DownloadProducts() {
       setDeeplinkUrl(customizeUrl);
     }
   }, [apiKey]);
-
+  
   return (
     <Frame>
       <div style={pageStyle}>
