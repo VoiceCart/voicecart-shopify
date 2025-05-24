@@ -791,17 +791,12 @@ export default function DownloadProducts() {
             </Text>
 
             <div style={{
-              display: 'flex',
-              flexDirection: 'row',
-              flexWrap: 'wrap',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
               gap: '24px',
-              backgroundColor: 'white',
-              padding: '24px',
-              borderRadius: '16px',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              alignItems: 'flex-start'
+              alignItems: 'start'
             }}>
-              <div style={{ flex: '1 1 380px' }}>
+              <div>
                 <iframe
                   width="100%"
                   height="315"
@@ -813,7 +808,12 @@ export default function DownloadProducts() {
                   allowFullScreen
                 />
               </div>
-              <div style={{ flex: '1 1 380px' }}>
+              <div style={{
+                backgroundColor: 'white',
+                padding: '24px',
+                borderRadius: '16px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}>
                 <Text variant="bodyMd" as="p" fontWeight="medium" style={{ marginBottom: '8px' }}>
                   To install the VoiceCart widget:
                 </Text>
