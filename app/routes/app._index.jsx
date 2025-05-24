@@ -270,17 +270,47 @@ export default function DownloadProducts() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // Получаем myshopify domain из URL
-    const hostname = window.location.hostname;
-    const myshopifyDomain = hostname.includes('admin.shopify.com') 
-      ? hostname.replace('admin.shopify.com', `${hostname.split('.')[0]}.myshopify.com`)
-      : hostname;
+    // Получаем shop domain из параметров URL или sessionStorage/localStorage
+    // В Shopify приложениях обычно shop передается как параметр
+    const urlParams = new URLSearchParams(window.location.search);
+    const shopParam = urlParams.get('shop');
     
-    // Создаем правильный Shopify deeplink согласно документации
-    // Добавляет app block в новую Apps секцию
-    const customizeUrl = `https://${myshopifyDomain}/admin/themes/current/editor?addAppBlockId=${apiKey}/app-window&target=newAppsSection`;
+    let shopDomain = shopParam;
     
-    setDeeplinkUrl(customizeUrl);
+    // Если нет в параметрах, пробуем извлечь из других источников
+    if (!shopDomain) {
+      // Проверяем localStorage (часто Shopify сохраняет там shop info)
+      const savedShop = localStorage.getItem('shopOrigin') || localStorage.getItem('shop');
+      if (savedShop) {
+        shopDomain = savedShop;
+      }
+    }
+    
+    // Если все еще нет, пробуем извлечь из hostname (для embedded apps)
+    if (!shopDomain) {
+      const hostname = window.location.hostname;
+      if (hostname.includes('.myshopify.com')) {
+        shopDomain = hostname;
+      } else {
+        // Fallback - используем admin.shopify.com URL format
+        const pathParts = window.location.pathname.split('/');
+        const storeIndex = pathParts.findIndex(part => part === 'store');
+        if (storeIndex !== -1 && pathParts[storeIndex + 1]) {
+          shopDomain = `${pathParts[storeIndex + 1]}.myshopify.com`;
+        }
+      }
+    }
+    
+    if (shopDomain) {
+      // Убеждаемся что домен в правильном формате
+      if (!shopDomain.includes('.myshopify.com')) {
+        shopDomain = `${shopDomain.replace('.myshopify.com', '')}.myshopify.com`;
+      }
+      
+      // Создаем правильный deeplink
+      const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?addAppBlockId=${apiKey}/app-window&target=newAppsSection`;
+      setDeeplinkUrl(customizeUrl);
+    }
   }, []);
 
   return (
