@@ -279,18 +279,25 @@ export default function DownloadProducts() {
     }
   }, [shopDomain, error, showToast]);
 
-  const redirect = app ? Redirect.create(app) : null;
-
   const redirectTo = useCallback(
     (url) => {
-      if (!redirect) {
-        console.error("Redirect not initialized");
-        showToast("Error: Redirect not initialized");
+      if (!app) {
+        console.error("App Bridge not initialized");
+        showToast("Error: App Bridge not initialized");
         return;
       }
-      redirect.dispatch(Redirect.Action.REMOTE, url);
+      
+      try {
+        // Используй правильный метод для App Bridge в Remix
+        const redirect = Redirect.create(app);
+        redirect.dispatch(Redirect.Action.REMOTE, url);
+      } catch (error) {
+        console.error("Redirect error:", error);
+        // Фоллбек - открой в новом окне
+        window.open(url, '_blank');
+      }
     },
-    [redirect, showToast]
+    [app, showToast]
   );
 
   return (
