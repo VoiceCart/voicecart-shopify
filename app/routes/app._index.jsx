@@ -944,7 +944,7 @@ export default function DownloadProducts() {
               variant="headingLg"
               as="h2"
               fontWeight="semibold"
-              style={{ marginBottom: "24px" }}
+              style={{ marginBottom: "24px !important" }}
             >
               VoiceCart Widget Setup
             </Text>
@@ -999,9 +999,11 @@ export default function DownloadProducts() {
                   <li>Select “App Window – VoiceCart”</li>
                   <li>Click “Save”</li>
                 </ul>
+
+                Or use button below to install component to your theme:
                 {deeplinkUrl ? (
                   <Button onClick={() => redirectTo(deeplinkUrl)} primary>
-                    Go to Customize Theme
+                    Install VoiceCart Widget
                   </Button>
                 ) : (
                   <Button disabled>Loading...</Button>
