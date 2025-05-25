@@ -268,49 +268,31 @@ export default function DownloadProducts() {
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    // Получаем shop domain из параметров URL или sessionStorage/localStorage
-    const urlParams = new URLSearchParams(window.location.search);
-    const shopParam = urlParams.get('shop');
-    
-    let shopDomain = shopParam;
-    
-    // Если нет в параметрах, пробуем извлечь из других источников
-    if (!shopDomain) {
-      // Проверяем localStorage (часто Shopify сохраняет там shop info)
-      const savedShop = localStorage.getItem('shopOrigin') || localStorage.getItem('shop');
-      if (savedShop) {
-        shopDomain = savedShop;
-      }
-    }
-    
-    // Если все еще нет, пробуем извлечь из hostname (для embedded apps)
-    if (!shopDomain) {
-      const hostname = window.location.hostname;
-      if (hostname.includes('.myshopify.com')) {
-        shopDomain = hostname;
-      } else {
-        // Fallback - используем admin.shopify.com URL format
-        const pathParts = window.location.pathname.split('/');
-        const storeIndex = pathParts.findIndex(part => part === 'store');
-        if (storeIndex !== -1 && pathParts[storeIndex + 1]) {
-          shopDomain = `${pathParts[storeIndex + 1]}.myshopify.com`;
+    const fetchShopDomain = async () => {
+      try {
+        const response = await fetchWithToken("/api/get-shop-domain", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await response.json();
+        if (response.ok && data.shop?.myshopifyDomain && apiKey) {
+          const shopDomain = data.shop.myshopifyDomain.includes(".myshopify.com")
+            ? data.shop.myshopifyDomain
+            : `${data.shop.myshopifyDomain}.myshopify.com`;
+          // Updated deep link to target footer section group
+          const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?template=index&addAppBlockId=${apiKey}/app-window&target=sectionGroup:footer`;
+          setDeeplinkUrl(customizeUrl);
+        } else {
+          showToast("Error: Unable to retrieve shop domain or API key");
         }
+      } catch (error) {
+        console.error("Error fetching shop domain:", error);
+        showToast("Error fetching shop domain");
       }
-    }
-    
-    if (shopDomain && apiKey) {
-      // Убеждаемся что домен в правильном формате
-      if (!shopDomain.includes('.myshopify.com')) {
-        shopDomain = `${shopDomain.replace('.myshopify.com', '')}.myshopify.com`;
-      }
-      
-      // Создаем правильный deeplink согласно документации Shopify
-      const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?addAppBlockId=${apiKey}/app-window&target=newAppsSection`;
-      setDeeplinkUrl(customizeUrl);
-    }
-  }, [apiKey]);
+    };
+
+    fetchShopDomain();
+  }, [showToast, apiKey]);
 
   return (
     <Frame>
@@ -833,10 +815,12 @@ export default function DownloadProducts() {
                   <li>Select “App Window – VoiceCart”</li>
                   <li>Click “Save”</li>
                 </ul>
-                {deeplinkUrl && (
+                {deeplinkUrl ? (
                   <Button url={deeplinkUrl} external primary>
                     Go to Customize Theme
                   </Button>
+                ) : (
+                  <Button disabled>Loading...</Button>
                 )}
               </div>
             </div>
