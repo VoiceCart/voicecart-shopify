@@ -285,8 +285,14 @@ export default function DownloadProducts() {
 
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
   const app = useAppBridge();
-  const redirect = Redirect.create(app);
-  const redirectTo = (url) => redirect.dispatch(Redirect.Action.REMOTE, url);
+
+  const redirectTo = useCallback(
+    (url) => {
+      const redirect = Redirect.create(app);
+      redirect.dispatch(Redirect.Action.REMOTE, url);
+    },
+    [app]
+  );
 
   useEffect(() => {
     if (error) {
