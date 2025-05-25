@@ -10,7 +10,8 @@ import {
   Frame,
   Toast
 } from "@shopify/polaris";
-import { TitleBar, Redirect } from "@shopify/app-bridge-react";
+import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
+import { Redirect } from "@shopify/app-bridge/actions";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 
@@ -283,7 +284,9 @@ export default function DownloadProducts() {
   };
 
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
-  const redirect = Redirect.useRedirect();
+  const app = useAppBridge();
+  const redirect = Redirect.create(app);
+  const redirectTo = (url) => redirect.dispatch(Redirect.Action.REMOTE, url);
 
   useEffect(() => {
     if (error) {
@@ -822,7 +825,7 @@ export default function DownloadProducts() {
               </ul>
               {deeplinkUrl ? (
                 <Button
-                  onClick={() => redirect.to(deeplinkUrl)}
+                  onClick={() => redirectTo(deeplinkUrl)}
                   primary
                 >
                   Go to Customize Theme
