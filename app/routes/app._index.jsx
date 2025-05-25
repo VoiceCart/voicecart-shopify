@@ -939,28 +939,33 @@ export default function DownloadProducts() {
             </div>
           </div>
 
-          <div style={{ padding: "0 0 32px 0" }}>
-            <Text
-              variant="headingLg"
-              as="h2"
-              fontWeight="semibold"
-              style={{ marginBottom: "24px !important" }}
-            >
-              VoiceCart Widget Setup
-            </Text>
+          <div style={{ marginTop: "48px" }}>
+            <div style={{ marginBottom: "32px" }}>
+              <Text
+                variant="headingLg"
+                as="h2"
+                fontWeight="semibold"
+              >
+                VoiceCart Widget Setup
+              </Text>
+            </div>
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
                 gap: "24px",
-                alignItems: "start",
+                gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
               }}
             >
-              <div>
+              <div style={{ 
+                backgroundColor: "white",
+                borderRadius: "16px",
+                overflow: "hidden",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              }}>
                 <iframe
                   width="100%"
                   height="315"
-                  style={{ borderRadius: "12px", width: "100%", maxWidth: "100%" }}
+                  style={{ display: "block", border: "none" }}
                   src="https://www.youtube.com/embed/UxginYhvU7Y?si=qPY4qQu3x3C6rPfh"
                   title="VoiceCart Setup"
                   frameBorder="0"
@@ -973,41 +978,54 @@ export default function DownloadProducts() {
                   backgroundColor: "white",
                   padding: "24px",
                   borderRadius: "16px",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  minHeight: "315px",
                 }}
               >
-                <Text
-                  variant="bodyMd"
-                  as="p"
-                  fontWeight="medium"
-                  style={{ marginBottom: "8px" }}
-                >
-                  To install the VoiceCart widget:
-                </Text>
-                <ul
-                  style={{
-                    paddingLeft: "20px",
-                    marginTop: "12px",
-                    marginBottom: "20px",
-                    listStyleType: "disc",
-                  }}
-                >
-                  <li>Open theme editor (Customize)</li>
-                  <li>Find the Footer section</li>
-                  <li>Click “Add section”</li>
-                  <li>Switch to “Apps” tab</li>
-                  <li>Select “App Window – VoiceCart”</li>
-                  <li>Click “Save”</li>
-                </ul>
+                <div>
+                  <Text
+                    variant="bodyMd"
+                    as="p"
+                    fontWeight="medium"
+                    style={{ marginBottom: "16px" }}
+                  >
+                    To install the VoiceCart widget:
+                  </Text>
+                  <ul
+                    style={{
+                      paddingLeft: "20px",
+                      marginBottom: "24px",
+                      listStyleType: "disc",
+                    }}
+                  >
+                    <li style={{ marginBottom: "8px" }}>Open theme editor (Customize)</li>
+                    <li style={{ marginBottom: "8px" }}>Find the Footer section</li>
+                    <li style={{ marginBottom: "8px" }}>Click "Add section"</li>
+                    <li style={{ marginBottom: "8px" }}>Switch to "Apps" tab</li>
+                    <li style={{ marginBottom: "8px" }}>Select "App Window – VoiceCart"</li>
+                    <li style={{ marginBottom: "8px" }}>Click "Save"</li>
+                  </ul>
 
-                Or use button below to install component to your theme:
-                {deeplinkUrl ? (
-                  <Button onClick={() => redirectTo(deeplinkUrl)} primary>
-                    Install VoiceCart Widget
-                  </Button>
-                ) : (
-                  <Button disabled>Loading...</Button>
-                )}
+                  <Text
+                    variant="bodyMd"
+                    as="p"
+                    style={{ marginBottom: "16px" }}
+                  >
+                    Or use button below to install component to your theme:
+                  </Text>
+                </div>
+                <div>
+                  {deeplinkUrl ? (
+                    <Button onClick={() => redirectTo(deeplinkUrl)} primary fullWidth size="large">
+                      Install VoiceCart Widget
+                    </Button>
+                  ) : (
+                    <Button disabled fullWidth size="large">Loading...</Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
