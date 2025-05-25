@@ -50,14 +50,10 @@ export default function DownloadProducts() {
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
   const showToast = useCallback((content) => setToast({ active: true, content }), []);
-  const handleToastDismiss = useCallback(
-    () => setToast({ ...toast, active: false }),
-    [toast]
-  );
+  const handleToastDismiss = useCallback(() => setToast({ ...toast, active: false }), [toast]);
 
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
 
-  // Progress messages for different tasks
   const getProgressMessages = (taskType) => {
     const messages = {
       "product-catalog": [
@@ -94,7 +90,6 @@ export default function DownloadProducts() {
     return messages[taskType] || ["Processing..."];
   };
 
-  // Simulate progress for visual feedback
   const simulateProgress = useCallback((taskType) => {
     setShowProgress(true);
     setProgress(0);
@@ -265,7 +260,6 @@ export default function DownloadProducts() {
     return () => clearInterval(interval);
   }, [taskId, currentTaskType, showToast, completeProgress]);
 
-  // Check step dependencies
   const canCreateEmbeddings = completedSteps.has("product-catalog");
   const canCreatePrompt = completedSteps.has("create-embeddings");
 
@@ -309,7 +303,6 @@ export default function DownloadProducts() {
         <Page title="Catalog Configuration">
           <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
 
-          {/* Progress Bar */}
           {showProgress && (
             <div style={{ marginBottom: "24px" }}>
               <Card sectioned>
@@ -341,7 +334,6 @@ export default function DownloadProducts() {
             </div>
           )}
 
-          {/* Setup Steps - Now in a grid layout */}
           <div style={{ marginBottom: "32px" }}>
             <div
               style={{
@@ -370,7 +362,6 @@ export default function DownloadProducts() {
                   minHeight: "200px",
                 }}
               >
-                {/* Step number badge */}
                 <div
                   style={{
                     position: "absolute",
@@ -427,8 +418,6 @@ export default function DownloadProducts() {
                         Create and store your product catalog on the server.
                         This is the first step in setting up your VoiceCart.
                       </Text>
-
-                      {/* Status badge */}
                       {completedSteps.has("product-catalog") ? (
                         <div style={{ marginTop: "12px" }}>
                           <span
@@ -528,7 +517,6 @@ export default function DownloadProducts() {
                   minHeight: "200px",
                 }}
               >
-                {/* Step number badge */}
                 <div
                   style={{
                     position: "absolute",
@@ -585,8 +573,6 @@ export default function DownloadProducts() {
                         Generate AI embeddings for your products to enable
                         smart voice search and recommendations.
                       </Text>
-
-                      {/* Status badge */}
                       {completedSteps.has("create-embeddings") ? (
                         <div style={{ marginTop: "12px" }}>
                           <span
@@ -708,7 +694,6 @@ export default function DownloadProducts() {
                   minHeight: "200px",
                 }}
               >
-                {/* Step number badge */}
                 <div
                   style={{
                     position: "absolute",
@@ -765,8 +750,6 @@ export default function DownloadProducts() {
                         Generate and save a system prompt with relevant shop
                         assortment for better AI responses.
                       </Text>
-
-                      {/* Status badge */}
                       {completedSteps.has("create-prompt") ? (
                         <div style={{ marginTop: "12px" }}>
                           <span
@@ -964,7 +947,6 @@ export default function DownloadProducts() {
             </div>
           </div>
 
-          {/* Widget Setup Section */}
           <div style={{ padding: "0 0 32px 0" }}>
             <Text
               variant="headingLg"
