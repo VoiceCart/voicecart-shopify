@@ -288,26 +288,27 @@ export default function DownloadProducts() {
 
   const redirectTo = useCallback((url) => {
     if (!app) {
-      console.error("App Bridge not ready");
+      console.error("App Bridge not initialized");
+      showToast("Error: App Bridge not initialized");
       return;
     }
   
-    const redirect = Redirect.create(app);
+    // Используем App Bridge для редиректа
+    app.dispatch({
+      type: "REDIRECT",
+      payload: {
+        url: url,
+        newContext: true, // Открывает в новой вкладке/контексте
+      },
+    });
+  }, [app, showToast]);
   
-    if (typeof redirect.dispatch !== "function") {
-      console.error("Redirect.dispatch is not a function", redirect);
-      return;
-    }
-  
-    redirect.dispatch(Redirect.Action.REMOTE, url);
-  }, [app]);
-
   useEffect(() => {
     if (error) {
       showToast("Error: Unable to retrieve shop domain");
       return;
     }
-
+  
     if (shopDomain && apiKey) {
       const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?template=index&addAppBlockId=${apiKey}/app-window&target=sectionGroup:footer`;
       setDeeplinkUrl(customizeUrl);
@@ -839,11 +840,11 @@ export default function DownloadProducts() {
               </ul>
               {deeplinkUrl ? (
                 <Button
-                onClick={() => redirectTo(deeplinkUrl)}
-                primary
-              >
-                Go to Customize Theme
-              </Button>
+                  onClick={() => redirectTo(deeplinkUrl)}
+                  primary
+                >
+                  Go to Customize Theme
+                </Button>
               ) : (
                 <Button disabled>Loading...</Button>
               )}
