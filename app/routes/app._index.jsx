@@ -14,7 +14,6 @@ import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { Redirect } from "@shopify/app-bridge/actions";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
-import { useNavigate } from "@shopify/app-bridge-react";
 
 // const apiKey = process.env.SHOPIFY_API_KEY;
 const apiKey = "369704dc668e71476bbd3055292fd72e";
@@ -285,7 +284,23 @@ export default function DownloadProducts() {
   };
 
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
-  const navigate = useNavigate();
+  const app = useAppBridge();
+
+  const redirectTo = useCallback((url) => {
+    if (!app) {
+      console.error("App Bridge not ready");
+      return;
+    }
+  
+    const redirect = Redirect.create(app);
+  
+    if (typeof redirect.dispatch !== "function") {
+      console.error("Redirect.dispatch is not a function", redirect);
+      return;
+    }
+  
+    redirect.dispatch(Redirect.Action.REMOTE, url);
+  }, [app]);
 
   useEffect(() => {
     if (error) {
@@ -824,11 +839,11 @@ export default function DownloadProducts() {
               </ul>
               {deeplinkUrl ? (
                 <Button
-                  onClick={() => navigate(deeplinkUrl)}
-                  primary
-                >
-                  Go to Customize Theme
-                </Button>
+                onClick={() => redirectTo(deeplinkUrl)}
+                primary
+              >
+                Go to Customize Theme
+              </Button>
               ) : (
                 <Button disabled>Loading...</Button>
               )}
