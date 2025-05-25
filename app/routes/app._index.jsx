@@ -1,4 +1,4 @@
-import { useFetcher } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import { useEffect, useState, useCallback } from "react";
 import {
   Button,
@@ -10,12 +10,28 @@ import {
   Frame,
   Toast
 } from "@shopify/polaris";
-import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
-import { fetchWithToken } from "../utils/fetchWithToken.client";
+import { TitleBar } from "@shopify/app-bridge-react";
+import { json } from "@remix-run/node";
+import { authenticate } from "../shopify.server";
 
 const apiKey = process.env.SHOPIFY_API_KEY;
 
+export async function loader({ request }) {
+  try {
+    const { session } = await authenticate.admin(request);
+    let shopDomain = session.shop.trim().toLowerCase();
+    if (!shopDomain.endsWith(".myshopify.com")) {
+      shopDomain += ".myshopify.com";
+    }
+    return json({ shopDomain });
+  } catch (error) {
+    console.error("Error in loader:", error);
+    return json({ error: "Failed to fetch shop domain" }, { status: 500 });
+  }
+}
+
 export default function DownloadProducts() {
+  const { shopDomain, error } = useLoaderData();
   const fetcher = useFetcher();
   const [taskId, setTaskId] = useState(null);
   const [status, setStatus] = useState("");
@@ -267,31 +283,19 @@ export default function DownloadProducts() {
 
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
 
-useEffect(() => {
-    const fetchShopDomain = async () => {
-      try {
-        const response = await fetchWithToken("/api/get-shop-domain", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        const data = await response.json();
-        if (response.ok && data.shop?.myshopifyDomain && apiKey) {
-          const shopDomain = data.shop.myshopifyDomain.includes(".myshopify.com")
-            ? data.shop.myshopifyDomain
-            : `${data.shop.myshopifyDomain}.myshopify.com`;
-          const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?template=index&addAppBlockId=${apiKey}/app-window&target=sectionGroup:footer`;
-          setDeeplinkUrl(customizeUrl);
-        } else {
-          showToast("Error: Unable to retrieve shop domain or API key");
-        }
-      } catch (error) {
-        console.error("Error fetching shop domain:", error);
-        showToast("Error fetching shop domain");
-      }
-    };
+  useEffect(() => {
+    if (error) {
+      showToast("Error: Unable to retrieve shop domain");
+      return;
+    }
 
-    fetchShopDomain();
-  }, [showToast, apiKey]);
+    if (shopDomain && apiKey) {
+      const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?template=index&addAppBlockId=${apiKey}/app-window&target=sectionGroup:footer`;
+      setDeeplinkUrl(customizeUrl);
+    } else {
+      showToast("Error: Missing shop domain or API key");
+    }
+  }, [shopDomain, error, showToast]);
 
   return (
     <Frame>
@@ -723,7 +727,7 @@ useEffect(() => {
                       justifyContent: 'center',
                       fontSize: '20px',
                       marginRight: '16px',
-                      flexShrink: 0
+                      flexShrink: '0'
                     }}>
                       🗑️
                     </div>
