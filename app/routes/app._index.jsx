@@ -267,7 +267,7 @@ export default function DownloadProducts() {
 
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
 
-  useEffect(() => {
+useEffect(() => {
     const fetchShopDomain = async () => {
       try {
         const response = await fetchWithToken("/api/get-shop-domain", {
@@ -279,7 +279,6 @@ export default function DownloadProducts() {
           const shopDomain = data.shop.myshopifyDomain.includes(".myshopify.com")
             ? data.shop.myshopifyDomain
             : `${data.shop.myshopifyDomain}.myshopify.com`;
-          // Updated deep link to target footer section group
           const customizeUrl = `https://${shopDomain}/admin/themes/current/editor?template=index&addAppBlockId=${apiKey}/app-window&target=sectionGroup:footer`;
           setDeeplinkUrl(customizeUrl);
         } else {
