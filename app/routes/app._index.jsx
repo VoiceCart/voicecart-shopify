@@ -283,6 +283,7 @@ export default function DownloadProducts() {
   };
 
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
+  const redirect = Redirect.useRedirect();
 
   useEffect(() => {
     if (error) {
@@ -778,63 +779,66 @@ export default function DownloadProducts() {
             </div>
           </div>
 
-          {/* Widget Setup Section */}
-          <div style={{ padding: '0 0 32px 0' }}>
-            <Text variant="headingLg" as="h2" fontWeight="semibold" style={{ marginBottom: '24px' }}>
-              VoiceCart Widget Setup
-            </Text>
+{/* Widget Setup Section */}
+<div style={{ padding: '0 0 32px 0' }}>
+          <Text variant="headingLg" as="h2" fontWeight="semibold" style={{ marginBottom: '24px' }}>
+            VoiceCart Widget Setup
+          </Text>
 
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '24px',
+            alignItems: 'start'
+          }}>
+            <div>
+              <iframe
+                width="100%"
+                height="315"
+                style={{ borderRadius: '12px', width: '100%', maxWidth: '100%' }}
+                src="https://www.youtube.com/embed/UxginYhvU7Y?si=qPY4qQu3x3C6rPfh"
+                title="VoiceCart Setup"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '24px',
-              alignItems: 'start'
+              backgroundColor: 'white',
+              padding: '24px',
+              borderRadius: '16px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}>
-              <div>
-                <iframe
-                  width="100%"
-                  height="315"
-                  style={{ borderRadius: '12px', width: '100%', maxWidth: '100%' }}
-                  src="https://www.youtube.com/embed/UxginYhvU7Y?si=qPY4qQu3x3C6rPfh"
-                  title="VoiceCart Setup"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
-              <div style={{
-                backgroundColor: 'white',
-                padding: '24px',
-                borderRadius: '16px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}>
-                <Text variant="bodyMd" as="p" fontWeight="medium" style={{ marginBottom: '8px' }}>
-                  To install the VoiceCart widget:
-                </Text>
-                <ul style={{ paddingLeft: '20px', marginTop: '12px', marginBottom: '20px', listStyleType: 'disc' }}>
-                  <li>Open theme editor (Customize)</li>
-                  <li>Find the Footer section</li>
-                  <li>Click “Add section”</li>
-                  <li>Switch to “Apps” tab</li>
-                  <li>Select “App Window – VoiceCart”</li>
-                  <li>Click “Save”</li>
-                </ul>
-                {deeplinkUrl ? (
-                  <Button url={deeplinkUrl} external primary>
-                    Go to Customize Theme
-                  </Button>
-                ) : (
-                  <Button disabled>Loading...</Button>
-                )}
-              </div>
+              <Text variant="bodyMd" as="p" fontWeight="medium" style={{ marginBottom: '8px' }}>
+                To install the VoiceCart widget:
+              </Text>
+              <ul style={{ paddingLeft: '20px', marginTop: '12px', marginBottom: '20px', listStyleType: 'disc' }}>
+                <li>Open theme editor (Customize)</li>
+                <li>Find the Footer section</li>
+                <li>Click “Add section”</li>
+                <li>Switch to “Apps” tab</li>
+                <li>Select “App Window – VoiceCart”</li>
+                <li>Click “Save”</li>
+              </ul>
+              {deeplinkUrl ? (
+                <Button
+                  onClick={() => redirect.to(deeplinkUrl)}
+                  primary
+                >
+                  Go to Customize Theme
+                </Button>
+              ) : (
+                <Button disabled>Loading...</Button>
+              )}
             </div>
           </div>
-        </Page>
-      </div>
+        </div>
+      </Page>
+    </div>
 
-      {toast?.active && (
-        <Toast content={toast.content} onDismiss={handleToastDismiss} duration={4000} />
-      )}
-    </Frame>
-  );
+    {toast?.active && (
+      <Toast content={toast.content} onDismiss={handleToastDismiss} duration={4000} />
+    )}
+  </Frame>
+ );
 }
