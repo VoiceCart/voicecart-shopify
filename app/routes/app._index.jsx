@@ -1014,7 +1014,7 @@ export default function DownloadProducts() {
                     as="p"
                     style={{ marginBottom: "16px" }}
                   >
-                    Or use button below to install component to your theme:
+                    Or use button below to install component to your theme. Don't forget to click "Save" after intallation.
                   </Text>
                 </div>
                 <div>
