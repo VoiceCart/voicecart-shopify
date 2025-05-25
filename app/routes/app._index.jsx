@@ -5,8 +5,6 @@ import {
   Card,
   Page,
   Text,
-  ButtonGroup,
-  Select,
   Frame,
   Toast,
 } from "@shopify/polaris";
@@ -15,7 +13,6 @@ import { Redirect } from "@shopify/app-bridge/actions";
 import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 
-// const apiKey = process.env.SHOPIFY_API_KEY;
 const apiKey = "369704dc668e71476bbd3055292fd72e";
 
 export async function loader({ request }) {
@@ -43,7 +40,6 @@ export default function DownloadProducts() {
   const [toast, setToast] = useState({ active: false, content: "" });
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
 
-  // Progress tracking states
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState("");
   const [showProgress, setShowProgress] = useState(false);
@@ -342,7 +338,6 @@ export default function DownloadProducts() {
                 gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
               }}
             >
-              {/* Step 1: Generate Product Catalog */}
               <div
                 style={{
                   border:
@@ -383,7 +378,6 @@ export default function DownloadProducts() {
                 >
                   {completedSteps.has("product-catalog") ? "✓" : "1"}
                 </div>
-
                 <div>
                   <div style={{ display: "flex", alignItems: "flex-start" }}>
                     <div
@@ -469,7 +463,6 @@ export default function DownloadProducts() {
                     </div>
                   </div>
                 </div>
-
                 <div>
                   <Button
                     onClick={downloadProducts}
@@ -496,7 +489,6 @@ export default function DownloadProducts() {
                 </div>
               </div>
 
-              {/* Step 2: Create Product Embeddings */}
               <div
                 style={{
                   border:
@@ -538,7 +530,6 @@ export default function DownloadProducts() {
                 >
                   {completedSteps.has("create-embeddings") ? "✓" : "2"}
                 </div>
-
                 <div>
                   <div style={{ display: "flex", alignItems: "flex-start" }}>
                     <div
@@ -642,7 +633,6 @@ export default function DownloadProducts() {
                     </div>
                   </div>
                 </div>
-
                 <div>
                   <Button
                     onClick={createEmbeddings}
@@ -673,7 +663,6 @@ export default function DownloadProducts() {
                 </div>
               </div>
 
-              {/* Step 3: Create System Prompt */}
               <div
                 style={{
                   border:
@@ -715,7 +704,6 @@ export default function DownloadProducts() {
                 >
                   {completedSteps.has("create-prompt") ? "✓" : "3"}
                 </div>
-
                 <div>
                   <div style={{ display: "flex", alignItems: "flex-start" }}>
                     <div
@@ -809,7 +797,6 @@ export default function DownloadProducts() {
                     </div>
                   </div>
                 </div>
-
                 <div>
                   <Button
                     onClick={fetchStoreInfoAndTags}
@@ -836,7 +823,6 @@ export default function DownloadProducts() {
                 </div>
               </div>
 
-              {/* Delete Embeddings */}
               <div
                 style={{
                   border: "1px solid #d1d5db",
@@ -865,7 +851,7 @@ export default function DownloadProducts() {
                         justifyContent: "center",
                         fontSize: "20px",
                         marginRight: "16px",
-                        flexShrink: "0",
+                        flexShrink: 0,
                       }}
                     >
                       🗑️
@@ -918,7 +904,6 @@ export default function DownloadProducts() {
                     </div>
                   </div>
                 </div>
-
                 <div>
                   <Button
                     onClick={deleteEmbeddings}
@@ -956,7 +941,6 @@ export default function DownloadProducts() {
             >
               VoiceCart Widget Setup
             </Text>
-
             <div
               style={{
                 display: "grid",
@@ -969,11 +953,7 @@ export default function DownloadProducts() {
                 <iframe
                   width="100%"
                   height="315"
-                  style={{
-                    borderRadius: "12px",
-                    width: "100%",
-                    maxWidth: "100%",
-                  }}
+                  style={{ borderRadius: "12px", width: "100%", maxWidth: "100%" }}
                   src="https://www.youtube.com/embed/UxginYhvU7Y?si=qPY4qQu3x3C6rPfh"
                   title="VoiceCart Setup"
                   frameBorder="0"
