@@ -8,6 +8,7 @@ import {
   Frame,
   Toast,
 } from "@shopify/polaris";
+import { fetchWithToken } from "../utils/fetchWithToken.client";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
 import { Redirect } from "@shopify/app-bridge/actions";
 import { json } from "@remix-run/node";
