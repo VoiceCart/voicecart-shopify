@@ -997,7 +997,7 @@ export default function DownloadProducts() {
                   <ul
                     style={{
                       paddingLeft: "20px",
-                      marginBottom: "24px",
+                      marginBottom: "12px",
                       listStyleType: "disc",
                     }}
                   >
@@ -1012,7 +1012,7 @@ export default function DownloadProducts() {
                   <Text
                     variant="bodyMd"
                     as="p"
-                    style={{ marginBottom: "32px" }}
+                    style={{ marginBottom: "16px" }}
                   >
                     Or use button below to install component to your theme. Don't forget to click "Save" after intallation.
                   </Text>
