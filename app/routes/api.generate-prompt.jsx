@@ -6,7 +6,7 @@ import { authenticate } from "../shopify.server"; // заменили api
 
 export async function loader({ request }) {
   try {
-    const { session } = await authenticate.admin(request); // новое поведение
+    const { session } = await authenticate.admin(request);
     let shop = session.shop.trim().toLowerCase();
     if (!shop.endsWith(".myshopify.com")) {
       shop += ".myshopify.com";
@@ -16,11 +16,21 @@ export async function loader({ request }) {
     const { uniqueTags, shopDescription } = await fetchStoreInfoAndTags(request);
     console.log(`Retrieved ${uniqueTags.length} unique tags for prompt generation`);
 
+    const products = await prisma.product.findMany({
+      where: { shop },
+      select: { title: true },
+      take: 100,
+    });
+
+    const productTitles = products.map(p => p.title).filter(Boolean);
+
     const openAiPrompt = `Create a comprehensive and detailed description of what this Shopify store sells based on the following data:
 
-TAGS: ${uniqueTags.join(", ")}
+TAGS: ${uniqueTags.length ? uniqueTags.join(", ") : "No tags available"}
 
 STORE DESCRIPTION: ${shopDescription || "No description available"}
+
+PRODUCT TITLES: ${productTitles.length ? productTitles.join(", ") : "No product titles available"}
 
 Your response should:
 1. Provide a thorough overview of the store's product categories and offerings
@@ -50,7 +60,7 @@ Return only the store description as your response, without any additional comme
     });
     console.log(`New prompt saved for shop: ${shop} => ${generalPrompt}`);
 
-    return json({ uniqueTags, shopDescription });
+    return json({ uniqueTags, shopDescription, productTitles });
   } catch (error) {
     console.error("Token validation or prompt generation failed:", error);
     return json({ error: error.message || "Unauthorized or failed to generate prompt" }, { status: 401 });
