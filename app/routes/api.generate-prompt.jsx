@@ -2,7 +2,7 @@ import { json } from "@remix-run/node";
 import { fetchStoreInfoAndTags } from "../utils/shopifyStoreInfoFetch.server";
 import { runChatCompletion } from "../utils/connectors/gptConnector.js";
 import prisma from "../db.server";
-import { authenticate } from "../shopify.server"; // заменили api
+import { authenticate } from "../shopify.server";
 
 export async function loader({ request }) {
   try {
@@ -13,16 +13,9 @@ export async function loader({ request }) {
     }
     console.log("api.generate-prompt: saving prompt for shop =>", shop);
 
-    const { uniqueTags, shopDescription } = await fetchStoreInfoAndTags(request);
+    const { uniqueTags, shopDescription, productTitles } = await fetchStoreInfoAndTags(request);
     console.log(`Retrieved ${uniqueTags.length} unique tags for prompt generation`);
-
-    const products = await prisma.product.findMany({
-      where: { shop },
-      select: { title: true },
-      take: 100,
-    });
-
-    const productTitles = products.map(p => p.title).filter(Boolean);
+    console.log(`Retrieved ${productTitles.length} product titles for prompt generation`);
 
     const openAiPrompt = `Create a comprehensive and detailed description of what this Shopify store sells based on the following data:
 

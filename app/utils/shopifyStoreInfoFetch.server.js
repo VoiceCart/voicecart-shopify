@@ -36,16 +36,15 @@ export async function fetchStoreInfoAndTags(request) {
       console.error("REST fetch failed:", restError);
     }
 
-    // 2. GraphQL-запросы — используем admin.graphql
+    // 2. GraphQL-запросы
     let allProductTags = [];
+    let productTitles = [];
     let hasNextPage = true;
     let cursor = null;
-    const BATCH_SIZE = 250;
-    const MAX_BATCHES = 20;
-    let batchCount = 0;
+    const BATCH_SIZE = 100;
+    const MAX_PRODUCTS = 100;
 
-    while (hasNextPage && batchCount < MAX_BATCHES) {
-      batchCount++;
+    while (hasNextPage && productTitles.length < MAX_PRODUCTS) {
       const query = `
         query {
           products(first: ${BATCH_SIZE}${cursor ? `, after: "${cursor}"` : ""}) {
@@ -55,6 +54,7 @@ export async function fetchStoreInfoAndTags(request) {
             }
             edges {
               node {
+                title
                 tags
               }
             }
@@ -75,22 +75,30 @@ export async function fetchStoreInfoAndTags(request) {
         .flatMap(edge => edge.node.tags)
         .filter(tag => tag && tag.trim() !== "");
 
+      const batchTitles = productData.edges
+        .map(edge => edge.node.title)
+        .filter(title => !!title);
+
       allProductTags.push(...batchTags);
+      productTitles.push(...batchTitles);
 
       hasNextPage = productData.pageInfo.hasNextPage;
-      if (hasNextPage) {
-        cursor = productData.pageInfo.endCursor;
-      }
+      cursor = productData.pageInfo.endCursor;
     }
 
     if (hasNextPage) {
-      console.warn("Stopped due to max batch limit");
+      console.warn("Stopped early after collecting 100 product titles");
     }
 
     const uniqueTags = [...new Set(allProductTags)].sort();
     console.log(`Total unique tags: ${uniqueTags.length}`);
+    console.log(`Total product titles: ${productTitles.length}`);
 
-    return { uniqueTags, shopDescription };
+    return {
+      uniqueTags,
+      shopDescription,
+      productTitles: productTitles.slice(0, 100), // just in case
+    };
   } catch (error) {
     console.error("Error in fetchStoreInfoAndTags:", {
       message: error.message || "No message",
