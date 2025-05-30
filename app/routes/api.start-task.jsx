@@ -29,24 +29,14 @@ export async function action({ request }) {
   reloadOffsetDate.setDate(reloadOffsetDate.getDate() - reloadOffsetDays);
 
   if (latestTask) {
-    // Check for ongoing task
-    if (latestTask.status === 'started') {
+    const startedAt = new Date(latestTask.createdAt);
+    const now = new Date();
+    const minutesAgo = (now - startedAt) / 60000;
+  
+    if (latestTask.status === 'started' && minutesAgo < 30) {
       return json({
         error: `Another ${taskType} task is already in progress.`
       }, { status: 409 });
-    }
-
-    // Check cooldown period
-    if (
-      latestTask.status === 'success' &&
-      new Date(latestTask.endDownloadDate) >= reloadOffsetDate
-    ) {
-      return json(
-        {
-          error: `${taskType === 'product-catalog' ? 'Products' : 'Embeddings'} were processed recently. Try again later.`
-        },
-        { status: 409 }
-      );
     }
   }
 
