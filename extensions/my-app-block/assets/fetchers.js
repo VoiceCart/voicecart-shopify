@@ -79,12 +79,18 @@ async function fetchLanguage() {
 }
 
 /**
- * Retrieves the shop name from the current URL.
+ * Retrieves the shop name from the Shopify storefront configuration.
  */
 function getShopName() {
+  // Use the store name from window.Shopify.shop
+  if (window.Shopify?.shop) {
+    return window.Shopify.shop;
+  }
+  // Fallback to URL host if shop is not available
   const shopNameUrl = new URL(document.URL);
   return shopNameUrl.host;
 }
+
 /**
  * Calls the /apps/api/assistant?query=... endpoint with GET
  * If `signal` is provided (from AbortController), pass it to fetch so we can abort.
