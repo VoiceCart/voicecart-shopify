@@ -28,6 +28,19 @@ async function generateGlideMarkup(products, prefix) {
   for (let i = 0; i < products.length; i++) {
     const product = products[i];
 
+    let data;
+    try {
+      // Fetch product data
+      const response = await fetch(window.Shopify.routes.root + 'products/' + product.handle + '.js');
+      if (!response.ok) throw new Error('Product fetch failed');
+      data = await response.json();
+      // Basic validation: skip if no title or vendor (add more checks as needed)
+      if (!data || !data.title || !data.vendor) continue;
+    } catch (error) {
+      console.error('Error fetching product data:', error);
+      continue; // Skip rendering this product card
+    }
+
     const slide = document.createElement('li');
     slide.classList.add('glide__slide');
 
@@ -90,60 +103,50 @@ async function generateGlideMarkup(products, prefix) {
     detailsButton.dataset.productHandle = product.handle; // Store handle for Shopify API
     buttonsWrapper.appendChild(detailsButton);
 
-    try {
-      // Fetch product data
-      const response = await fetch(window.Shopify.routes.root + 'products/' + product.handle + '.js');
-      const data = await response.json();
+    // Brand, name
+    brand.textContent = data.vendor;
+    model.textContent = data.title;
 
-      // Brand, name
-      brand.textContent = data.vendor;
-      model.textContent = data.title;
+    // Set the product title for the Add to Cart button
+    addToCartButton.dataset.productTitle = data.title || 'Unknown Product'; // Fallback if title is missing
+    console.log(`Set product title for Add to Cart button: ${addToCartButton.dataset.productTitle}`);
 
-      // Set the product title for the Add to Cart button
-      addToCartButton.dataset.productTitle = data.title || 'Unknown Product'; // Fallback if title is missing
-      console.log(`Set product title for Add to Cart button: ${addToCartButton.dataset.productTitle}`);
+    // Product image
+    if (data?.images && data.images[0]) {
+      const originalURL = data.images[0];
+      const smallerImgURL = originalURL.replace(/(\.[^/.]+)$/, '_400x400$1');
+      productImage.src = smallerImgURL;
+      productImage.alt = data.title;
+    }
 
-      // Product image
-      if (data?.images[0]) {
-        const originalURL = data.images[0];
-        const smallerImgURL = originalURL.replace(/(\.[^/.]+)$/, '_400x400$1');
-        productImage.src = smallerImgURL;
-        productImage.alt = data.title;
-      }
+    // Prices
+    const fetchedRegularPrice = data.compare_at_price;
+    const fetchedSpecialPrice = data.price;
+    const discountPercentage = calculateDiscountPercentage(fetchedRegularPrice, fetchedSpecialPrice);
 
-      // Prices
-      const fetchedRegularPrice = data.compare_at_price;
-      const fetchedSpecialPrice = data.price;
-      const discountPercentage = calculateDiscountPercentage(fetchedRegularPrice, fetchedSpecialPrice);
+    // Discount label
+    if (discountPercentage > 0) {
+      const discountLabel = document.createElement('div');
+      discountLabel.classList.add('discount-label');
+      discountLabel.textContent = `-${discountPercentage}%`;
+      imageWrapper.appendChild(discountLabel);
+    }
 
-      // Discount label
-      if (discountPercentage > 0) {
-        const discountLabel = document.createElement('div');
-        discountLabel.classList.add('discount-label');
-        discountLabel.textContent = `-${discountPercentage}%`;
-        imageWrapper.appendChild(discountLabel);
-      }
+    if (fetchedSpecialPrice && fetchedRegularPrice && fetchedSpecialPrice < fetchedRegularPrice) {
+      const newPrice = document.createElement('span');
+      newPrice.classList.add('new-price');
+      newPrice.textContent = formatPrice(fetchedSpecialPrice);
+      price.appendChild(newPrice);
 
-      if (fetchedSpecialPrice && fetchedRegularPrice && fetchedSpecialPrice < fetchedRegularPrice) {
-        const newPrice = document.createElement('span');
-        newPrice.classList.add('new-price');
-        newPrice.textContent = formatPrice(fetchedSpecialPrice);
-        price.appendChild(newPrice);
-
-        const oldPrice = document.createElement('span');
-        oldPrice.classList.add('old-price');
-        oldPrice.textContent = formatPrice(fetchedRegularPrice);
-        price.appendChild(oldPrice);
-      } else {
-        const productPrice = document.createElement('span');
-        productPrice.classList.add('product-price');
-        productPrice.textContent = formatPrice(fetchedRegularPrice || fetchedSpecialPrice);
-        price.appendChild(productPrice);
-      }
-    } catch (error) {
-      console.error('Error fetching product data:', error);
-      // Fallback for Add to Cart button if fetch fails
-      addToCartButton.dataset.productTitle = 'Unknown Product';
+      const oldPrice = document.createElement('span');
+      oldPrice.classList.add('old-price');
+      oldPrice.textContent = formatPrice(fetchedRegularPrice);
+      price.appendChild(oldPrice);
+    } else {
+      const productPrice = document.createElement('span');
+      productPrice.classList.add('product-price');
+      productPrice.textContent = formatPrice(fetchedRegularPrice || fetchedSpecialPrice);
+      price.appendChild(productPrice);
     }
 
     descriptionWrapper.appendChild(price);
@@ -258,7 +261,7 @@ async function mountProducts(prefix) {
       } catch (error) {
         console.error('Error fetching product details:', error);
         sendMessageToAChat(MessageSender.bot, {
-          message: "Sorry, I couldn’t fetch the product details. Please try again later.",
+          message: "Sorry, I couldn't fetch the product details. Please try again later.",
           emotion: "sad",
           customClass: "error-message"
         });
