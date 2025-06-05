@@ -84,10 +84,12 @@ async function fetchLanguage() {
 function getShopName() {
   // Use the store name from window.Shopify.shop
   if (window.Shopify?.shop) {
-    return window.Shopify.shop;
+    console.log("STORE NAME: " + window.Shopify.shop.replace('.myshopify.com', ''))
+    return window.Shopify.shop.replace('.myshopify.com', '');
   }
   // Fallback to URL host if shop is not available
   const shopNameUrl = new URL(document.URL);
+  console.log("STORE NAME: " + shopNameUrl.host)
   return shopNameUrl.host;
 }
 
@@ -103,7 +105,8 @@ async function fetchMessage(text, signal) {
     const response = await fetch(url, {
       method: "GET",
       headers: {
-        "X-Shop-Name": shopNameUrl.host,
+        // "X-Shop-Name": shopNameUrl.host,
+        "X-Shop-Name": getShopName(),
         "ngrok-skip-browser-warning": "true",
         "User-Agent": "ShopifyAppProxy/1.0",
       },
@@ -138,7 +141,8 @@ async function deleteLastMessage(lastMessage) {
     const response = await fetch(url, {
       method: "DELETE",
       headers: {
-        "X-Shop-Name": shopNameUrl.host,
+        // "X-Shop-Name": shopNameUrl.host,
+        "X-Shop-Name": getShopName(),
         "ngrok-skip-browser-warning": "true",
         "User-Agent": "ShopifyAppProxy/1.0",
       }
