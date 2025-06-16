@@ -29,6 +29,7 @@ export async function startProductFetchTask(taskId, request) {
               descriptionHtml
               onlineStoreUrl
               handle
+              tags
               images(first: 1) {
                 edges { node { src } }
               }
@@ -67,6 +68,7 @@ export async function startProductFetchTask(taskId, request) {
           handle:      node.handle || null,
           image:       imageNode.src || null,
           variantId:   vidParts[vidParts.length - 1] || null,
+          tags:        node.tags ? node.tags.join(', ') : null,
         });
         cursor = edge.cursor;
       }
@@ -87,6 +89,7 @@ export async function startProductFetchTask(taskId, request) {
       handle:      { type: 'UTF8', optional: true },
       image:       { type: 'UTF8', optional: true },
       variantId:   { type: 'UTF8', optional: true },
+      tags:        { type: 'UTF8', optional: true },
     });
 
     // 4) Write to parquet under app/utils/shopify_catalogs

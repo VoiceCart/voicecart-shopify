@@ -14,7 +14,7 @@ export async function createEmbeddingsTask(taskId, request) {
     const shopDomain = admin.rest.session.shop;
     const shopName = shopDomain.split('.')[0];
 
-    // 2) Правильный путь к parquet-файлу
+    // 2) Паркет-файл
     const catalogDir = path.join(process.cwd(), 'app', 'utils', 'shopify_catalogs');
     if (!fs.existsSync(catalogDir)) {
       fs.mkdirSync(catalogDir, { recursive: true });
@@ -24,7 +24,7 @@ export async function createEmbeddingsTask(taskId, request) {
       throw new Error(`Parquet не найден по пути ${filePath}`);
     }
 
-    // 3) Читаем Parquet
+    // 3) Чтение Parquet
     const reader = await ParquetReader.openFile(filePath);
     const products = [];
     try {
@@ -32,29 +32,32 @@ export async function createEmbeddingsTask(taskId, request) {
       let rec;
       while ((rec = await cursor.next())) {
         products.push({
-          variantId:  rec.variantId,
-          name:       rec.name,
-          description:rec.description,
-          category:   rec.category,
-          brand:      rec.brand,
-          price:      rec.price,
-          handle:     rec.handle,
+          variantId:   rec.variantId,
+          name:        rec.name,
+          description: rec.description,
+          category:    rec.category,
+          brand:       rec.brand,
+          price:       rec.price,
+          handle:      rec.handle,
+          tags:        rec.tags || null,
         });
       }
     } finally {
       await reader.close();
     }
 
-    // 4) Сериализуем в память
+    // 4) Сериализация в память
     const schema = new ParquetSchema({
-      variantId:  { type: 'UTF8' },
-      name:       { type: 'UTF8' },
-      description:{ type: 'UTF8' },
-      category:   { type: 'UTF8' },
-      brand:      { type: 'UTF8' },
-      price:      { type: 'DOUBLE' },
-      handle:     { type: 'UTF8' },
+      variantId:   { type: 'UTF8' },
+      name:        { type: 'UTF8' },
+      description: { type: 'UTF8' },
+      category:    { type: 'UTF8' },
+      brand:       { type: 'UTF8' },
+      price:       { type: 'DOUBLE' },
+      handle:      { type: 'UTF8' },
+      tags:        { type: 'UTF8' },
     });
+
     const parquetBuffer = await new Promise(async (resolve, reject) => {
       const chunks = [];
       const writable = new Writable({
@@ -75,7 +78,7 @@ export async function createEmbeddingsTask(taskId, request) {
       }
     });
 
-    // 5) POST в ML‐сервис
+    // 5) Отправка в ML-сервис
     const resp = await axios.post(
       'http://ml-api:5556/create_embeddings',
       parquetBuffer,
@@ -91,7 +94,7 @@ export async function createEmbeddingsTask(taskId, request) {
       throw new Error(`ML-сервис вернул ${resp.status}`);
     }
 
-    // 6) Сохраняем real Celery task_id
+    // 6) Сохраняем Celery task_id
     await updateTaskStatus(taskId, 'started', {
       celeryTaskId: resp.data.task_id
     });
@@ -105,7 +108,7 @@ export async function createEmbeddingsTask(taskId, request) {
   }
 }
 
-// Helper function to serialize data to Parquet in memory
+// serializeToParquet не используется напрямую, оставлен на случай переиспользования
 async function serializeToParquet(data, schema) {
   return new Promise(async (resolve, reject) => {
     const chunks = [];
@@ -123,7 +126,6 @@ async function serializeToParquet(data, schema) {
       }
       await writer.close();
 
-      // Combine all chunks into a single buffer
       const buffer = Buffer.concat(chunks);
       resolve(buffer);
     } catch (error) {
