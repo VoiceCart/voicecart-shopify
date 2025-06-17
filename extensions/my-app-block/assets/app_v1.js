@@ -1459,7 +1459,8 @@ function handleConsent(consent) {
  */
 async function sendProductListToAChat(products) {
   const prefix = crypto.randomUUID();
-  const glideMarkup = await generateGlideMarkup(products, prefix);
+  const cart = await getCartState();
+  const glideMarkup = await generateGlideMarkup(products, prefix, cart.currency);
   appendMessageToGroup("glider", glideMarkup);
   await mountProducts(prefix);
 }

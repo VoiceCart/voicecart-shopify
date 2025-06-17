@@ -1,4 +1,4 @@
-async function generateGlideMarkup(products, prefix) {
+async function generateGlideMarkup(products, prefix, currencyCode) {
   const glideContainer = document.createElement('div');
   glideContainer.classList.add("glide", 'glide-' + prefix, 'text-glide');
 
@@ -9,13 +9,20 @@ async function generateGlideMarkup(products, prefix) {
   const glideSlides = document.createElement('ul');
   glideSlides.classList.add('glide__slides', 'full-width');
 
-  function formatPrice(priceInCents) {
-    if (typeof priceInCents !== 'number') {
-      console.warn('Invalid price:', priceInCents);
-      return 'N/A';
-    }
-    return (priceInCents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  function formatPrice(priceInCents, currencyCode) {
+    if (typeof priceInCents !== 'number') return 'N/A';
+    return (priceInCents / 100).toLocaleString(undefined, {
+      style: 'currency',
+      currency: currencyCode
+    });
   }
+  // function formatPrice(priceInCents) {
+  //   if (typeof priceInCents !== 'number') {
+  //     console.warn('Invalid price:', priceInCents);
+  //     return 'N/A';
+  //   }
+  //   return (priceInCents / 100).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  // }
 
   function calculateDiscountPercentage(regularPrice, specialPrice) {
     if (regularPrice && specialPrice && specialPrice < regularPrice) {
@@ -135,17 +142,17 @@ async function generateGlideMarkup(products, prefix) {
     if (fetchedSpecialPrice && fetchedRegularPrice && fetchedSpecialPrice < fetchedRegularPrice) {
       const newPrice = document.createElement('span');
       newPrice.classList.add('new-price');
-      newPrice.textContent = formatPrice(fetchedSpecialPrice);
+      newPrice.textContent = formatPrice(fetchedSpecialPrice, currencyCode);
       price.appendChild(newPrice);
 
       const oldPrice = document.createElement('span');
       oldPrice.classList.add('old-price');
-      oldPrice.textContent = formatPrice(fetchedRegularPrice);
+      oldPrice.textContent = formatPrice(fetchedRegularPrice, currencyCode);
       price.appendChild(oldPrice);
     } else {
       const productPrice = document.createElement('span');
       productPrice.classList.add('product-price');
-      productPrice.textContent = formatPrice(fetchedRegularPrice || fetchedSpecialPrice);
+      productPrice.textContent = formatPrice(fetchedRegularPrice || fetchedSpecialPrice, currencyCode);
       price.appendChild(productPrice);
     }
 
