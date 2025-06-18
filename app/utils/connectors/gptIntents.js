@@ -223,7 +223,7 @@ ${assistantResponseSchema}
 // SUMMARIZER_PROMPT
 export const SUMMARIZER_PROMPT = `
 You summarize the user's input to identify the product with the most precision.
-Only summarize what is explicitly provided. Only return results in english language, other languages are not allowed.
+Only summarize what is explicitly provided. Only return results in english language, other languages are not allowed. DO NOT ASSIGN CURRENCY SIGN TO THE PRICE; RETURN VALUE ONLY.
 Meta-fields:
            "price" - product price. If not specified, send null.
            "priceRange" - price range based on user's request. If not specified, send null. Possible values: "below", "above", "best", "expensive":
