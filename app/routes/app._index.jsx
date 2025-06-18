@@ -41,6 +41,10 @@ export default function DownloadProducts() {
   const [toast, setToast] = useState({ active: false, content: "" });
   const [deeplinkUrl, setDeeplinkUrl] = useState(null);
 
+  const [faqText, setFaqText] = useState("");
+  const [isSavingFaq, setIsSavingFaq] = useState(false);
+  const [faqSaved, setFaqSaved] = useState(false);
+
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState("");
   const [showProgress, setShowProgress] = useState(false);
@@ -154,6 +158,34 @@ export default function DownloadProducts() {
       showToast("Error processing store info");
       clearInterval(progressInterval);
       setShowProgress(false);
+    }
+  };
+
+  const saveFaq = async () => {
+    setIsSavingFaq(true);
+    setFaqSaved(false);
+    
+    try {
+      const response = await fetchWithToken("/api/save-faq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ faq: faqText }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setFaqSaved(true);
+        showToast("FAQ saved successfully!");
+        setTimeout(() => setFaqSaved(false), 3000);
+      } else {
+        showToast(`Error: ${data.error || "Failed to save FAQ"}`);
+      }
+    } catch (error) {
+      console.error("Error saving FAQ:", error);
+      showToast("Error saving FAQ");
+    } finally {
+      setIsSavingFaq(false);
     }
   };
 
@@ -279,6 +311,23 @@ export default function DownloadProducts() {
       showToast("Error: Missing shop domain or API key");
     }
   }, [shopDomain, error, showToast]);
+
+  useEffect(() => {
+    const loadFaq = async () => {
+      try {
+        const response = await fetchWithToken("/api/get-faq");
+        const data = await response.json();
+        
+        if (response.ok && data.faq) {
+          setFaqText(data.faq);
+        }
+      } catch (error) {
+        console.error("Error loading FAQ:", error);
+      }
+    };
+    
+    loadFaq();
+  }, []);
 
   const redirectTo = useCallback(
     (url) => {
@@ -936,6 +985,108 @@ export default function DownloadProducts() {
                     Delete Product Embeddings
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: "48px" }}>
+            <div style={{ marginBottom: "32px" }}>
+              <Text
+                variant="headingLg"
+                as="h2"
+                fontWeight="semibold"
+              >
+                FAQ Management
+              </Text>
+            </div>
+            <div
+              style={{
+                backgroundColor: "white",
+                padding: "24px",
+                borderRadius: "16px",
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "16px" }}>
+                <div
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    backgroundColor: "#e0f2fe",
+                    borderRadius: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "20px",
+                    marginRight: "16px",
+                    flexShrink: 0,
+                  }}
+                >
+                  ❓
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Text
+                    variant="headingMd"
+                    as="h3"
+                    fontWeight="semibold"
+                  >
+                    Store FAQ
+                  </Text>
+                  <Text
+                    variant="bodyMd"
+                    color="subdued"
+                    style={{ marginTop: "8px" }}
+                  >
+                    Add your frequently asked questions to help the AI assistant provide better customer support.
+                  </Text>
+                </div>
+              </div>
+              
+              <div style={{ marginBottom: "16px" }}>
+                <textarea
+                  value={faqText}
+                  onChange={(e) => setFaqText(e.target.value)}
+                  placeholder="Enter your FAQ content here..."
+                  style={{
+                    width: "100%",
+                    minHeight: "200px",
+                    padding: "12px",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    fontFamily: "inherit",
+                    resize: "vertical",
+                    outline: "none",
+                  }}
+                />
+              </div>
+              
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                <Button
+                  onClick={saveFaq}
+                  primary
+                  loading={isSavingFaq}
+                  disabled={isSavingFaq || !faqText.trim()}
+                >
+                  Save FAQ
+                </Button>
+                {faqSaved && (
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      padding: "4px 12px",
+                      borderRadius: "16px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      backgroundColor: "#dcfce7",
+                      color: "#166534",
+                      border: "1px solid #bbf7d0",
+                    }}
+                  >
+                    ✓ FAQ Saved
+                  </span>
+                )}
               </div>
             </div>
           </div>
