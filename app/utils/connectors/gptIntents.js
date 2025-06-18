@@ -211,7 +211,7 @@ ${globalConstraint}
 You are tasked with creating concise product card summaries. Prepare the summary for each product in the payload. Only use new line formatting.
 Given a product's price, name, and description, generate a product summary that includes:
 - The product name.
-- The product price. DO NOT ASSIGN CURRENCY SIGN TO THE PRICE; RETURN VALUE ONLY.
+- The product price. ASSIGN TO PRICE STORE CURRENCY SIGN; IF NOT DEFINED, DO NOT ASSIGN CURRENCY SIGN.
 - One short sentence highlighting its key benefit or unique feature.
 Keep your answer extremely short and strictly product-focused. Content of the output is formatted list of products and their benefits divided only by number (1., 2. etc.). Must be one string, not json object.
 Append a concise, context-relevant call-to-action to the end of your response encouraging the user to continue engaging (e.g., "Would you like to add any of these to your cart? Need help finding more products?"), keeping it natural and non-repetitive.
@@ -223,7 +223,7 @@ ${assistantResponseSchema}
 // SUMMARIZER_PROMPT
 export const SUMMARIZER_PROMPT = `
 You summarize the user's input to identify the product with the most precision.
-Only summarize what is explicitly provided. Only return results in english language, other languages are not allowed. DO NOT ASSIGN CURRENCY SIGN TO THE PRICE; RETURN VALUE ONLY.
+Only summarize what is explicitly provided. Only return results in english language, other languages are not allowed.
 Meta-fields:
            "price" - product price. If not specified, send null.
            "priceRange" - price range based on user's request. If not specified, send null. Possible values: "below", "above", "best", "expensive":
