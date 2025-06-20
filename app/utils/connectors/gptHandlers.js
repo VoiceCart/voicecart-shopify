@@ -53,19 +53,23 @@ const intentMapping = {
     },
 
     faqRelated: async (content, { sessionId, signal, shop, lang }) => {
-        // 1. grab the latest FAQ for this shop
         const savedFaq = await prisma.faq.findFirst({
             where: { shop },
             orderBy: { updatedAt: "desc" }
         });
-        const faqBlock = savedFaq?.faq || "";
+        const faqText = savedFaq?.faq?.trim() || "";
 
-        // 2. build prompt (faq text injected, then language constraint)
-        const basePrompt = SYSTEM_PROMPT.faqRelated.replace("{faq}", faqBlock);
+        if (/^faq[\s\?]*$/i.test(content.trim())) {
+            return [{
+            type: "message",
+            value: faqText || "FAQ для этого магазина пока не создан."
+            }];
+        }
+
+        const basePrompt = SYSTEM_PROMPT.faqRelated.replace("{faq}", faqText);
         const finalPrompt = addLanguageConstraint(basePrompt, lang);
 
-        // 3. ask GPT to answer
-        const completionResult = await runChatCompletion({
+        const completion = await runChatCompletion({
             systemPrompt: finalPrompt,
             userQuery: content,
             responseFormat: "json_object",
@@ -75,7 +79,7 @@ const intentMapping = {
             lang
         });
 
-        const reply = JSON.parse(completionResult).actions[0].content;
+        const reply = JSON.parse(completion).actions[0].content;
         return [{
             type: "message",
             value: reply
