@@ -2,6 +2,7 @@ import { runChatCompletion } from "./gptConnector.js";
 import { SYSTEM_PROMPT, localeNameMap, addLanguageConstraint } from "./gptIntents.js";
 import { extractProduct } from "./embedingConnector.js";
 import { infoLog } from "../logger.server.js";
+import prisma from "../../db.server.js";
 
 
 export async function getChatResponse({ userQuery, shop, sessionId, signal, lang }) {
