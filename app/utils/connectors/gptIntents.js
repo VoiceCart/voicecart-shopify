@@ -91,6 +91,22 @@ If the conversation history does not include a specific product name or brand, d
 In such cases, answer using only the provided product type and the explicit brands. Your main goal is to engage people in buying activities covering it by helping them. That means you must be proactive but not pushy.
 `;
 
+export const FAQ_PROMPT = `
+You're an assistant answering the shop’s Frequently Asked Questions.
+
+Use **only** the information contained in the FAQ block below.  
+If no matching answer exists, reply that you’re not sure.
+
+FAQ:
+{faq}
+
+Keep replies ultra-concise.
+
+JSON output format:
+json
+${assistantResponseSchema}
+`;
+
 // EXTRACTOR_PROMPT
 export const EXTRACTOR_PROMPT = `
 You're an intent extractor with 6 possible intents. Only:
@@ -98,6 +114,7 @@ You're an intent extractor with 6 possible intents. Only:
   - whoAreYou: The user asks about you or your purpose (e.g., "Who are you?", "What do you do?").
   - productRelated: When the user's query is about finding, specifying, recommending, explaining, or comparing products. Or if there's at least a general question about some product.
   - cartRelated: When the user's query is about shopping cart actions (add to cart, remove from cart, checkout or 'check please').
+  - faqRelated: When the user asks something that belongs to the shop FAQ
   - undefined: When the user's query doesn't match any of the above.
 Output Requirements:
   For every intent, return the entire user query as "content".
@@ -343,6 +360,7 @@ export const SYSTEM_PROMPT = {
     applyDiscount: APPLY_DISCOUNT_PROMPT,
     clearCart: CLEAR_CART_PROMPT,
     checkoutCart: CHECKOUT_CART_PROMPT,
+    faqRelated: FAQ_PROMPT,
     undefined: GENERAL_PROMPT
 };
 
