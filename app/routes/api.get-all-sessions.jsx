@@ -4,6 +4,13 @@ import shopify from "../shopify.server";
 
 export async function loader({ request }) {
   try {
+    // Временно для отладки:
+    const allShops = await prisma.chats.findMany({
+      select: { shop: true },
+      distinct: ['shop'],
+    });
+    console.log('DEBUG: All shops in chats:', allShops);
+
     const { session } = await shopify.authenticate.admin(request);
     let shop = session.shop.trim().toLowerCase();
     if (!shop.endsWith(".myshopify.com")) {
