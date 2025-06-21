@@ -17,47 +17,6 @@ import { authenticate } from "../shopify.server";
 
 const apiKey = "369704dc668e71476bbd3055292fd72e";
 
-// Mock chat data for demonstration
-const mockChatData = [
-  {
-    id: "chat_001",
-    sessionId: "sess_12345",
-    date: "2025-06-20",
-    time: "14:32",
-    messages: [
-      { type: "bot", text: "Hi! My name is Eva and I'm here to assist you with shopping, managing your cart, applying discounts, and checking out 😊", time: "14:32" },
-      { type: "user", text: "whats in your faq", time: "14:32" },
-      { type: "bot", text: "1234", time: "14:33" }
-    ]
-  },
-  {
-    id: "chat_002", 
-    sessionId: "sess_67890",
-    date: "2025-06-20",
-    time: "15:45",
-    messages: [
-      { type: "bot", text: "Hello! I'm Eva, your shopping assistant. How can I help you today?", time: "15:45" },
-      { type: "user", text: "I'm looking for winter jackets", time: "15:46" },
-      { type: "bot", text: "Great! I can help you find winter jackets. What size are you looking for?", time: "15:46" },
-      { type: "user", text: "Medium size, something warm", time: "15:47" },
-      { type: "bot", text: "Perfect! Let me show you our best winter jackets in medium size that will keep you warm.", time: "15:47" }
-    ]
-  },
-  {
-    id: "chat_003",
-    sessionId: "sess_11111", 
-    date: "2025-06-19",
-    time: "09:15",
-    messages: [
-      { type: "bot", text: "Hi there! I'm Eva, ready to help with your shopping needs!", time: "09:15" },
-      { type: "user", text: "Can you help me find a gift for my mom?", time: "09:16" },
-      { type: "bot", text: "I'd love to help you find the perfect gift! What kind of things does your mom like?", time: "09:16" },
-      { type: "user", text: "She loves gardening and cooking", time: "09:17" },
-      { type: "bot", text: "Wonderful! I have some great suggestions for gardening tools and kitchen accessories that would make perfect gifts.", time: "09:17" }
-    ]
-  }
-];
-
 export async function loader({ request }) {
   try {
     const { session } = await authenticate.admin(request);
@@ -94,7 +53,7 @@ export default function DownloadProducts() {
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
   // Chat states
-  const [chatData, setChatData] = useState(mockChatData);
+  const [chatData, setChatData] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
 
@@ -111,16 +70,16 @@ export default function DownloadProducts() {
       panelID: 'catalog-panel',
     },
     {
-      id: 'chats',
-      content: 'Customer Chats',
-      accessibilityLabel: 'Customer Chats',
-      panelID: 'chats-panel',
-    },
-    {
       id: 'faq',
       content: 'FAQ Management',
       accessibilityLabel: 'FAQ Management', 
       panelID: 'faq-panel',
+    },
+    {
+      id: 'chats',
+      content: 'Customer Chats',
+      accessibilityLabel: 'Customer Chats',
+      panelID: 'chats-panel',
     },
     {
       id: 'widget',
@@ -1208,57 +1167,82 @@ export default function DownloadProducts() {
         >
           <Card>
             <div style={{ padding: "20px", borderBottom: "1px solid #e5e7eb" }}>
-              <Text variant="headingMd" as="h3" fontWeight="semibold">
-                Customer Chats
-              </Text>
-              <Text variant="bodyMd" color="subdued" style={{ marginTop: "4px" }}>
-                Click on any chat to view the conversation
-              </Text>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <Text variant="headingMd" as="h3" fontWeight="semibold">
+                    Customer Chats
+                  </Text>
+                  <Text variant="bodyMd" color="subdued" style={{ marginTop: "4px" }}>
+                    Click on any chat to view the conversation
+                  </Text>
+                </div>
+                <Button
+                  onClick={loadAllSessions}
+                  loading={isLoadingChats}
+                  size="small"
+                >
+                  Refresh
+                </Button>
+              </div>
             </div>
             
             <div style={{ maxHeight: "calc(100vh - 300px)", overflowY: "auto" }}>
-              {chatData.map((chat) => (
-                <div
-                  key={chat.id}
-                  onClick={() => handleChatSelect(chat)}
-                  style={{
-                    padding: "16px 20px",
-                    borderBottom: "1px solid #f3f4f6",
-                    cursor: "pointer",
-                    transition: "background-color 0.2s ease",
-                    backgroundColor: selectedChat?.id === chat.id ? "#f0f9ff" : "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedChat?.id !== chat.id) {
-                      e.target.style.backgroundColor = "#f9fafb";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedChat?.id !== chat.id) {
-                      e.target.style.backgroundColor = "transparent";
-                    }
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div>
-                      <Text variant="bodyMd" fontWeight="semibold">
-                        Session: {chat.sessionId}
-                      </Text>
-                      <Text variant="bodySm" color="subdued" style={{ marginTop: "2px" }}>
-                        {chat.messages.length} messages
-                      </Text>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <Text variant="bodySm" color="subdued">
-                        {chat.date}
-                      </Text>
-                      <Text variant="bodySm" color="subdued" style={{ marginTop: "2px" }}>
-                        {chat.time}
-                      </Text>
+              {isLoadingChats ? (
+                <div style={{ padding: "40px", textAlign: "center" }}>
+                  <Text variant="bodyMd" color="subdued">
+                    Loading chat sessions...
+                  </Text>
+                </div>
+              ) : chatData.length === 0 ? (
+                <div style={{ padding: "40px", textAlign: "center" }}>
+                  <Text variant="bodyMd" color="subdued">
+                    No chat sessions found. Start a conversation with your customers to see them here.
+                  </Text>
+                </div>
+              ) : (
+                chatData.map((chat) => (
+                  <div
+                    key={chat.id}
+                    onClick={() => handleChatSelect(chat)}
+                    style={{
+                      padding: "16px 20px",
+                      borderBottom: "1px solid #f3f4f6",
+                      cursor: "pointer",
+                      transition: "background-color 0.2s ease",
+                      backgroundColor: selectedChat?.id === chat.id ? "#f0f9ff" : "transparent",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedChat?.id !== chat.id) {
+                        e.target.style.backgroundColor = "#f9fafb";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedChat?.id !== chat.id) {
+                        e.target.style.backgroundColor = "transparent";
+                      }
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <Text variant="bodyMd" fontWeight="semibold">
+                          Session: {chat.sessionId}
+                        </Text>
+                        <Text variant="bodySm" color="subdued" style={{ marginTop: "2px" }}>
+                          {chat.messageCount} messages
+                        </Text>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <Text variant="bodySm" color="subdued">
+                          {chat.date}
+                        </Text>
+                        <Text variant="bodySm" color="subdued" style={{ marginTop: "2px" }}>
+                          {chat.time}
+                        </Text>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </Card>
         </div>
@@ -1308,55 +1292,63 @@ export default function DownloadProducts() {
                   padding: "16px 20px",
                 }}
               >
-                {selectedChat.messages.map((message, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      marginBottom: "16px",
-                      display: "flex",
-                      flexDirection: message.type === "user" ? "row-reverse" : "row",
-                      gap: "8px",
-                    }}
-                  >
+                {selectedChat.messages.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px" }}>
+                    <Text variant="bodyMd" color="subdued">
+                      No messages in this session
+                    </Text>
+                  </div>
+                ) : (
+                  selectedChat.messages.map((message, index) => (
                     <div
+                      key={index}
                       style={{
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        backgroundColor: message.type === "user" ? "#3b82f6" : "#10b981",
+                        marginBottom: "16px",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "14px",
-                        flexShrink: 0,
+                        flexDirection: message.type === "user" ? "row-reverse" : "row",
+                        gap: "8px",
                       }}
                     >
-                      {message.type === "user" ? "👤" : "🤖"}
-                    </div>
-                    <div
-                      style={{
-                        maxWidth: "80%",
-                        padding: "12px 16px",
-                        borderRadius: "16px",
-                        backgroundColor: message.type === "user" ? "#3b82f6" : "#f3f4f6",
-                        color: message.type === "user" ? "white" : "#374151",
-                        fontSize: "14px",
-                        lineHeight: "1.4",
-                      }}
-                    >
-                      <div>{message.text}</div>
                       <div
                         style={{
-                          fontSize: "12px",
-                          marginTop: "4px",
-                          opacity: 0.7,
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "50%",
+                          backgroundColor: message.type === "user" ? "#3b82f6" : "#10b981",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "14px",
+                          flexShrink: 0,
                         }}
                       >
-                        {message.time}
+                        {message.type === "user" ? "👤" : "🤖"}
+                      </div>
+                      <div
+                        style={{
+                          maxWidth: "80%",
+                          padding: "12px 16px",
+                          borderRadius: "16px",
+                          backgroundColor: message.type === "user" ? "#3b82f6" : "#f3f4f6",
+                          color: message.type === "user" ? "white" : "#374151",
+                          fontSize: "14px",
+                          lineHeight: "1.4",
+                        }}
+                      >
+                        <div>{message.text}</div>
+                        <div
+                          style={{
+                            fontSize: "12px",
+                            marginTop: "4px",
+                            opacity: 0.7,
+                          }}
+                        >
+                          {message.time}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </Card>
           </div>
