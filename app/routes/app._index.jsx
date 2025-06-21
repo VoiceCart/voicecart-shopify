@@ -1399,10 +1399,16 @@ export default function DownloadProducts() {
                 marginBottom: "16px",
               }}
             >
-              <div style={{ fontSize: "48px", marginBottom: "16px" }}>▶️</div>
-              <Text variant="bodyMd" style={{ color: "white" }}>
-                Video tutorial coming soon...
-              </Text>
+                <iframe
+                  width="100%"
+                  height="315"
+                  style={{ display: "block", border: "none" }}
+                  src="https://www.youtube.com/embed/UxginYhvU7Y?si=qPY4qQu3x3C6rPfh"
+                  title="VoiceCart Setup"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
             </div>
           </div>
         </div>
