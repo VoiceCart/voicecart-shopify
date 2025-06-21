@@ -1510,8 +1510,8 @@ export default function DownloadProducts() {
 
   return (
     <div style={pageStyle}>
-      <Page title="VoiceCart Setup">
-        <TitleBar title="VoiceCart Configuration" />
+      <Page title="VoiceCart Actions">
+        <TitleBar title="VoiceCart Admin" />
         <Frame>
           <Card>
             <Tabs tabs={tabs} selected={activeTab} onSelect={setActiveTab}>
