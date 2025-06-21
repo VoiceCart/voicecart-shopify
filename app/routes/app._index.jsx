@@ -65,10 +65,10 @@ export default function DownloadProducts() {
 
   const tabs = [
     {
-      id: 'catalog',
-      content: 'Catalog Configuration',
-      accessibilityLabel: 'Catalog Configuration',
-      panelID: 'catalog-panel',
+      id: 'chats',
+      content: 'Customer Chats',
+      accessibilityLabel: 'Customer Chats',
+      panelID: 'chats-panel',
     },
     {
       id: 'faq',
@@ -77,10 +77,10 @@ export default function DownloadProducts() {
       panelID: 'faq-panel',
     },
     {
-      id: 'chats',
-      content: 'Customer Chats',
-      accessibilityLabel: 'Customer Chats',
-      panelID: 'chats-panel',
+      id: 'catalog',
+      content: 'Catalog Configuration',
+      accessibilityLabel: 'Catalog Configuration',
+      panelID: 'catalog-panel',
     },
     {
       id: 'widget',
@@ -1102,83 +1102,6 @@ export default function DownloadProducts() {
     </div>
   );
 
-  const renderFaqTab = () => (
-    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-      <Card sectioned>
-        <div style={{ marginBottom: "16px" }}>
-          <Text variant="headingMd" as="h3" fontWeight="semibold">
-            FAQ Management
-          </Text>
-          <Text variant="bodyMd" color="subdued" style={{ marginTop: "8px" }}>
-            Configure frequently asked questions for your VoiceCart assistant.
-          </Text>
-        </div>
-        
-        <div style={{ marginBottom: "16px" }}>
-          <label
-            htmlFor="faq-textarea"
-            style={{
-              display: "block",
-              marginBottom: "8px",
-              fontWeight: "500",
-              fontSize: "14px",
-            }}
-          >
-            FAQ Content
-          </label>
-          <textarea
-            id="faq-textarea"
-            value={faqText}
-            onChange={(e) => setFaqText(e.target.value)}
-            placeholder="Enter your FAQ content here..."
-            style={{
-              width: "100%",
-              minHeight: "300px",
-              padding: "12px",
-              border: "1px solid #d1d5db",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontFamily: "inherit",
-              resize: "vertical",
-            }}
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-          <Button
-            onClick={saveFaq}
-            primary
-            loading={isSavingFaq}
-            style={{
-              backgroundColor: "#10b981",
-              borderColor: "#10b981",
-            }}
-          >
-            Save FAQ
-          </Button>
-          
-          {faqSaved && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "4px 12px",
-                borderRadius: "16px",
-                fontSize: "12px",
-                fontWeight: "600",
-                backgroundColor: "#dcfce7",
-                color: "#166534",
-                border: "1px solid #bbf7d0",
-              }}
-            >
-              ✓ Saved Successfully
-            </span>
-          )}
-        </div>
-      </Card>
-    </div>
-  );
-
   const renderChatsTab = () => (
     <div style={{ position: "relative", height: "calc(100vh - 200px)" }}>
       <div
@@ -1388,6 +1311,83 @@ export default function DownloadProducts() {
     </div>
   );
 
+  const renderFaqTab = () => (
+    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      <Card sectioned>
+        <div style={{ marginBottom: "16px" }}>
+          <Text variant="headingMd" as="h3" fontWeight="semibold">
+            FAQ Management
+          </Text>
+          <Text variant="bodyMd" color="subdued" style={{ marginTop: "8px" }}>
+            Configure frequently asked questions for your VoiceCart assistant.
+          </Text>
+        </div>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <label
+            htmlFor="faq-textarea"
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontWeight: "500",
+              fontSize: "14px",
+            }}
+          >
+            FAQ Content
+          </label>
+          <textarea
+            id="faq-textarea"
+            value={faqText}
+            onChange={(e) => setFaqText(e.target.value)}
+            placeholder="Enter your FAQ content here..."
+            style={{
+              width: "100%",
+              minHeight: "300px",
+              padding: "12px",
+              border: "1px solid #d1d5db",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontFamily: "inherit",
+              resize: "vertical",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <Button
+            onClick={saveFaq}
+            primary
+            loading={isSavingFaq}
+            style={{
+              backgroundColor: "#10b981",
+              borderColor: "#10b981",
+            }}
+          >
+            Save FAQ
+          </Button>
+          
+          {faqSaved && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "4px 12px",
+                borderRadius: "16px",
+                fontSize: "12px",
+                fontWeight: "600",
+                backgroundColor: "#dcfce7",
+                color: "#166534",
+                border: "1px solid #bbf7d0",
+              }}
+            >
+              ✓ Saved Successfully
+            </span>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+
   const renderWidgetTab = () => (
     <div style={{ maxWidth: "800px", margin: "0 auto" }}>
       <Card sectioned>
@@ -1516,9 +1516,9 @@ export default function DownloadProducts() {
           <Card>
             <Tabs tabs={tabs} selected={activeTab} onSelect={setActiveTab}>
               <div style={{ padding: "24px" }}>
-                {activeTab === 0 && renderCatalogTab()}
+                {activeTab === 0 && renderChatsTab()}
                 {activeTab === 1 && renderFaqTab()}
-                {activeTab === 2 && renderChatsTab()}
+                {activeTab === 2 && renderCatalogTab()}
                 {activeTab === 3 && renderWidgetTab()}
               </div>
             </Tabs>
