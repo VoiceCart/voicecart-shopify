@@ -56,6 +56,7 @@ export default function DownloadProducts() {
   const [chatData, setChatData] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
 
   const showToast = useCallback((content) => setToast({ active: true, content }), []);
   const handleToastDismiss = useCallback(() => setToast({ ...toast, active: false }), [toast]);
@@ -260,6 +261,30 @@ export default function DownloadProducts() {
     setSelectedChat(null);
   };
 
+  const loadAllSessions = useCallback(async () => {
+    setIsLoadingChats(true);
+    try {
+      const response = await fetchWithToken("/api/get-all-sessions", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.sessions) {
+        setChatData(data.sessions);
+        showToast(`Loaded ${data.sessions.length} chat sessions`);
+      } else {
+        console.error("Error loading sessions:", data);
+        showToast(`Error: ${data.error || "Failed to load chat sessions"}`);
+      }
+    } catch (error) {
+      console.error("Network error loading sessions:", error);
+      showToast("Error loading chat sessions");
+    } finally {
+      setIsLoadingChats(false);
+    }
+  }, [showToast]);
+
   useEffect(() => {
     if (fetcher.data?.taskId) {
       const { taskId, taskType } = fetcher.data;
@@ -391,6 +416,12 @@ export default function DownloadProducts() {
     
     loadFaq();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 2) {
+      loadAllSessions();
+    }
+  }, [activeTab, loadAllSessions]);
 
   const renderCatalogTab = () => (
     <div>
