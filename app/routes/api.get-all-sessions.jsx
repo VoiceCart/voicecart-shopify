@@ -4,19 +4,18 @@ import shopify from "../shopify.server";
 
 export async function loader({ request }) {
   try {
-    // Временно для отладки:
+    const { session } = await shopify.authenticate.admin(request);
+    let shop = session.shop.trim().toLowerCase();
+    if (shop.endsWith(".myshopify.com")) {
+      shop = shop.replace(".myshopify.com", "");
+    }
+
+    // DEBUG: All shops in chats
     const allShops = await prisma.chats.findMany({
       select: { shop: true },
       distinct: ['shop'],
     });
     console.log('DEBUG: All shops in chats:', allShops);
-
-    const { session } = await shopify.authenticate.admin(request);
-    let shop = session.shop.trim().toLowerCase();
-    if (!shop.endsWith(".myshopify.com")) {
-      shop += ".myshopify.com";
-    }
-
     console.log("api.get-all-sessions: reading sessions for shop =>", shop);
 
     // Получаем все уникальные сессии для магазина
