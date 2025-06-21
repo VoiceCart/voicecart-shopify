@@ -417,8 +417,17 @@ export default function DownloadProducts() {
     loadFaq();
   }, []);
 
+  // При маунте, если активна вкладка чатов — грузим чаты
   useEffect(() => {
-    if (activeTab === 2) {
+    if (activeTab === 0) {
+      loadAllSessions();
+    }
+    // eslint-disable-next-line
+  }, []);
+
+  // При смене вкладки — грузим чаты, если выбрана вкладка чатов
+  useEffect(() => {
+    if (activeTab === 0) {
       loadAllSessions();
     }
   }, [activeTab, loadAllSessions]);
