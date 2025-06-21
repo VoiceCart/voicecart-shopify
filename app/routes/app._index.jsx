@@ -7,6 +7,7 @@ import {
   Text,
   Frame,
   Toast,
+  Tabs,
 } from "@shopify/polaris";
 import { fetchWithToken } from "../utils/fetchWithToken.client";
 import { TitleBar, useAppBridge } from "@shopify/app-bridge-react";
@@ -15,6 +16,47 @@ import { json } from "@remix-run/node";
 import { authenticate } from "../shopify.server";
 
 const apiKey = "369704dc668e71476bbd3055292fd72e";
+
+// Mock chat data for demonstration
+const mockChatData = [
+  {
+    id: "chat_001",
+    sessionId: "sess_12345",
+    date: "2025-06-20",
+    time: "14:32",
+    messages: [
+      { type: "bot", text: "Hi! My name is Eva and I'm here to assist you with shopping, managing your cart, applying discounts, and checking out 😊", time: "14:32" },
+      { type: "user", text: "whats in your faq", time: "14:32" },
+      { type: "bot", text: "1234", time: "14:33" }
+    ]
+  },
+  {
+    id: "chat_002", 
+    sessionId: "sess_67890",
+    date: "2025-06-20",
+    time: "15:45",
+    messages: [
+      { type: "bot", text: "Hello! I'm Eva, your shopping assistant. How can I help you today?", time: "15:45" },
+      { type: "user", text: "I'm looking for winter jackets", time: "15:46" },
+      { type: "bot", text: "Great! I can help you find winter jackets. What size are you looking for?", time: "15:46" },
+      { type: "user", text: "Medium size, something warm", time: "15:47" },
+      { type: "bot", text: "Perfect! Let me show you our best winter jackets in medium size that will keep you warm.", time: "15:47" }
+    ]
+  },
+  {
+    id: "chat_003",
+    sessionId: "sess_11111", 
+    date: "2025-06-19",
+    time: "09:15",
+    messages: [
+      { type: "bot", text: "Hi there! I'm Eva, ready to help with your shopping needs!", time: "09:15" },
+      { type: "user", text: "Can you help me find a gift for my mom?", time: "09:16" },
+      { type: "bot", text: "I'd love to help you find the perfect gift! What kind of things does your mom like?", time: "09:16" },
+      { type: "user", text: "She loves gardening and cooking", time: "09:17" },
+      { type: "bot", text: "Wonderful! I have some great suggestions for gardening tools and kitchen accessories that would make perfect gifts.", time: "09:17" }
+    ]
+  }
+];
 
 export async function loader({ request }) {
   try {
@@ -34,6 +76,7 @@ export default function DownloadProducts() {
   const { shopDomain, error } = useLoaderData();
   const fetcher = useFetcher();
   const app = useAppBridge();
+  const [activeTab, setActiveTab] = useState(0);
   const [taskId, setTaskId] = useState(null);
   const [status, setStatus] = useState("");
   const [currentTaskType, setCurrentTaskType] = useState(null);
@@ -50,10 +93,42 @@ export default function DownloadProducts() {
   const [showProgress, setShowProgress] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(new Set());
 
+  // Chat states
+  const [chatData, setChatData] = useState(mockChatData);
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [isChatPanelOpen, setIsChatPanelOpen] = useState(false);
+
   const showToast = useCallback((content) => setToast({ active: true, content }), []);
   const handleToastDismiss = useCallback(() => setToast({ ...toast, active: false }), [toast]);
 
   const isLoading = fetcher.state === "loading" || fetcher.state === "submitting";
+
+  const tabs = [
+    {
+      id: 'catalog',
+      content: 'Catalog Configuration',
+      accessibilityLabel: 'Catalog Configuration',
+      panelID: 'catalog-panel',
+    },
+    {
+      id: 'faq',
+      content: 'FAQ Management',
+      accessibilityLabel: 'FAQ Management', 
+      panelID: 'faq-panel',
+    },
+    {
+      id: 'chats',
+      content: 'Customer Chats',
+      accessibilityLabel: 'Customer Chats',
+      panelID: 'chats-panel',
+    },
+    {
+      id: 'widget',
+      content: 'Widget Setup',
+      accessibilityLabel: 'Widget Setup',
+      panelID: 'widget-panel',
+    },
+  ];
 
   const getProgressMessages = (taskType) => {
     const messages = {
@@ -216,6 +291,16 @@ export default function DownloadProducts() {
     );
   };
 
+  const handleChatSelect = (chat) => {
+    setSelectedChat(chat);
+    setIsChatPanelOpen(true);
+  };
+
+  const closeChatPanel = () => {
+    setIsChatPanelOpen(false);
+    setSelectedChat(null);
+  };
+
   useEffect(() => {
     if (fetcher.data?.taskId) {
       const { taskId, taskType } = fetcher.data;
@@ -298,6 +383,25 @@ export default function DownloadProducts() {
     padding: "24px",
   };
 
+  const redirectTo = useCallback(
+    (url) => {
+      if (!app) {
+        console.error("App Bridge not initialized");
+        showToast("Error: App Bridge not initialized");
+        return;
+      }
+      
+      try {
+        const redirect = Redirect.create(app);
+        redirect.dispatch(Redirect.Action.REMOTE, url);
+      } catch (error) {
+        console.error("Redirect error:", error);
+        window.open(url, '_blank');
+      }
+    },
+    [app, showToast]
+  );
+
   useEffect(() => {
     if (error) {
       showToast("Error: Unable to retrieve shop domain");
@@ -329,868 +433,1072 @@ export default function DownloadProducts() {
     loadFaq();
   }, []);
 
-  const redirectTo = useCallback(
-    (url) => {
-      if (!app) {
-        console.error("App Bridge not initialized");
-        showToast("Error: App Bridge not initialized");
-        return;
-      }
-      
-      try {
-        // Используй правильный метод для App Bridge в Remix
-        const redirect = Redirect.create(app);
-        redirect.dispatch(Redirect.Action.REMOTE, url);
-      } catch (error) {
-        console.error("Redirect error:", error);
-        // Фоллбек - открой в новом окне
-        window.open(url, '_blank');
-      }
-    },
-    [app, showToast]
-  );
-
-  return (
-    <Frame>
-      <div style={pageStyle}>
-        <Page title="Catalog Configuration">
-          <TitleBar title="VoiceCart - Admin panel" primaryAction={null} />
-
-          {showProgress && (
-            <div style={{ marginBottom: "24px" }}>
-              <Card sectioned>
-                <div style={{ marginBottom: "12px" }}>
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "8px",
-                      backgroundColor: "#f1f2f3",
-                      borderRadius: "4px",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        background: "linear-gradient(90deg, #008060, #00a67c)",
-                        borderRadius: "4px",
-                        width: `${progress}%`,
-                        transition: "width 0.3s ease",
-                      }}
-                    />
-                  </div>
-                </div>
-                <Text variant="bodyMd" color="subdued" alignment="center">
-                  {progressText}
-                </Text>
-              </Card>
-            </div>
-          )}
-
-          <div style={{ marginBottom: "32px" }}>
-            <div
-              style={{
-                display: "grid",
-                gap: "24px",
-                gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
-              }}
-            >
+  const renderCatalogTab = () => (
+    <div>
+      {showProgress && (
+        <div style={{ marginBottom: "24px" }}>
+          <Card sectioned>
+            <div style={{ marginBottom: "12px" }}>
               <div
                 style={{
-                  border:
-                    completedSteps.has("product-catalog")
-                      ? "2px solid #00A651"
-                      : "1px solid #d1d5db",
-                  borderRadius: "16px",
-                  padding: "24px",
-                  position: "relative",
-                  backgroundColor: "white",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                  transition: "all 0.2s ease",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  minHeight: "200px",
+                  width: "100%",
+                  height: "8px",
+                  backgroundColor: "#f1f2f3",
+                  borderRadius: "4px",
+                  overflow: "hidden",
                 }}
               >
                 <div
                   style={{
-                    position: "absolute",
-                    top: "20px",
-                    right: "20px",
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    backgroundColor: completedSteps.has("product-catalog")
-                      ? "#00A651"
-                      : "#1976d2",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {completedSteps.has("product-catalog") ? "✓" : "1"}
-                </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        backgroundColor: "#dbeafe",
-                        borderRadius: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "20px",
-                        marginRight: "16px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      📦
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Text
-                        variant="headingMd"
-                        as="h3"
-                        fontWeight="semibold"
-                      >
-                        Generate Product Catalog
-                      </Text>
-                      <Text
-                        variant="bodyMd"
-                        color="subdued"
-                        style={{ marginTop: "8px" }}
-                      >
-                        Create and store your product catalog on the server.
-                        This is the first step in setting up your VoiceCart.
-                      </Text>
-                      {completedSteps.has("product-catalog") ? (
-                        <div style={{ marginTop: "12px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "4px 12px",
-                              borderRadius: "16px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              backgroundColor: "#dcfce7",
-                              color: "#166534",
-                              border: "1px solid #bbf7d0",
-                            }}
-                          >
-                            ✓ Completed
-                          </span>
-                        </div>
-                      ) : status &&
-                        currentTaskType === "product-catalog" && (
-                          <div style={{ marginTop: "12px" }}>
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                padding: "4px 12px",
-                                borderRadius: "16px",
-                                fontSize: "12px",
-                                fontWeight: "600",
-                                backgroundColor:
-                                  status === "In Progress"
-                                    ? "#fef3c7"
-                                    : "#fee2e2",
-                                color:
-                                  status === "In Progress"
-                                    ? "#92400e"
-                                    : "#dc2626",
-                                border:
-                                  status === "In Progress"
-                                    ? "1px solid #fcd34d"
-                                    : "1px solid #fecaca",
-                              }}
-                            >
-                              {status === "In Progress" ? "⏳ " : "❌ "}
-                              Status: {status}
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <Button
-                    onClick={downloadProducts}
-                    primary={!completedSteps.has("product-catalog")}
-                    fullWidth
-                    size="large"
-                    loading={
-                      (isLoading && currentTaskType === "product-catalog") ||
-                      (status === "In Progress" &&
-                        currentTaskType === "product-catalog")
-                    }
-                    disabled={
-                      status === "In Progress" &&
-                      currentTaskType === "product-catalog"
-                    }
-                    style={{
-                      backgroundColor: "#1976d2",
-                      borderColor: "#1976d2",
-                      color: "white",
-                    }}
-                  >
-                    Generate Product Catalog
-                  </Button>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  border:
-                    completedSteps.has("create-embeddings")
-                      ? "2px solid #00A651"
-                      : "1px solid #d1d5db",
-                  borderRadius: "16px",
-                  padding: "24px",
-                  position: "relative",
-                  backgroundColor: "white",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                  opacity: canCreateEmbeddings ? 1 : 0.6,
-                  transition: "all 0.2s ease",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  minHeight: "200px",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "20px",
-                    right: "20px",
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    backgroundColor: completedSteps.has("create-embeddings")
-                      ? "#00A651"
-                      : "#7b1fa2",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {completedSteps.has("create-embeddings") ? "✓" : "2"}
-                </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        backgroundColor: "#f3e8ff",
-                        borderRadius: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "20px",
-                        marginRight: "16px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      🧠
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Text
-                        variant="headingMd"
-                        as="h3"
-                        fontWeight="semibold"
-                      >
-                        Create Product Embeddings
-                      </Text>
-                      <Text
-                        variant="bodyMd"
-                        color="subdued"
-                        style={{ marginTop: "8px" }}
-                      >
-                        Generate AI embeddings for your products to enable
-                        smart voice search and recommendations.
-                      </Text>
-                      {completedSteps.has("create-embeddings") ? (
-                        <div style={{ marginTop: "12px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "4px 12px",
-                              borderRadius: "16px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              backgroundColor: "#dcfce7",
-                              color: "#166534",
-                              border: "1px solid #bbf7d0",
-                            }}
-                          >
-                            ✓ Completed
-                          </span>
-                        </div>
-                      ) : !canCreateEmbeddings ? (
-                        <div style={{ marginTop: "12px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "4px 12px",
-                              borderRadius: "16px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              backgroundColor: "#fef3c7",
-                              color: "#92400e",
-                              border: "1px solid #fcd34d",
-                            }}
-                          >
-                            Complete Step 1 First
-                          </span>
-                        </div>
-                      ) : status &&
-                        currentTaskType === "create-embeddings" && (
-                          <div style={{ marginTop: "12px" }}>
-                            <span
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                padding: "4px 12px",
-                                borderRadius: "16px",
-                                fontSize: "12px",
-                                fontWeight: "600",
-                                backgroundColor:
-                                  status === "In Progress"
-                                    ? "#fef3c7"
-                                    : "#fee2e2",
-                                color:
-                                  status === "In Progress"
-                                    ? "#92400e"
-                                    : "#dc2626",
-                                border:
-                                  status === "In Progress"
-                                    ? "1px solid #fcd34d"
-                                    : "1px solid #fecaca",
-                              }}
-                            >
-                              {status === "In Progress" ? "⏳ " : "❌ "}
-                              Status: {status}
-                            </span>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <Button
-                    onClick={createEmbeddings}
-                    primary={
-                      canCreateEmbeddings &&
-                      !completedSteps.has("create-embeddings")
-                    }
-                    fullWidth
-                    size="large"
-                    disabled={
-                      !canCreateEmbeddings ||
-                      (status === "In Progress" &&
-                        currentTaskType === "create-embeddings")
-                    }
-                    loading={
-                      (isLoading && currentTaskType === "create-embeddings") ||
-                      (status === "In Progress" &&
-                        currentTaskType === "create-embeddings")
-                    }
-                    style={{
-                      backgroundColor: "#7b1fa2",
-                      borderColor: "#7b1fa2",
-                      color: "white",
-                    }}
-                  >
-                    Create Product Embeddings
-                  </Button>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  border:
-                    completedSteps.has("create-prompt")
-                      ? "2px solid #00A651"
-                      : "1px solid #d1d5db",
-                  borderRadius: "16px",
-                  padding: "24px",
-                  position: "relative",
-                  backgroundColor: "white",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                  opacity: canCreatePrompt ? 1 : 0.6,
-                  transition: "all 0.2s ease",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  minHeight: "200px",
-                }}
-              >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "20px",
-                    right: "20px",
-                    width: "24px",
-                    height: "24px",
-                    borderRadius: "50%",
-                    backgroundColor: completedSteps.has("create-prompt")
-                      ? "#00A651"
-                      : "#f57c00",
-                    color: "white",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {completedSteps.has("create-prompt") ? "✓" : "3"}
-                </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        backgroundColor: "#ecfdf5",
-                        borderRadius: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "20px",
-                        marginRight: "16px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      💡
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Text
-                        variant="headingMd"
-                        as="h3"
-                        fontWeight="semibold"
-                      >
-                        Create System Prompt
-                      </Text>
-                      <Text
-                        variant="bodyMd"
-                        color="subdued"
-                        style={{ marginTop: "8px" }}
-                      >
-                        Generate and save a system prompt with relevant shop
-                        assortment for better AI responses.
-                      </Text>
-                      {completedSteps.has("create-prompt") ? (
-                        <div style={{ marginTop: "12px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "4px 12px",
-                              borderRadius: "16px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              backgroundColor: "#dcfce7",
-                              color: "#166534",
-                              border: "1px solid #bbf7d0",
-                            }}
-                          >
-                            ✓ Completed
-                          </span>
-                        </div>
-                      ) : !canCreatePrompt ? (
-                        <div style={{ marginTop: "12px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "4px 12px",
-                              borderRadius: "16px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              backgroundColor: "#fef3c7",
-                              color: "#92400e",
-                              border: "1px solid #fcd34d",
-                            }}
-                          >
-                            Complete Step 2 First
-                          </span>
-                        </div>
-                      ) : showProgress &&
-                        currentTaskType === "create-prompt" ? (
-                        <div style={{ marginTop: "12px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "4px 12px",
-                              borderRadius: "16px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              backgroundColor: "#fef3c7",
-                              color: "#92400e",
-                              border: "1px solid #fcd34d",
-                            }}
-                          >
-                            ⏳ Creating Prompt...
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <Button
-                    onClick={fetchStoreInfoAndTags}
-                    primary={
-                      canCreatePrompt && !completedSteps.has("create-prompt")
-                    }
-                    fullWidth
-                    size="large"
-                    disabled={
-                      !canCreatePrompt ||
-                      (showProgress && currentTaskType === "create-prompt")
-                    }
-                    loading={
-                      showProgress && currentTaskType === "create-prompt"
-                    }
-                    style={{
-                      backgroundColor: "#f57c00",
-                      borderColor: "#f57c00",
-                      color: "white",
-                    }}
-                  >
-                    Create System Prompt
-                  </Button>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  border: "1px solid #d1d5db",
-                  borderRadius: "16px",
-                  padding: "24px",
-                  backgroundColor: "white",
-                  boxShadow:
-                    "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                  transition: "all 0.2s ease",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  minHeight: "200px",
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        backgroundColor: "#fef2f2",
-                        borderRadius: "12px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: "20px",
-                        marginRight: "16px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      🗑️
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <Text
-                        variant="headingMd"
-                        as="h3"
-                        fontWeight="semibold"
-                      >
-                        Delete Product Embeddings
-                      </Text>
-                      <Text
-                        variant="bodyMd"
-                        color="subdued"
-                        style={{ marginTop: "8px" }}
-                      >
-                        Remove product embeddings from the server. Use this to
-                        reset or clean up your data.
-                      </Text>
-                      {status && currentTaskType === "delete-embeddings" && (
-                        <div style={{ marginTop: "12px" }}>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              padding: "4px 12px",
-                              borderRadius: "16px",
-                              fontSize: "12px",
-                              fontWeight: "600",
-                              backgroundColor:
-                                status === "Completed"
-                                  ? "#dcfce7"
-                                  : "#fef3c7",
-                              color:
-                                status === "Completed"
-                                  ? "#166534"
-                                  : "#92400e",
-                              border:
-                                status === "Completed"
-                                  ? "1px solid #bbf7d0"
-                                  : "1px solid #fcd34d",
-                            }}
-                          >
-                            {status === "Completed" ? "✓ " : "⏳ "}
-                            Status: {status}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <Button
-                    onClick={deleteEmbeddings}
-                    destructive
-                    fullWidth
-                    size="large"
-                    loading={
-                      (isLoading && currentTaskType === "delete-embeddings") ||
-                      (status === "In Progress" &&
-                        currentTaskType === "delete-embeddings")
-                    }
-                    disabled={
-                      status === "In Progress" &&
-                      currentTaskType === "delete-embeddings"
-                    }
-                    style={{
-                      backgroundColor: "#ef5350",
-                      borderColor: "#ef5350",
-                      color: "white",
-                    }}
-                  >
-                    Delete Product Embeddings
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: "48px" }}>
-            <div style={{ marginBottom: "32px" }}>
-              <Text
-                variant="headingLg"
-                as="h2"
-                fontWeight="semibold"
-              >
-                FAQ Management
-              </Text>
-            </div>
-            <div
-              style={{
-                backgroundColor: "white",
-                padding: "24px",
-                borderRadius: "16px",
-                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", marginBottom: "16px" }}>
-                <div
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    backgroundColor: "#e0f2fe",
-                    borderRadius: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "20px",
-                    marginRight: "16px",
-                    flexShrink: 0,
-                  }}
-                >
-                  ❓
-                </div>
-                <div style={{ flex: 1 }}>
-                  <Text
-                    variant="headingMd"
-                    as="h3"
-                    fontWeight="semibold"
-                  >
-                    Store FAQ
-                  </Text>
-                  <Text
-                    variant="bodyMd"
-                    color="subdued"
-                    style={{ marginTop: "8px" }}
-                  >
-                    Add your frequently asked questions to help the AI assistant provide better customer support.
-                  </Text>
-                </div>
-              </div>
-              
-              <div style={{ marginBottom: "16px" }}>
-                <textarea
-                  value={faqText}
-                  onChange={(e) => setFaqText(e.target.value)}
-                  placeholder="Enter your FAQ content here..."
-                  style={{
-                    width: "100%",
-                    minHeight: "200px",
-                    padding: "12px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    fontFamily: "inherit",
-                    resize: "vertical",
-                    outline: "none",
+                    height: "100%",
+                    background: "linear-gradient(90deg, #008060, #00a67c)",
+                    borderRadius: "4px",
+                    width: `${progress}%`,
+                    transition: "width 0.3s ease",
                   }}
                 />
               </div>
-              
-              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                <Button
-                  onClick={saveFaq}
-                  primary
-                  loading={isSavingFaq}
-                  disabled={isSavingFaq || !faqText.trim()}
+            </div>
+            <Text variant="bodyMd" color="subdued" alignment="center">
+              {progressText}
+            </Text>
+          </Card>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "grid",
+          gap: "24px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+        }}
+      >
+        <div
+          style={{
+            border:
+              completedSteps.has("product-catalog")
+                ? "2px solid #00A651"
+                : "1px solid #d1d5db",
+            borderRadius: "16px",
+            padding: "24px",
+            position: "relative",
+            backgroundColor: "white",
+            boxShadow:
+              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            transition: "all 0.2s ease",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "200px",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              width: "24px",
+              height: "24px",
+              borderRadius: "50%",
+              backgroundColor: completedSteps.has("product-catalog")
+                ? "#00A651"
+                : "#1976d2",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+              fontWeight: "bold",
+            }}
+          >
+            {completedSteps.has("product-catalog") ? "✓" : "1"}
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  backgroundColor: "#dbeafe",
+                  borderRadius: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  marginRight: "16px",
+                  flexShrink: 0,
+                }}
+              >
+                📦
+              </div>
+              <div style={{ flex: 1 }}>
+                <Text
+                  variant="headingMd"
+                  as="h3"
+                  fontWeight="semibold"
                 >
-                  Save FAQ
-                </Button>
-                {faqSaved && (
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      padding: "4px 12px",
-                      borderRadius: "16px",
-                      fontSize: "12px",
-                      fontWeight: "600",
-                      backgroundColor: "#dcfce7",
-                      color: "#166534",
-                      border: "1px solid #bbf7d0",
-                    }}
-                  >
-                    ✓ FAQ Saved
-                  </span>
+                  Generate Product Catalog
+                </Text>
+                <Text
+                  variant="bodyMd"
+                  color="subdued"
+                  style={{ marginTop: "8px" }}
+                >
+                  Create and store your product catalog on the server.
+                  This is the first step in setting up your VoiceCart.
+                </Text>
+                {completedSteps.has("product-catalog") ? (
+                  <div style={{ marginTop: "12px" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "4px 12px",
+                        borderRadius: "16px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        backgroundColor: "#dcfce7",
+                        color: "#166534",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    >
+                      ✓ Completed
+                    </span>
+                  </div>
+                ) : status &&
+                  currentTaskType === "product-catalog" && (
+                    <div style={{ marginTop: "12px" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "4px 12px",
+                          borderRadius: "16px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          backgroundColor:
+                            status === "In Progress"
+                              ? "#fef3c7"
+                              : "#fee2e2",
+                          color:
+                            status === "In Progress"
+                              ? "#92400e"
+                              : "#dc2626",
+                          border:
+                            status === "In Progress"
+                              ? "1px solid #fcd34d"
+                              : "1px solid #fecaca",
+                        }}
+                      >
+                        {status === "In Progress" ? "⏳ " : "❌ "}
+                        Status: {status}
+                      </span>
+                    </div>
+                  )}
+              </div>
+            </div>
+          </div>
+          <div>
+            <Button
+              onClick={downloadProducts}
+              primary={!completedSteps.has("product-catalog")}
+              fullWidth
+              size="large"
+              loading={
+                (isLoading && currentTaskType === "product-catalog") ||
+                (status === "In Progress" &&
+                  currentTaskType === "product-catalog")
+              }
+              disabled={
+                status === "In Progress" &&
+                currentTaskType === "product-catalog"
+              }
+              style={{
+                backgroundColor: "#1976d2",
+                borderColor: "#1976d2",
+                color: "white",
+              }}
+            >
+              Generate Product Catalog
+            </Button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            border:
+              completedSteps.has("create-embeddings")
+                ? "2px solid #00A651"
+                : "1px solid #d1d5db",
+            borderRadius: "16px",
+            padding: "24px",
+            position: "relative",
+            backgroundColor: "white",
+            boxShadow:
+              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            opacity: canCreateEmbeddings ? 1 : 0.6,
+            transition: "all 0.2s ease",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "200px",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              width: "24px",
+              height: "24px",
+              borderRadius: "50%",
+              backgroundColor: completedSteps.has("create-embeddings")
+                ? "#00A651"
+                : "#7b1fa2",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+              fontWeight: "bold",
+            }}
+          >
+            {completedSteps.has("create-embeddings") ? "✓" : "2"}
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  backgroundColor: "#f3e8ff",
+                  borderRadius: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  marginRight: "16px",
+                  flexShrink: 0,
+                }}
+              >
+                🧠
+              </div>
+              <div style={{ flex: 1 }}>
+                <Text
+                  variant="headingMd"
+                  as="h3"
+                  fontWeight="semibold"
+                >
+                  Create Product Embeddings
+                </Text>
+                <Text
+                  variant="bodyMd"
+                  color="subdued"
+                  style={{ marginTop: "8px" }}
+                >
+                  Generate AI embeddings for your products to enable
+                  smart voice search and recommendations.
+                </Text>
+                {completedSteps.has("create-embeddings") ? (
+                  <div style={{ marginTop: "12px" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "4px 12px",
+                        borderRadius: "16px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        backgroundColor: "#dcfce7",
+                        color: "#166534",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    >
+                      ✓ Completed
+                    </span>
+                  </div>
+                ) : !canCreateEmbeddings ? (
+                  <div style={{ marginTop: "12px" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "4px 12px",
+                        borderRadius: "16px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        backgroundColor: "#fef3c7",
+                        color: "#92400e",
+                        border: "1px solid #fcd34d",
+                      }}
+                    >
+                      Complete Step 1 First
+                    </span>
+                  </div>
+                ) : status &&
+                  currentTaskType === "create-embeddings" && (
+                    <div style={{ marginTop: "12px" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          padding: "4px 12px",
+                          borderRadius: "16px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                          backgroundColor:
+                            status === "In Progress"
+                              ? "#fef3c7"
+                              : "#fee2e2",
+                          color:
+                            status === "In Progress"
+                              ? "#92400e"
+                              : "#dc2626",
+                          border:
+                            status === "In Progress"
+                              ? "1px solid #fcd34d"
+                              : "1px solid #fecaca",
+                        }}
+                      >
+                        {status === "In Progress" ? "⏳ " : "❌ "}
+                        Status: {status}
+                      </span>
+                    </div>
+                  )}
+              </div>
+            </div>
+          </div>
+          <div>
+            <Button
+              onClick={createEmbeddings}
+              primary={
+                canCreateEmbeddings &&
+                !completedSteps.has("create-embeddings")
+              }
+              fullWidth
+              size="large"
+              disabled={
+                !canCreateEmbeddings ||
+                (status === "In Progress" &&
+                  currentTaskType === "create-embeddings")
+              }
+              loading={
+                (isLoading && currentTaskType === "create-embeddings") ||
+                (status === "In Progress" &&
+                  currentTaskType === "create-embeddings")
+              }
+              style={{
+                backgroundColor: "#7b1fa2",
+                borderColor: "#7b1fa2",
+                color: "white",
+              }}
+            >
+              Create Product Embeddings
+            </Button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            border:
+              completedSteps.has("create-prompt")
+                ? "2px solid #00A651"
+                : "1px solid #d1d5db",
+            borderRadius: "16px",
+            padding: "24px",
+            position: "relative",
+            backgroundColor: "white",
+            boxShadow:
+              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            opacity: canCreatePrompt ? 1 : 0.6,
+            transition: "all 0.2s ease",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "200px",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              width: "24px",
+              height: "24px",
+              borderRadius: "50%",
+              backgroundColor: completedSteps.has("create-prompt")
+                ? "#00A651"
+                : "#f57c00",
+              color: "white",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "12px",
+              fontWeight: "bold",
+            }}
+          >
+            {completedSteps.has("create-prompt") ? "✓" : "3"}
+          </div>
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  backgroundColor: "#ecfdf5",
+                  borderRadius: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  marginRight: "16px",
+                  flexShrink: 0,
+                }}
+              >
+                💡
+              </div>
+              <div style={{ flex: 1 }}>
+                <Text
+                  variant="headingMd"
+                  as="h3"
+                  fontWeight="semibold"
+                >
+                  Create System Prompt
+                </Text>
+                <Text
+                  variant="bodyMd"
+                  color="subdued"
+                  style={{ marginTop: "8px" }}
+                >
+                  Generate and save a system prompt with relevant shop
+                  assortment for better AI responses.
+                  </Text>
+                {completedSteps.has("create-prompt") ? (
+                  <div style={{ marginTop: "12px" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "4px 12px",
+                        borderRadius: "16px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        backgroundColor: "#dcfce7",
+                        color: "#166534",
+                        border: "1px solid #bbf7d0",
+                      }}
+                    >
+                      ✓ Completed
+                    </span>
+                  </div>
+                ) : !canCreatePrompt ? (
+                  <div style={{ marginTop: "12px" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "4px 12px",
+                        borderRadius: "16px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        backgroundColor: "#fef3c7",
+                        color: "#92400e",
+                        border: "1px solid #fcd34d",
+                      }}
+                    >
+                      Complete Steps 1 & 2 First
+                    </span>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: "12px" }}>
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        padding: "4px 12px",
+                        borderRadius: "16px",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                        backgroundColor: "#dbeafe",
+                        color: "#1e40af",
+                        border: "1px solid #93c5fd",
+                      }}
+                    >
+                      Ready to Generate
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
           </div>
-
-          <div style={{ marginTop: "48px" }}>
-            <div style={{ marginBottom: "32px" }}>
-              <Text
-                variant="headingLg"
-                as="h2"
-                fontWeight="semibold"
-              >
-                VoiceCart Widget Setup
-              </Text>
-            </div>
-            <div
+          <div>
+            <Button
+              onClick={fetchStoreInfoAndTags}
+              primary={
+                canCreatePrompt && !completedSteps.has("create-prompt")
+              }
+              fullWidth
+              size="large"
+              disabled={!canCreatePrompt}
               style={{
-                display: "grid",
-                gap: "24px",
-                gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))",
+                backgroundColor: "#f57c00",
+                borderColor: "#f57c00",
+                color: "white",
               }}
             >
-              <div style={{ 
-                backgroundColor: "white",
-                borderRadius: "16px",
-                overflow: "hidden",
-                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              }}>
-                <iframe
-                  width="100%"
-                  height="315"
-                  style={{ display: "block", border: "none" }}
-                  src="https://www.youtube.com/embed/UxginYhvU7Y?si=qPY4qQu3x3C6rPfh"
-                  title="VoiceCart Setup"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
+              Create System Prompt
+            </Button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            border: "1px solid #d1d5db",
+            borderRadius: "16px",
+            padding: "24px",
+            position: "relative",
+            backgroundColor: "white",
+            boxShadow:
+              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            transition: "all 0.2s ease",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: "200px",
+          }}
+        >
+          <div>
+            <div style={{ display: "flex", alignItems: "flex-start" }}>
               <div
                 style={{
-                  backgroundColor: "white",
-                  padding: "24px",
-                  borderRadius: "16px",
-                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                  width: "48px",
+                  height: "48px",
+                  backgroundColor: "#fef2f2",
+                  borderRadius: "12px",
                   display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  minHeight: "315px",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "20px",
+                  marginRight: "16px",
+                  flexShrink: 0,
                 }}
               >
-                <div>
-                  <Text
-                    variant="bodyMd"
-                    as="p"
-                    fontWeight="medium"
-                    style={{ marginBottom: "16px" }}
-                  >
-                    To install the VoiceCart widget:
-                  </Text>
-                  <ul
-                    style={{
-                      paddingLeft: "20px",
-                      marginBottom: "12px",
-                      listStyleType: "disc",
-                    }}
-                  >
-                    <li style={{ marginBottom: "8px" }}>Open theme editor (Customize)</li>
-                    <li style={{ marginBottom: "8px" }}>Find the Footer section</li>
-                    <li style={{ marginBottom: "8px" }}>Click "Add section"</li>
-                    <li style={{ marginBottom: "8px" }}>Switch to "Apps" tab</li>
-                    <li style={{ marginBottom: "8px" }}>Select "App Window – VoiceCart"</li>
-                    <li style={{ marginBottom: "8px" }}>Click "Save"</li>
-                  </ul>
-
-                  <Text
-                    variant="bodyMd"
-                    as="p"
-                    style={{ marginBottom: "16px" }}
-                  >
-                    Or use button below to install component to your theme. Don't forget to click "Save" after intallation.
-                  </Text>
-                </div>
-                <div>
-                  {deeplinkUrl ? (
-                    <Button onClick={() => redirectTo(deeplinkUrl)} primary fullWidth size="large">
-                      Install VoiceCart Widget
-                    </Button>
-                  ) : (
-                    <Button disabled fullWidth size="large">Loading...</Button>
-                  )}
-                </div>
+                🗑️
+              </div>
+              <div style={{ flex: 1 }}>
+                <Text
+                  variant="headingMd"
+                  as="h3"
+                  fontWeight="semibold"
+                >
+                  Delete Embeddings
+                </Text>
+                <Text
+                  variant="bodyMd"
+                  color="subdued"
+                  style={{ marginTop: "8px" }}
+                >
+                  Remove existing product embeddings from the server.
+                  Use this if you need to regenerate them.
+                </Text>
               </div>
             </div>
           </div>
-        </Page>
-      </div>
+          <div>
+            <Button
+              onClick={deleteEmbeddings}
+              destructive
+              fullWidth
+              size="large"
+              loading={
+                (isLoading && currentTaskType === "delete-embeddings") ||
+                (status === "In Progress" &&
+                  currentTaskType === "delete-embeddings")
+              }
+              disabled={
+                status === "In Progress" &&
+                currentTaskType === "delete-embeddings"
+              }
+            >
+              Delete Embeddings
+            </Button>
+          </div>
+        </div>
 
-      {toast?.active && (
-        <Toast
-          content={toast.content}
-          onDismiss={handleToastDismiss}
-          duration={4000}
-        />
-      )}
-    </Frame>
+        <div
+          style={{
+            border: "1px solid #d1d5db",
+            borderRadius: "16px",
+            padding: "24px",
+            backgroundColor: "white",
+            boxShadow:
+              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start" }}>
+            <div
+              style={{
+                width: "48px",
+                height: "48px",
+                backgroundColor: "#f0f9ff",
+                borderRadius: "12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "20px",
+                marginRight: "16px",
+                flexShrink: 0,
+              }}
+            >
+              🌐
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text variant="headingMd" as="h3" fontWeight="semibold">
+                Set Global Language
+              </Text>
+              <Text
+                variant="bodyMd"
+                color="subdued"
+                style={{ marginTop: "8px" }}
+              >
+                Configure the default language for your VoiceCart
+                assistant.
+              </Text>
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              alignItems: "center",
+            }}
+          >
+            <select
+              value={defaultLanguage}
+              onChange={(e) => setDefaultLanguage(e.target.value)}
+              style={{
+                flex: 1,
+                padding: "12px",
+                border: "1px solid #d1d5db",
+                borderRadius: "8px",
+                fontSize: "14px",
+                backgroundColor: "white",
+              }}
+            >
+              <option value="en">English</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="it">Italian</option>
+              <option value="pt">Portuguese</option>
+            </select>
+            <Button
+              onClick={setGlobalLanguage}
+              primary
+              loading={isLoading}
+              style={{
+                backgroundColor: "#0ea5e9",
+                borderColor: "#0ea5e9",
+              }}
+            >
+              Set Language
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderFaqTab = () => (
+    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      <Card sectioned>
+        <div style={{ marginBottom: "16px" }}>
+          <Text variant="headingMd" as="h3" fontWeight="semibold">
+            FAQ Management
+          </Text>
+          <Text variant="bodyMd" color="subdued" style={{ marginTop: "8px" }}>
+            Configure frequently asked questions for your VoiceCart assistant.
+          </Text>
+        </div>
+        
+        <div style={{ marginBottom: "16px" }}>
+          <label
+            htmlFor="faq-textarea"
+            style={{
+              display: "block",
+              marginBottom: "8px",
+              fontWeight: "500",
+              fontSize: "14px",
+            }}
+          >
+            FAQ Content
+          </label>
+          <textarea
+            id="faq-textarea"
+            value={faqText}
+            onChange={(e) => setFaqText(e.target.value)}
+            placeholder="Enter your FAQ content here..."
+            style={{
+              width: "100%",
+              minHeight: "300px",
+              padding: "12px",
+              border: "1px solid #d1d5db",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontFamily: "inherit",
+              resize: "vertical",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <Button
+            onClick={saveFaq}
+            primary
+            loading={isSavingFaq}
+            style={{
+              backgroundColor: "#10b981",
+              borderColor: "#10b981",
+            }}
+          >
+            Save FAQ
+          </Button>
+          
+          {faqSaved && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "4px 12px",
+                borderRadius: "16px",
+                fontSize: "12px",
+                fontWeight: "600",
+                backgroundColor: "#dcfce7",
+                color: "#166534",
+                border: "1px solid #bbf7d0",
+              }}
+            >
+              ✓ Saved Successfully
+            </span>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+
+  const renderChatsTab = () => (
+    <div style={{ position: "relative", height: "calc(100vh - 200px)" }}>
+      <div
+        style={{
+          display: "flex",
+          height: "100%",
+          gap: "20px",
+          transition: "all 0.3s ease",
+        }}
+      >
+        {/* Chat List */}
+        <div
+          style={{
+            flex: isChatPanelOpen ? "0 0 60%" : "1",
+            transition: "flex 0.3s ease",
+          }}
+        >
+          <Card>
+            <div style={{ padding: "20px", borderBottom: "1px solid #e5e7eb" }}>
+              <Text variant="headingMd" as="h3" fontWeight="semibold">
+                Customer Chats
+              </Text>
+              <Text variant="bodyMd" color="subdued" style={{ marginTop: "4px" }}>
+                Click on any chat to view the conversation
+              </Text>
+            </div>
+            
+            <div style={{ maxHeight: "calc(100vh - 300px)", overflowY: "auto" }}>
+              {chatData.map((chat) => (
+                <div
+                  key={chat.id}
+                  onClick={() => handleChatSelect(chat)}
+                  style={{
+                    padding: "16px 20px",
+                    borderBottom: "1px solid #f3f4f6",
+                    cursor: "pointer",
+                    transition: "background-color 0.2s ease",
+                    backgroundColor: selectedChat?.id === chat.id ? "#f0f9ff" : "transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedChat?.id !== chat.id) {
+                      e.target.style.backgroundColor = "#f9fafb";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedChat?.id !== chat.id) {
+                      e.target.style.backgroundColor = "transparent";
+                    }
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <Text variant="bodyMd" fontWeight="semibold">
+                        Session: {chat.sessionId}
+                      </Text>
+                      <Text variant="bodySm" color="subdued" style={{ marginTop: "2px" }}>
+                        {chat.messages.length} messages
+                      </Text>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <Text variant="bodySm" color="subdued">
+                        {chat.date}
+                      </Text>
+                      <Text variant="bodySm" color="subdued" style={{ marginTop: "2px" }}>
+                        {chat.time}
+                      </Text>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        {/* Chat Detail Panel */}
+        {isChatPanelOpen && selectedChat && (
+          <div
+            style={{
+              flex: "0 0 40%",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <Card>
+              {/* Chat Header */}
+              <div
+                style={{
+                  padding: "16px 20px",
+                  borderBottom: "1px solid #e5e7eb",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <Text variant="headingSm" fontWeight="semibold">
+                    {selectedChat.sessionId}
+                  </Text>
+                  <Text variant="bodySm" color="subdued">
+                    {selectedChat.date} at {selectedChat.time}
+                  </Text>
+                </div>
+                <Button
+                  onClick={closeChatPanel}
+                  plain
+                  style={{ padding: "4px" }}
+                >
+                  ✕
+                </Button>
+              </div>
+
+              {/* Chat Messages */}
+              <div
+                style={{
+                  height: "calc(100vh - 380px)",
+                  overflowY: "auto",
+                  padding: "16px 20px",
+                }}
+              >
+                {selectedChat.messages.map((message, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      marginBottom: "16px",
+                      display: "flex",
+                      flexDirection: message.type === "user" ? "row-reverse" : "row",
+                      gap: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        backgroundColor: message.type === "user" ? "#3b82f6" : "#10b981",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "14px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {message.type === "user" ? "👤" : "🤖"}
+                    </div>
+                    <div
+                      style={{
+                        maxWidth: "80%",
+                        padding: "12px 16px",
+                        borderRadius: "16px",
+                        backgroundColor: message.type === "user" ? "#3b82f6" : "#f3f4f6",
+                        color: message.type === "user" ? "white" : "#374151",
+                        fontSize: "14px",
+                        lineHeight: "1.4",
+                      }}
+                    >
+                      <div>{message.text}</div>
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          marginTop: "4px",
+                          opacity: 0.7,
+                        }}
+                      >
+                        {message.time}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderWidgetTab = () => (
+    <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+      <Card sectioned>
+        <div style={{ marginBottom: "24px" }}>
+          <Text variant="headingMd" as="h3" fontWeight="semibold">
+            Widget Setup
+          </Text>
+          <Text variant="bodyMd" color="subdued" style={{ marginTop: "8px" }}>
+            Add the VoiceCart widget to your store theme.
+          </Text>
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <div
+            style={{
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "12px",
+              padding: "20px",
+            }}
+          >
+            <Text variant="headingSm" fontWeight="semibold" style={{ marginBottom: "12px" }}>
+              📺 Setup Video Tutorial
+            </Text>
+            <div
+              style={{
+                backgroundColor: "#1f2937",
+                borderRadius: "8px",
+                padding: "40px",
+                textAlign: "center",
+                color: "white",
+                marginBottom: "16px",
+              }}
+            >
+              <div style={{ fontSize: "48px", marginBottom: "16px" }}>▶️</div>
+              <Text variant="bodyMd" style={{ color: "white" }}>
+                Video tutorial coming soon...
+              </Text>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: "24px" }}>
+          <Text variant="headingSm" fontWeight="semibold" style={{ marginBottom: "12px" }}>
+            📋 Setup Instructions
+          </Text>
+          <div
+            style={{
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: "8px",
+              padding: "16px",
+            }}
+          >
+            <ol style={{ margin: 0, paddingLeft: "20px" }}>
+              <li style={{ marginBottom: "8px" }}>
+                <Text variant="bodyMd">
+                  Complete the Catalog Configuration steps first
+                </Text>
+              </li>
+              <li style={{ marginBottom: "8px" }}>
+                <Text variant="bodyMd">
+                  Click the "Open Theme Customizer" button below
+                </Text>
+              </li>
+              <li style={{ marginBottom: "8px" }}>
+                <Text variant="bodyMd">
+                  Add the VoiceCart app block to your theme
+                </Text>
+              </li>
+              <li>
+                <Text variant="bodyMd">
+                  Save and publish your theme changes
+                </Text>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <div>
+          <Button
+            onClick={() => redirectTo(deeplinkUrl)}
+            primary
+            size="large"
+            disabled={!deeplinkUrl}
+            style={{
+              backgroundColor: "#7c3aed",
+              borderColor: "#7c3aed",
+            }}
+          >
+            Open Theme Customizer
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+
+  if (error) {
+    return (
+      <Page title="VoiceCart Setup">
+        <Frame>
+          <Card sectioned>
+            <Text variant="bodyMd" color="critical">
+              Error: {error}
+            </Text>
+          </Card>
+          {toast.active && (
+            <Toast content={toast.content} onDismiss={handleToastDismiss} />
+          )}
+        </Frame>
+      </Page>
+    );
+  }
+
+  return (
+    <div style={pageStyle}>
+      <Page title="VoiceCart Setup">
+        <TitleBar title="VoiceCart Configuration" />
+        <Frame>
+          <Card>
+            <Tabs tabs={tabs} selected={activeTab} onSelect={setActiveTab}>
+              <div style={{ padding: "24px" }}>
+                {activeTab === 0 && renderCatalogTab()}
+                {activeTab === 1 && renderFaqTab()}
+                {activeTab === 2 && renderChatsTab()}
+                {activeTab === 3 && renderWidgetTab()}
+              </div>
+            </Tabs>
+          </Card>
+          {toast.active && (
+            <Toast content={toast.content} onDismiss={handleToastDismiss} />
+          )}
+        </Frame>
+      </Page>
+    </div>
   );
 }
