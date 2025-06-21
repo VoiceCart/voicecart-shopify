@@ -111,16 +111,16 @@ export default function DownloadProducts() {
       panelID: 'catalog-panel',
     },
     {
-      id: 'faq',
-      content: 'FAQ Management',
-      accessibilityLabel: 'FAQ Management', 
-      panelID: 'faq-panel',
-    },
-    {
       id: 'chats',
       content: 'Customer Chats',
       accessibilityLabel: 'Customer Chats',
       panelID: 'chats-panel',
+    },
+    {
+      id: 'faq',
+      content: 'FAQ Management',
+      accessibilityLabel: 'FAQ Management', 
+      panelID: 'faq-panel',
     },
     {
       id: 'widget',
