@@ -53,6 +53,10 @@ const intentMapping = {
     },
 
     faqRelated: async (content, { sessionId, signal, shop, lang }) => {
+        if (!shop.includes('.myshopify.com')) {
+            shop = `${shop}.myshopify.com`;
+        }
+        
         const savedFaq = await prisma.faq.findFirst({
             where: { shop },
             orderBy: { updatedAt: "desc" }
