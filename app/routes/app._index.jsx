@@ -1358,6 +1358,7 @@ export default function DownloadProducts() {
               fontSize: "14px",
               fontFamily: "inherit",
               resize: "vertical",
+              whiteSpace: "pre-line",
             }}
           />
         </div>
