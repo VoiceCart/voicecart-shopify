@@ -1034,7 +1034,7 @@ async function initListeners(navigationEngine, messageFactory) {
       return;
     }
   
-    // If a request is in progress, don’t start voice input
+    // If a request is in progress, don't start voice input
     if (isProcessing) {
       console.log("Request in progress, voice input disabled.");
       return;
@@ -1196,7 +1196,7 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
           } catch (error) {
             console.error("Error adding item to cart:", error);
             sendMessageToAChat(MessageSender.bot, {
-              message: "Sorry, I couldn’t add the item to your cart. Please try again later.",
+              message: "Sorry, I couldn't add the item to your cart. Please try again later.",
               emotion: "sad",
               customClass: "error-message"
             });
@@ -1217,7 +1217,7 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
           } catch (error) {
             console.error("Error removing item from cart:", error);
             sendMessageToAChat(MessageSender.bot, {
-              message: "Sorry, I couldn’t remove the item from your cart. Please try again later.",
+              message: "Sorry, I couldn't remove the item from your cart. Please try again later.",
               emotion: "sad",
               customClass: "error-message"
             });
@@ -1233,7 +1233,7 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
           } catch (error) {
             console.error("Error clearing cart:", error);
             sendMessageToAChat(MessageSender.bot, {
-              message: "Sorry, I couldn’t clear your cart. Please try again later.",
+              message: "Sorry, I couldn't clear your cart. Please try again later.",
               emotion: "sad",
               customClass: "error-message"
             });
@@ -1247,7 +1247,7 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
             console.log("Updated cart state after applying discount:", updatedCart);
             const discountAmount = ((originalTotal - updatedCart.total_price) / 100).toFixed(2);
             if (discountAmount <= 0) {
-              throw new Error("Discount didn’t reduce the total price.");
+              throw new Error("Discount didn't reduce the total price.");
             }
             lastAppliedDiscountCode = action.discountCode; // Store the discount code
             sendMessageToAChat(MessageSender.bot, {
@@ -1257,7 +1257,7 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
           } catch (error) {
             console.error("Error applying discount code:", error.message);
             sendMessageToAChat(MessageSender.bot, {
-              message: `Sorry, I couldn’t apply the discount code: ${error.message}. Please check the code and try again.`,
+              message: `Sorry, I couldn't apply the discount code: ${error.message}. Please check the code and try again.`,
               emotion: "sad",
               customClass: "error-message"
             });
@@ -1275,12 +1275,12 @@ No additional units added. Cart already has ${currentQuantity} units of variantI
             });
             // 3) Single TTS line
             if (isVoiceMode && isVoicePlaybackEnabled) {
-              speakText("Here’s your checkout details");
+              speakText("Here's your checkout details");
             }
           } catch (error) {
             console.error("Error generating checkout URL:", error.message);
             sendMessageToAChat(MessageSender.bot, {
-              message: `Sorry, I couldn’t generate the checkout link: ${error.message}. Please try again.`,
+              message: `Sorry, I couldn't generate the checkout link: ${error.message}. Please try again.`,
               emotion: "sad",
               customClass: "error-message"
             });
@@ -1502,7 +1502,7 @@ function grayOutLastMessageBubble() {
  * If a constantKey is provided, the message bubble is tagged so that its content can be updated when the language changes.
  */
 function sendMessageToAChat(sender, config) {
-  // If it’s a bot message and exactly the same as the previous one, skip it:
+  // If it's a bot message and exactly the same as the previous one, skip it:
   if (sender === MessageSender.bot && config.message === lastBotMessageText) {
     return;
   }
@@ -1525,7 +1525,7 @@ function sendMessageToAChat(sender, config) {
   }
 
   // —— Non-buffered path (text-mode OR muted voice OR checkout-suppressed) —— //
-  // Clear the thinking (“…”) bubble now that we’re about to render
+  // Clear the thinking ("...") bubble now that we're about to render
   document.querySelector(".thinking-message")?.remove();
 
   let messageBubble;
@@ -1722,7 +1722,7 @@ async function renderChatHistory(messages, sessionId) {
             } catch (error) {
               console.error("Error adding item to cart from history:", error);
               sendMessageToAChat(MessageSender.bot, {
-                message: "Sorry, I couldn’t add the item to your cart when loading the history.",
+                message: "Sorry, I couldn't add the item to your cart when loading the history.",
                 emotion: "sad",
                 customClass: "error-message"
               });
@@ -1751,7 +1751,7 @@ async function renderChatHistory(messages, sessionId) {
             } catch (error) {
               console.error("Error removing item from cart from history:", error);
               sendMessageToAChat(MessageSender.bot, {
-                message: "Sorry, I couldn’t remove the item from your cart when loading the history.",
+                message: "Sorry, I couldn't remove the item from your cart when loading the history.",
                 emotion: "sad",
                 customClass: "error-message"
               });
@@ -1764,7 +1764,7 @@ async function renderChatHistory(messages, sessionId) {
             } catch (error) {
               console.error("Error clearing cart from history:", error);
               sendMessageToAChat(MessageSender.bot, {
-                message: "Sorry, I couldn’t clear your cart when loading the history.",
+                message: "Sorry, I couldn't clear your cart when loading the history.",
                 emotion: "sad",
                 customClass: "error-message"
               });
@@ -1821,7 +1821,7 @@ function appendMessageToGroup(sender, messageBubble) {
 }
 
 /**
- * Inserts a timeline element at the beginning of the chat view if it doesn’t already exist.
+ * Inserts a timeline element at the beginning of the chat view if it doesn't already exist.
  */
 function insertTimelineIfNotExists() {
   const chatView = document.querySelector("#chat-view");
@@ -1946,6 +1946,11 @@ bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
 const bubbleButton = document.createElement("button");
 bubbleButton.classList.add("eva-bubble-button");
 
+// --- Добавляю ripple слой ---
+const bubbleRipple = document.createElement("div");
+bubbleRipple.classList.add("eva-bubble-ripple");
+bubbleButton.appendChild(bubbleRipple);
+
 // 4) Add an image to the bubble button
 const chatbotButtonLogo = document.createElement("img");
 chatbotButtonLogo.classList.add("chatbot-button-logo");
@@ -1976,155 +1981,141 @@ let userInteracted = false;
 // Add CSS styles for effects
 const style = document.createElement('style');
 style.textContent = `
-/* Ripple wave effect based on existing hover */
-@keyframes eva-ripple-wave {
-  0% {
-    transform: scale(1.05);
-    box-shadow: 0 0px 20px 0px #bdccff;
-    border: 1px solid #e0e7ff;
-  }
-  50% {
-    transform: scale(1.15);
-    box-shadow: 0 0px 30px 5px #bdccff;
-  }
-  100% {
-    transform: scale(1.05);
-    box-shadow: 0 0px 20px 0px #bdccff;
-    border: 1px solid #e0e7ff;
-  }
+/* Новый ripple слой */
+.eva-bubble-ripple {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 120px;
+  height: 120px;
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(circle, #b5cfff 0%, transparent 70%);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.7);
+  z-index: 1;
+}
+.eva-bubble-ripple.eva-ripple-animate {
+  animation: eva-ripple-center 1.2s ease-out;
+}
+@keyframes eva-ripple-center {
+  0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.7); }
+  80% { opacity: 0.3; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
 }
 
-.eva-bubble-button.eva-ripple {
-  animation: eva-ripple-wave 1.2s ease-in-out;
-}
+.eva-bubble-button { position: relative; overflow: visible; }
 
-/* Tooltip styles with smooth animations */
+/* Tooltip/чат-бабл по центру */
 .eva-attention-tooltip {
   position: absolute;
-  bottom: calc(100% + 15px);
-  right: 0;
-  background: #ffffff;
-  border: 1px solid rgb(219, 224, 255);
-  border-radius: 16px;
-  padding: 16px 20px;
-  box-shadow: 0 8px 25px rgba(70, 70, 70, 0.15);
+  left: 50%;
+  bottom: calc(100% + 18px);
+  transform: translateX(-50%) scale(0.95);
+  background: #fff;
+  border-radius: 18px;
+  padding: 12px 18px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
   min-width: 180px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
+  font-size: 1.1rem;
+  font-family: inherit;
+  color: #222;
   opacity: 0;
-  transform: translateY(10px) scale(0.9);
-  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
   z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-
-.eva-attention-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  right: 24px;
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid #ffffff;
-}
-
-.eva-attention-tooltip::before {
-  content: '';
-  position: absolute;
-  top: calc(100% + 1px);
-  right: 23px;
-  width: 0;
-  height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 9px solid rgb(219, 224, 255);
-  z-index: -1;
-}
-
 .eva-attention-tooltip.eva-show {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translateX(-50%) scale(1);
+  pointer-events: auto;
 }
-
-/* Typing dots animation - IMPROVED */
-.eva-typing-dots {
+.eva-attention-tooltip .eva-typing-dots {
   display: flex;
   gap: 3px;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   height: 20px;
+  margin-bottom: 2px;
 }
-
 .eva-typing-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #6366f1;
-  animation: eva-typing-bounce 1.4s infinite ease-in-out both;
+  background: #b5cfff;
+  animation: eva-typing-bounce 1.2s infinite;
 }
-
-.eva-typing-dot:nth-child(1) { animation-delay: -0.32s; }
-.eva-typing-dot:nth-child(2) { animation-delay: -0.16s; }
-.eva-typing-dot:nth-child(3) { animation-delay: 0s; }
-
+.eva-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.eva-typing-dot:nth-child(3) { animation-delay: 0.4s; }
 @keyframes eva-typing-bounce {
-  0%, 80%, 100% {
-    transform: translateY(0) scale(0.8);
-    opacity: 0.4;
-  }
-  40% {
-    transform: translateY(-8px) scale(1);
-    opacity: 1;
-  }
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-4px); }
 }
-
 .eva-tooltip-message {
   display: none;
   line-height: 1.4;
   opacity: 0;
-  transform: translateY(5px);
-  transition: all 0.3s ease;
+  font-size: 1.08rem;
+  font-family: inherit;
+  font-weight: 400;
+  text-align: center;
+  transition: opacity 0.3s, transform 0.3s;
 }
-
 .eva-attention-tooltip.eva-show-message .eva-typing-dots {
   opacity: 0;
   transform: translateY(-5px);
-  transition: all 0.3s ease;
+  transition: all 0.3s;
 }
-
 .eva-attention-tooltip.eva-show-message .eva-tooltip-message {
   display: block;
   opacity: 1;
   transform: translateY(0);
 }
+.eva-attention-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid #fff;
+}
 `;
 document.head.appendChild(style);
 
-// Function to create tooltip
+// --- Исправленный ripple ---
+function triggerRipple() {
+  if (userInteracted) return;
+  bubbleRipple.classList.remove('eva-ripple-animate');
+  void bubbleRipple.offsetWidth; // force reflow
+  bubbleRipple.classList.add('eva-ripple-animate');
+  setTimeout(() => {
+    bubbleRipple.classList.remove('eva-ripple-animate');
+  }, 1200);
+}
+
+// --- Tooltip/чат-бабл ---
 function createTooltip() {
   tooltipElement = document.createElement('div');
   tooltipElement.classList.add('eva-attention-tooltip');
   tooltipElement.innerHTML = `
     <div class="eva-typing-dots">
-      <div class="eva-typing-dot"></div>
-      <div class="eva-typing-dot"></div>
-      <div class="eva-typing-dot"></div>
+      <span class="eva-typing-dot"></span>
+      <span class="eva-typing-dot"></span>
+      <span class="eva-typing-dot"></span>
     </div>
     <div class="eva-tooltip-message">Hi! Need any help?</div>
   `;
-  
-  // Insert tooltip before the button (so it appears above)
-  bubbleButtonWrapper.insertBefore(tooltipElement, bubbleButton);
-  
-  // Show tooltip with typing animation
+  bubbleButtonWrapper.appendChild(tooltipElement);
   requestAnimationFrame(() => {
     tooltipElement.classList.add('eva-show');
   });
-  
-  // After 2 seconds, smoothly transition to message
   setTimeout(() => {
     if (tooltipElement && !userInteracted) {
       tooltipElement.classList.add('eva-show-message');
