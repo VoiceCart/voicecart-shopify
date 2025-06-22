@@ -1938,6 +1938,103 @@ function openCancelChatModal() {
   });
 }
 
+// === Bubble Attention & Hint Logic ===
+function setupEvaBubbleAttention() {
+  const wrapper = document.querySelector('.eva-bubble-button-wrapper');
+  const bubble = wrapper.querySelector('.eva-bubble-button');
+  if (!wrapper || !bubble) return;
+
+  // --- Create wave and hint elements if not present ---
+  let wave = wrapper.querySelector('.eva-bubble-wave');
+  if (!wave) {
+    wave = document.createElement('div');
+    wave.className = 'eva-bubble-wave';
+    wrapper.appendChild(wave);
+  }
+  let hint = wrapper.querySelector('.eva-bubble-hint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.className = 'eva-bubble-hint invisible';
+    wrapper.appendChild(hint);
+  }
+
+  // --- State ---
+  let inactivityTimer = null;
+  let waveTimeout = null;
+  let hintTimeout = null;
+  let hintStage = 0; // 0: hidden, 1: typing, 2: text
+
+  // --- Reset all effects ---
+  function resetBubbleEffects() {
+    wave.classList.remove('active');
+    hint.classList.add('invisible');
+    hint.classList.remove('visible');
+    hint.innerHTML = '';
+    hintStage = 0;
+    clearTimeout(waveTimeout);
+    clearTimeout(hintTimeout);
+  }
+
+  // --- Show wave effect ---
+  function showWave() {
+    wave.classList.remove('active');
+    // restart animation
+    void wave.offsetWidth;
+    wave.classList.add('active');
+  }
+
+  // --- Show hint (typing, then text) ---
+  function showHint() {
+    hint.classList.remove('invisible');
+    hint.classList.add('visible');
+    hint.innerHTML = '<span class="eva-bubble-typing">' +
+      '<span class="eva-bubble-dot"></span>' +
+      '<span class="eva-bubble-dot"></span>' +
+      '<span class="eva-bubble-dot"></span>' +
+      '</span>';
+    hintStage = 1;
+    // Через 1.2 сек показать текст
+    setTimeout(() => {
+      if (hintStage !== 1) return;
+      hint.innerHTML =
+        '<span style="margin-right:0.7rem;">🤖</span>' +
+        'Need help? I\'m here for you!';
+      hintStage = 2;
+    }, 1200);
+  }
+
+  // --- Inactivity logic ---
+  function startInactivityTimers() {
+    resetBubbleEffects();
+    inactivityTimer && clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      showWave();
+      waveTimeout = setTimeout(() => {
+        showHint();
+      }, 2000);
+    }, 2000);
+  }
+
+  // --- User interaction resets everything ---
+  function onUserBubbleInteraction() {
+    resetBubbleEffects();
+    startInactivityTimers();
+  }
+
+  // --- Attach listeners ---
+  [bubble, wrapper].forEach(el => {
+    el.addEventListener('mouseenter', onUserBubbleInteraction);
+    el.addEventListener('mousemove', onUserBubbleInteraction);
+    el.addEventListener('mousedown', onUserBubbleInteraction);
+    el.addEventListener('touchstart', onUserBubbleInteraction, {passive:true});
+    el.addEventListener('focus', onUserBubbleInteraction);
+    el.addEventListener('click', onUserBubbleInteraction);
+  });
+
+  // --- Start timers initially ---
+  startInactivityTimers();
+}
+
 // ===================== Initialization Code =====================
 document.addEventListener("DOMContentLoaded", async () => {
 // 1) Fetch the user's preferred language or set "en" as fallback
@@ -1973,4 +2070,5 @@ bubbleButtonWrapper.classList.add("fade-in");
 document.body.appendChild(bubbleButtonWrapper);
 // 7) Now init your UI event listeners
 await initListeners(navigationEngine, messageFactory);
+setupEvaBubbleAttention();
 });
