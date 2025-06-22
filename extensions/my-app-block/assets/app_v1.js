@@ -1592,7 +1592,10 @@ function disableInputBar(messageType = "default") {
     cancelButton.style.pointerEvents = "all";
     cancelButton.style.cursor = "pointer";
     sendButton.classList.add("invisible");
-    voiceButton.classList.add("invisible");
+    voiceButton.classList.add("invisible", "greyed-out");
+    voiceButton.style.pointerEvents = "none";
+    voiceButton.style.cursor = "not-allowed";
+    if (stopVoiceCycle) stopVoiceCycle();
   }
 
   if (!cancelButton.dataset.listenerAttached) {
@@ -1615,14 +1618,21 @@ function enableInputBar() {
 
   cancelButton.classList.add("invisible");
   sendButton.classList.remove("invisible");
-  voiceButton.classList.remove("invisible");
-
+  voiceButton.classList.remove("invisible", "greyed-out");
+  
+  // Only enable voice button if no audio is playing
+  if (!currentAudio && isVoiceMode && !isProcessing && window.startVoiceCycle) {
+    voiceButton.style.pointerEvents = "all";
+    voiceButton.style.cursor = "pointer";
+    window.startVoiceCycle(); // Ensure voice cycle resumes when input bar is re-enabled
+  } else {
+    voiceButton.style.pointerEvents = "none";
+    voiceButton.style.cursor = "not-allowed";
+  }
   inputBar.style.opacity = "1";
   inputBar.style.pointerEvents = "all";
   inputField.removeAttribute("readonly");
   inputField.style.cursor = "text";
-  voiceButton.style.pointerEvents = "all";
-  voiceButton.style.cursor = "pointer";
   cancelButton.style.pointerEvents = "none";
   cancelButton.style.cursor = "not-allowed";
 }
@@ -1937,20 +1947,12 @@ fetchedKey && languageMap[fetchedKey] ? fetchedKey : "en";
 currentLanguage = languageMap[currentLanguageKey];
 console.log("Current language key:", currentLanguageKey);
 console.log("Current language:", currentLanguage);
-
 // 2) Create bubble button wrapper
 const bubbleButtonWrapper = document.createElement("div");
 bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
-
 // 3) Create the bubble button
 const bubbleButton = document.createElement("button");
 bubbleButton.classList.add("eva-bubble-button");
-
-// --- Добавляю ripple слой ---
-const bubbleRipple = document.createElement("div");
-bubbleRipple.classList.add("eva-bubble-ripple");
-bubbleButton.appendChild(bubbleRipple);
-
 // 4) Add an image to the bubble button
 const chatbotButtonLogo = document.createElement("img");
 chatbotButtonLogo.classList.add("chatbot-button-logo");
@@ -1959,263 +1961,16 @@ chatbotButtonLogo.src = document
  .getAttribute("chatbot-logo");
 chatbotButtonLogo.alt = "Eva chat assistant";
 bubbleButton.appendChild(chatbotButtonLogo);
-
 // 5) Import and append your chat template (includes footer & dropdown)
 const chatClone = document.importNode(
 document.querySelector("#eva-assistant-chat-template").content,
 true
  );
 bubbleButtonWrapper.appendChild(chatClone);
-
 // 6) Finally append the bubble button to the wrapper
 bubbleButtonWrapper.appendChild(bubbleButton);
 bubbleButtonWrapper.classList.add("fade-in");
 document.body.appendChild(bubbleButtonWrapper);
-
-// ===================== ATTENTION EFFECTS =====================
-let rippleTimeout;
-let tooltipTimeout;
-let tooltipElement;
-let userInteracted = false;
-
-// Add CSS styles for effects
-const style = document.createElement('style');
-style.textContent = `
-/* Новый ripple слой */
-.eva-bubble-ripple {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 120px;
-  height: 120px;
-  pointer-events: none;
-  border-radius: 50%;
-  background: radial-gradient(circle, #b5cfff 0%, transparent 70%);
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.7);
-  z-index: 1;
-}
-.eva-bubble-ripple.eva-ripple-animate {
-  animation: eva-ripple-center 1.2s ease-out;
-}
-@keyframes eva-ripple-center {
-  0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.7); }
-  80% { opacity: 0.3; transform: translate(-50%, -50%) scale(1.2); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
-}
-
-.eva-bubble-button { position: relative; overflow: visible; }
-
-/* Tooltip/чат-бабл по центру */
-.eva-attention-tooltip {
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 18px);
-  transform: translateX(-50%) scale(0.95);
-  background: #fff;
-  border-radius: 18px;
-  padding: 12px 18px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
-  min-width: 180px;
-  font-size: 1.1rem;
-  font-family: inherit;
-  color: #222;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s, transform 0.3s;
-  z-index: 10000;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-.eva-attention-tooltip.eva-show {
-  opacity: 1;
-  transform: translateX(-50%) scale(1);
-  pointer-events: auto;
-}
-.eva-attention-tooltip .eva-typing-dots {
-  display: flex;
-  gap: 3px;
-  justify-content: center;
-  align-items: center;
-  height: 20px;
-  margin-bottom: 2px;
-}
-.eva-typing-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #b5cfff;
-  animation: eva-typing-bounce 1.2s infinite;
-}
-.eva-typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.eva-typing-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes eva-typing-bounce {
-  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
-  40% { opacity: 1; transform: translateY(-4px); }
-}
-.eva-tooltip-message {
-  display: none;
-  line-height: 1.4;
-  opacity: 0;
-  font-size: 1.08rem;
-  font-family: inherit;
-  font-weight: 400;
-  text-align: center;
-  transition: opacity 0.3s, transform 0.3s;
-}
-.eva-attention-tooltip.eva-show-message .eva-typing-dots {
-  opacity: 0;
-  transform: translateY(-5px);
-  transition: all 0.3s;
-}
-.eva-attention-tooltip.eva-show-message .eva-tooltip-message {
-  display: block;
-  opacity: 1;
-  transform: translateY(0);
-}
-.eva-attention-tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid #fff;
-}
-`;
-document.head.appendChild(style);
-
-// --- Исправленный ripple ---
-function triggerRipple() {
-  if (userInteracted) return;
-  bubbleRipple.classList.remove('eva-ripple-animate');
-  void bubbleRipple.offsetWidth; // force reflow
-  bubbleRipple.classList.add('eva-ripple-animate');
-  setTimeout(() => {
-    bubbleRipple.classList.remove('eva-ripple-animate');
-  }, 1200);
-}
-
-// --- Tooltip/чат-бабл ---
-function createTooltip() {
-  tooltipElement = document.createElement('div');
-  tooltipElement.classList.add('eva-attention-tooltip');
-  tooltipElement.innerHTML = `
-    <div class="eva-typing-dots">
-      <span class="eva-typing-dot"></span>
-      <span class="eva-typing-dot"></span>
-      <span class="eva-typing-dot"></span>
-    </div>
-    <div class="eva-tooltip-message">Hi! Need any help?</div>
-  `;
-  bubbleButtonWrapper.appendChild(tooltipElement);
-  requestAnimationFrame(() => {
-    tooltipElement.classList.add('eva-show');
-  });
-  setTimeout(() => {
-    if (tooltipElement && !userInteracted) {
-      tooltipElement.classList.add('eva-show-message');
-    }
-  }, 2000);
-}
-
-// Function to trigger ripple effect
-function triggerRipple() {
-  if (userInteracted) return;
-  
-  bubbleButton.classList.remove('eva-ripple');
-  requestAnimationFrame(() => {
-    bubbleButton.classList.add('eva-ripple');
-  });
-  
-  // Remove class after animation
-  setTimeout(() => {
-    bubbleButton.classList.remove('eva-ripple');
-  }, 1200);
-}
-
-// Function to remove tooltip
-function removeTooltip() {
-  if (tooltipElement) {
-    tooltipElement.classList.remove('eva-show', 'eva-show-message');
-    setTimeout(() => {
-      if (tooltipElement && tooltipElement.parentNode) {
-        tooltipElement.remove();
-        tooltipElement = null;
-      }
-    }, 350);
-  }
-}
-
-// Function to start attention sequence
-function startAttentionSequence() {
-  if (userInteracted) return;
-  
-  // Clear any existing timeouts
-  clearTimeout(rippleTimeout);
-  clearTimeout(tooltipTimeout);
-  
-  // First ripple after 3 seconds
-  rippleTimeout = setTimeout(() => {
-    if (!userInteracted) {
-      triggerRipple();
-      
-      // Tooltip after another 3 seconds
-      tooltipTimeout = setTimeout(() => {
-        if (!userInteracted) {
-          createTooltip();
-        }
-      }, 3000);
-    }
-  }, 3000);
-}
-
-// Function to stop all attention effects
-function stopAttentionEffects() {
-  userInteracted = true;
-  clearTimeout(rippleTimeout);
-  clearTimeout(tooltipTimeout);
-  removeTooltip();
-  bubbleButton.classList.remove('eva-ripple');
-}
-
-// Event listeners for user interaction
-bubbleButton.addEventListener('click', stopAttentionEffects);
-bubbleButton.addEventListener('mouseenter', stopAttentionEffects);
-
-// Reset attention sequence on page activity
-let activityTimeout;
-document.addEventListener('mousemove', () => {
-  if (!userInteracted) {
-    clearTimeout(activityTimeout);
-    clearTimeout(rippleTimeout);
-    clearTimeout(tooltipTimeout);
-    
-    activityTimeout = setTimeout(() => {
-      startAttentionSequence();
-    }, 1000);
-  }
-});
-
-document.addEventListener('scroll', () => {
-  if (!userInteracted) {
-    clearTimeout(activityTimeout);
-    clearTimeout(rippleTimeout);
-    clearTimeout(tooltipTimeout);
-    
-    activityTimeout = setTimeout(() => {
-      startAttentionSequence();
-    }, 1000);
-  }
-});
-
-// Start the attention sequence
-startAttentionSequence();
-
 // 7) Now init your UI event listeners
 await initListeners(navigationEngine, messageFactory);
 });
