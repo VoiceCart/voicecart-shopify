@@ -1976,34 +1976,29 @@ let userInteracted = false;
 // Add CSS styles for effects
 const style = document.createElement('style');
 style.textContent = `
-/* Ripple wave effect */
+/* Ripple wave effect based on existing hover */
 @keyframes eva-ripple-wave {
   0% {
-    transform: scale(1);
-    opacity: 0.6;
+    transform: scale(1.05);
+    box-shadow: 0 0px 20px 0px #bdccff;
+    border: 1px solid #e0e7ff;
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0px 30px 5px #bdccff;
   }
   100% {
-    transform: scale(2.2);
-    opacity: 0;
+    transform: scale(1.05);
+    box-shadow: 0 0px 20px 0px #bdccff;
+    border: 1px solid #e0e7ff;
   }
 }
 
-.eva-bubble-button.eva-ripple::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  background: rgba(189, 204, 255, 0.4);
-  transform: translate(-50%, -50%) scale(1);
-  animation: eva-ripple-wave 2s ease-out;
-  pointer-events: none;
-  z-index: -1;
+.eva-bubble-button.eva-ripple {
+  animation: eva-ripple-wave 1.2s ease-in-out;
 }
 
-/* Tooltip styles */
+/* Tooltip styles with smooth animations */
 .eva-attention-tooltip {
   position: absolute;
   bottom: calc(100% + 15px);
@@ -2011,15 +2006,15 @@ style.textContent = `
   background: #ffffff;
   border: 1px solid rgb(219, 224, 255);
   border-radius: 16px;
-  padding: 14px 18px;
+  padding: 16px 20px;
   box-shadow: 0 8px 25px rgba(70, 70, 70, 0.15);
-  min-width: 160px;
+  min-width: 180px;
   font-size: 14px;
   font-weight: 500;
   color: #374151;
   opacity: 0;
-  transform: translateY(8px) scale(0.95);
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(10px) scale(0.9);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
   z-index: 10000;
 }
@@ -2054,20 +2049,20 @@ style.textContent = `
   transform: translateY(0) scale(1);
 }
 
-/* Typing dots animation */
+/* Typing dots animation - IMPROVED */
 .eva-typing-dots {
   display: flex;
-  gap: 4px;
-  justify-content: center;
+  gap: 3px;
+  justify-content: flex-start;
   align-items: center;
   height: 20px;
 }
 
 .eva-typing-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: #9ca3af;
+  background: #6366f1;
   animation: eva-typing-bounce 1.4s infinite ease-in-out both;
 }
 
@@ -2077,11 +2072,11 @@ style.textContent = `
 
 @keyframes eva-typing-bounce {
   0%, 80%, 100% {
-    transform: scale(0.8);
-    opacity: 0.5;
+    transform: translateY(0) scale(0.8);
+    opacity: 0.4;
   }
   40% {
-    transform: scale(1.1);
+    transform: translateY(-8px) scale(1);
     opacity: 1;
   }
 }
@@ -2089,14 +2084,21 @@ style.textContent = `
 .eva-tooltip-message {
   display: none;
   line-height: 1.4;
+  opacity: 0;
+  transform: translateY(5px);
+  transition: all 0.3s ease;
 }
 
 .eva-attention-tooltip.eva-show-message .eva-typing-dots {
-  display: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: all 0.3s ease;
 }
 
 .eva-attention-tooltip.eva-show-message .eva-tooltip-message {
   display: block;
+  opacity: 1;
+  transform: translateY(0);
 }
 `;
 document.head.appendChild(style);
@@ -2122,12 +2124,12 @@ function createTooltip() {
     tooltipElement.classList.add('eva-show');
   });
   
-  // After 2.5 seconds, show the message
+  // After 2 seconds, smoothly transition to message
   setTimeout(() => {
     if (tooltipElement && !userInteracted) {
       tooltipElement.classList.add('eva-show-message');
     }
-  }, 2500);
+  }, 2000);
 }
 
 // Function to trigger ripple effect
@@ -2142,7 +2144,7 @@ function triggerRipple() {
   // Remove class after animation
   setTimeout(() => {
     bubbleButton.classList.remove('eva-ripple');
-  }, 2000);
+  }, 1200);
 }
 
 // Function to remove tooltip
