@@ -1348,7 +1348,7 @@ export default function DownloadProducts() {
             id="faq-textarea"
             value={faqText}
             onChange={(e) => setFaqText(e.target.value)}
-            placeholder="Enter your FAQ content here..."
+            placeholder={`Add FAQ content for the bot in Q&A format.\n\nQuestion: ...\nAnswer: ...`}
             style={{
               width: "100%",
               minHeight: "300px",
