@@ -1940,9 +1940,13 @@ function openCancelChatModal() {
 
 // === Bubble Attention & Hint Logic ===
 function setupEvaBubbleAttention() {
+  console.log('[EvaBubble] setupEvaBubbleAttention called');
   const wrapper = document.querySelector('.eva-bubble-button-wrapper');
-  const bubble = wrapper.querySelector('.eva-bubble-button');
-  if (!wrapper || !bubble) return;
+  const bubble = wrapper ? wrapper.querySelector('.eva-bubble-button') : null;
+  if (!wrapper || !bubble) {
+    console.error('[EvaBubble] wrapper or bubble not found', {wrapper, bubble});
+    return;
+  }
 
   // --- Create wave and hint elements if not present ---
   let wave = wrapper.querySelector('.eva-bubble-wave');
@@ -1950,12 +1954,14 @@ function setupEvaBubbleAttention() {
     wave = document.createElement('div');
     wave.className = 'eva-bubble-wave';
     wrapper.appendChild(wave);
+    console.log('[EvaBubble] .eva-bubble-wave created');
   }
   let hint = wrapper.querySelector('.eva-bubble-hint');
   if (!hint) {
     hint = document.createElement('div');
     hint.className = 'eva-bubble-hint invisible';
     wrapper.appendChild(hint);
+    console.log('[EvaBubble] .eva-bubble-hint created');
   }
 
   // --- State ---
@@ -1973,14 +1979,16 @@ function setupEvaBubbleAttention() {
     hintStage = 0;
     clearTimeout(waveTimeout);
     clearTimeout(hintTimeout);
+    // debug
+    // console.log('[EvaBubble] Effects reset');
   }
 
   // --- Show wave effect ---
   function showWave() {
     wave.classList.remove('active');
-    // restart animation
     void wave.offsetWidth;
     wave.classList.add('active');
+    console.log('[EvaBubble] Wave animation triggered');
   }
 
   // --- Show hint (typing, then text) ---
@@ -1993,13 +2001,14 @@ function setupEvaBubbleAttention() {
       '<span class="eva-bubble-dot"></span>' +
       '</span>';
     hintStage = 1;
-    // Через 1.2 сек показать текст
+    console.log('[EvaBubble] Hint typing dots shown');
     setTimeout(() => {
       if (hintStage !== 1) return;
       hint.innerHTML =
         '<span style="margin-right:0.7rem;">🤖</span>' +
         'Need help? I\'m here for you!';
       hintStage = 2;
+      console.log('[EvaBubble] Hint text shown');
     }, 1200);
   }
 
@@ -2013,12 +2022,14 @@ function setupEvaBubbleAttention() {
         showHint();
       }, 2000);
     }, 2000);
+    console.log('[EvaBubble] Inactivity timers started');
   }
 
   // --- User interaction resets everything ---
   function onUserBubbleInteraction() {
     resetBubbleEffects();
     startInactivityTimers();
+    // console.log('[EvaBubble] User interaction, timers reset');
   }
 
   // --- Attach listeners ---
@@ -2033,6 +2044,15 @@ function setupEvaBubbleAttention() {
 
   // --- Start timers initially ---
   startInactivityTimers();
+  // debug: show in DOM
+  setTimeout(() => {
+    if (!document.querySelector('.eva-bubble-wave')) {
+      console.error('[EvaBubble] .eva-bubble-wave NOT in DOM');
+    }
+    if (!document.querySelector('.eva-bubble-hint')) {
+      console.error('[EvaBubble] .eva-bubble-hint NOT in DOM');
+    }
+  }, 1000);
 }
 
 // ===================== Initialization Code =====================
