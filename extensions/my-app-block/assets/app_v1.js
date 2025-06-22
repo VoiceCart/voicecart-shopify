@@ -1929,45 +1929,246 @@ function openCancelChatModal() {
 }
 
 // ===================== Initialization Code =====================
-
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1) Fetch the user's preferred language or set "en" as fallback
-  let fetchedKey = await fetchLanguage();
-  currentLanguageKey =
-    fetchedKey && languageMap[fetchedKey] ? fetchedKey : "en";
-  currentLanguage = languageMap[currentLanguageKey];
-  console.log("Current language key:", currentLanguageKey);
-  console.log("Current language:", currentLanguage);
+// 1) Fetch the user's preferred language or set "en" as fallback
+let fetchedKey = await fetchLanguage();
+currentLanguageKey =
+fetchedKey && languageMap[fetchedKey] ? fetchedKey : "en";
+currentLanguage = languageMap[currentLanguageKey];
+console.log("Current language key:", currentLanguageKey);
+console.log("Current language:", currentLanguage);
 
-  // 2) Create bubble button wrapper
-  const bubbleButtonWrapper = document.createElement("div");
-  bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
+// 2) Create bubble button wrapper
+const bubbleButtonWrapper = document.createElement("div");
+bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
 
-  // 3) Create the bubble button
-  const bubbleButton = document.createElement("button");
-  bubbleButton.classList.add("eva-bubble-button");
+// 3) Create the bubble button
+const bubbleButton = document.createElement("button");
+bubbleButton.classList.add("eva-bubble-button");
 
-  // 4) Add an image to the bubble button
-  const chatbotButtonLogo = document.createElement("img");
-  chatbotButtonLogo.classList.add("chatbot-button-logo");
-  chatbotButtonLogo.src = document
-    .getElementById("chatbot-logo")
-    .getAttribute("chatbot-logo");
-  chatbotButtonLogo.alt = "Eva chat assistant";
-  bubbleButton.appendChild(chatbotButtonLogo);
+// 4) Add an image to the bubble button
+const chatbotButtonLogo = document.createElement("img");
+chatbotButtonLogo.classList.add("chatbot-button-logo");
+chatbotButtonLogo.src = document
+ .getElementById("chatbot-logo")
+ .getAttribute("chatbot-logo");
+chatbotButtonLogo.alt = "Eva chat assistant";
+bubbleButton.appendChild(chatbotButtonLogo);
 
-  // 5) Import and append your chat template (includes footer & dropdown)
-  const chatClone = document.importNode(
-    document.querySelector("#eva-assistant-chat-template").content,
-    true
-  );
-  bubbleButtonWrapper.appendChild(chatClone);
+// 5) Import and append your chat template (includes footer & dropdown)
+const chatClone = document.importNode(
+document.querySelector("#eva-assistant-chat-template").content,
+true
+ );
+bubbleButtonWrapper.appendChild(chatClone);
 
-  // 6) Finally append the bubble button to the wrapper
-  bubbleButtonWrapper.appendChild(bubbleButton);
-  bubbleButtonWrapper.classList.add("fade-in");
-  document.body.appendChild(bubbleButtonWrapper);
+// 6) Finally append the bubble button to the wrapper
+bubbleButtonWrapper.appendChild(bubbleButton);
+bubbleButtonWrapper.classList.add("fade-in");
+document.body.appendChild(bubbleButtonWrapper);
 
-  // 7) Now init your UI event listeners
-  await initListeners(navigationEngine, messageFactory);
+// ===================== ATTENTION EFFECTS =====================
+let rippleTimeout;
+let tooltipTimeout;
+let tooltipElement;
+let userInteracted = false;
+
+// Add CSS styles for effects
+const style = document.createElement('style');
+style.textContent = `
+@keyframes ripple-wave {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+.eva-bubble-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(102, 126, 234, 0.3);
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.eva-bubble-button.ripple::before {
+  animation: ripple-wave 1.5s ease-out;
+}
+
+.eva-tooltip {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  background: white;
+  border-radius: 18px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  max-width: 200px;
+  font-size: 14px;
+  color: #333;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.eva-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid white;
+}
+
+.eva-tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.eva-tooltip .typing-dots {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  align-items: center;
+}
+
+.eva-tooltip .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #999;
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.eva-tooltip .dot:nth-child(1) { animation-delay: -0.32s; }
+.eva-tooltip .dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.eva-tooltip .message {
+  display: none;
+}
+
+.eva-tooltip.show-message .typing-dots {
+  display: none;
+}
+
+.eva-tooltip.show-message .message {
+  display: block;
+}
+`;
+document.head.appendChild(style);
+
+// Function to create tooltip
+function createTooltip() {
+  tooltipElement = document.createElement('div');
+  tooltipElement.classList.add('eva-tooltip');
+  tooltipElement.innerHTML = `
+    <div class="typing-dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+    <div class="message">Hi! Need any help?</div>
+  `;
+  bubbleButtonWrapper.appendChild(tooltipElement);
+  
+  // Show tooltip with typing animation
+  setTimeout(() => {
+    tooltipElement.classList.add('show');
+  }, 100);
+  
+  // After 2 seconds, show the message
+  setTimeout(() => {
+    if (tooltipElement && !userInteracted) {
+      tooltipElement.classList.add('show-message');
+    }
+  }, 2000);
+}
+
+// Function to trigger ripple effect
+function triggerRipple() {
+  if (userInteracted) return;
+  
+  bubbleButton.classList.remove('ripple');
+  setTimeout(() => {
+    bubbleButton.classList.add('ripple');
+  }, 10);
+}
+
+// Function to remove tooltip
+function removeTooltip() {
+  if (tooltipElement) {
+    tooltipElement.remove();
+    tooltipElement = null;
+  }
+}
+
+// Function to start attention sequence
+function startAttentionSequence() {
+  if (userInteracted) return;
+  
+  // First ripple after 3 seconds
+  rippleTimeout = setTimeout(() => {
+    triggerRipple();
+    
+    // Tooltip after another 3 seconds
+    tooltipTimeout = setTimeout(() => {
+      if (!userInteracted) {
+        createTooltip();
+      }
+    }, 3000);
+  }, 3000);
+}
+
+// Function to stop all attention effects
+function stopAttentionEffects() {
+  userInteracted = true;
+  clearTimeout(rippleTimeout);
+  clearTimeout(tooltipTimeout);
+  removeTooltip();
+  bubbleButton.classList.remove('ripple');
+}
+
+// Event listeners for user interaction
+bubbleButton.addEventListener('click', stopAttentionEffects);
+bubbleButton.addEventListener('mouseenter', stopAttentionEffects);
+document.addEventListener('mousemove', () => {
+  if (!userInteracted) {
+    // Reset timer on mouse movement
+    clearTimeout(rippleTimeout);
+    clearTimeout(tooltipTimeout);
+    startAttentionSequence();
+  }
+});
+
+// Start the attention sequence
+startAttentionSequence();
+
+// 7) Now init your UI event listeners
+await initListeners(navigationEngine, messageFactory);
 });
