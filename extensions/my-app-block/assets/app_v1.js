@@ -2117,20 +2117,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       
-      // Добавляем hover эффект
-      bubbleButton.style.transform = 'scale(1.05)';
-      bubbleButton.style.boxShadow = '0 0px 20px 0px #bdccff';
-      bubbleButton.style.border = '1px solid #e0e7ff';
+      // Добавляем анимацию волны к кнопке
+      bubbleButton.style.animation = 'pulse-wave 0.5s ease-out';
       
-      // Убираем эффект через полсекунды
+      // Добавляем CSS анимацию волны если её ещё нет
+      if (!document.querySelector('.pulse-wave-styles')) {
+        const waveStyle = document.createElement('style');
+        waveStyle.classList.add('pulse-wave-styles');
+        waveStyle.textContent = `
+          @keyframes pulse-wave {
+            0% {
+              box-shadow: 0 0 0 0 rgba(189, 204, 255, 0.7);
+            }
+            70% {
+              box-shadow: 0 0 0 20px rgba(189, 204, 255, 0);
+            }
+            100% {
+              box-shadow: 0 0 0 0 rgba(189, 204, 255, 0);
+            }
+          }
+        `;
+        document.head.appendChild(waveStyle);
+      }
+      
+      // Убираем анимацию через полсекунды
       setTimeout(() => {
-        bubbleButton.style.transform = '';
-        bubbleButton.style.boxShadow = '';
-        bubbleButton.style.border = '';
-      }, 500);
+        bubbleButton.style.animation = '';
+      }, 250);
       
       pulseCount++;
-    }, 1000); // Пульс каждую секунду (0.5 сек эффект + 0.5 сек пауза)
+    }, 500); // Пульс каждую секунду (0.5 сек эффект + 0.5 сек пауза)
   }
 
   function resetPulseTimer() {
