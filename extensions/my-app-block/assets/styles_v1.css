@@ -29,6 +29,15 @@
   overflow: auto;
 }
 
+.eva-chat-bubble-text {
+    font-family: "Inter", serif !important;
+    color: #181818;
+    font-size: 12px;
+    flex: 1;
+    margin: 0;
+    padding-right: 30px;
+}
+
 /* Chat main area */
 #eva-chat-main {
   flex-grow: 1;

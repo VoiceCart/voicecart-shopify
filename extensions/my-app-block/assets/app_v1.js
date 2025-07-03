@@ -1976,21 +1976,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   let pulseTimeout;
   let pulseInterval;
   let pulseCount = 0;
-  const maxPulses = 3;
+  const maxPulses = 2;
   let chatBubbleVisible = false;
 
-  // Создаем чат бабл
+  // Создаем чат бабл с пиздатой анимацией
   function createChatBubble() {
     const chatBubble = document.createElement('div');
     chatBubble.classList.add('eva-chat-bubble');
     chatBubble.innerHTML = `
       <div class="eva-chat-bubble-content">
-        <span class="eva-chat-bubble-text">If you have any questions I'm here to help! 💬</span>
+        <span class="eva-chat-bubble-text">If you have any questions, I'm here to help! 💬</span>
         <button class="eva-chat-bubble-close">×</button>
       </div>
     `;
     
-    // Добавляем стили
+    // Добавляем стили с нормальной анимацией
     const style = document.createElement('style');
     style.textContent = `
       .eva-chat-bubble {
@@ -2004,18 +2004,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         border: 1px solid #e5e7eb;
         min-width: 250px;
         max-width: 300px;
-        opacity: 0;
-        transform: translateY(10px) scale(0.9);
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         z-index: 9999;
-        pointer-events: none;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        
+        /* Начальное состояние - скрыт за кнопкой */
+        transform: translateX(100%) translateY(50%) scale(0.3) rotate(15deg);
+        opacity: 0;
+        transform-origin: bottom right;
+        transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
       
       .eva-chat-bubble.show {
+        /* Конечное состояние - появился */
+        transform: translateX(0) translateY(0) scale(1) rotate(0deg);
         opacity: 1;
-        transform: translateY(0) scale(1);
-        pointer-events: auto;
       }
       
       .eva-chat-bubble-content {
@@ -2023,16 +2025,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         align-items: flex-start;
         gap: 12px;
         position: relative;
-      }
-      
-      .eva-chat-bubble-text {
-        color: #1f2937;
-        font-size: 14px;
-        font-weight: 500;
-        line-height: 1.5;
-        flex: 1;
-        margin: 0;
-        padding-right: 30px;
       }
       
       .eva-chat-bubble-close {
@@ -2075,6 +2067,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         transform: rotate(45deg);
         z-index: -1;
       }
+      
+      /* Анимация скрытия */
+      .eva-chat-bubble.hide {
+        transform: translateX(100%) translateY(50%) scale(0.3) rotate(-15deg);
+        opacity: 0;
+        transition: all 0.4s cubic-bezier(0.55, 0.055, 0.675, 0.19);
+      }
     `;
     
     if (!document.querySelector('.eva-chat-bubble-styles')) {
@@ -2085,18 +2084,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Добавляем в wrapper
     bubbleButtonWrapper.appendChild(chatBubble);
     
-    // Анимируем появление
-    requestAnimationFrame(() => {
+    // Запускаем анимацию появления через небольшую задержку
+    setTimeout(() => {
       chatBubble.classList.add('show');
-    });
+    }, 0);
     
     // Обработчик закрытия
     chatBubble.querySelector('.eva-chat-bubble-close').addEventListener('click', () => {
-      chatBubble.classList.remove('show');
+      chatBubble.classList.add('hide');
       setTimeout(() => {
         chatBubble.remove();
         chatBubbleVisible = false;
-      }, 300);
+      }, 400);
     });
     
     return chatBubble;
@@ -2112,7 +2111,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           setTimeout(() => {
             createChatBubble();
             chatBubbleVisible = true;
-          }, 500);
+          }, 0);
         }
         return;
       }
@@ -2146,7 +2145,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }, 250);
       
       pulseCount++;
-    }, 500); // Пульс каждую секунду (0.5 сек эффект + 0.5 сек пауза)
+    }, 550); // Пульс каждую секунду (0.5 сек эффект + 0.5 сек пауза)
   }
 
   function resetPulseTimer() {
@@ -2154,7 +2153,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     clearInterval(pulseInterval);
     pulseTimeout = setTimeout(() => {
       startPulse();
-    }, 2000); // Начинаем пульсацию через 2 секунды бездействия
+    }, 5000); // Начинаем пульсацию через 2 секунды бездействия
   }
 
   // Отслеживаем наведение мыши
