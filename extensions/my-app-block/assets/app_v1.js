@@ -1971,6 +1971,58 @@ bubbleButtonWrapper.appendChild(chatClone);
 bubbleButtonWrapper.appendChild(bubbleButton);
 bubbleButtonWrapper.classList.add("fade-in");
 document.body.appendChild(bubbleButtonWrapper);
+
+// ===================== Auto-pulse functionality =====================
+let pulseTimeout;
+let pulseInterval;
+let pulseCount = 0;
+const maxPulses = 5;
+
+function startPulse() {
+  pulseCount = 0;
+  pulseInterval = setInterval(() => {
+    if (pulseCount >= maxPulses) {
+      clearInterval(pulseInterval);
+      return;
+    }
+    
+    // Добавляем hover эффект
+    bubbleButton.style.transform = 'scale(1.05)';
+    bubbleButton.style.boxShadow = '0 0px 20px 0px #bdccff';
+    bubbleButton.style.border = '1px solid #e0e7ff';
+    
+    // Убираем эффект через секунду
+    setTimeout(() => {
+      bubbleButton.style.transform = '';
+      bubbleButton.style.boxShadow = '';
+      bubbleButton.style.border = '';
+    }, 1000);
+    
+    pulseCount++;
+  }, 2000); // Пульс каждые 2 секунды (1 сек эффект + 1 сек пауза)
+}
+
+function resetPulseTimer() {
+  clearTimeout(pulseTimeout);
+  clearInterval(pulseInterval);
+  pulseTimeout = setTimeout(() => {
+    startPulse();
+  }, 2000); // Начинаем пульсацию через 2 секунды бездействия
+}
+
+// Отслеживаем наведение мыши
+bubbleButton.addEventListener('mouseenter', () => {
+  clearTimeout(pulseTimeout);
+  clearInterval(pulseInterval);
+});
+
+bubbleButton.addEventListener('mouseleave', () => {
+  resetPulseTimer();
+});
+
+// Запускаем таймер при загрузке
+resetPulseTimer();
+
 // 7) Now init your UI event listeners
 await initListeners(navigationEngine, messageFactory);
 });
