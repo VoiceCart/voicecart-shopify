@@ -1940,89 +1940,220 @@ function openCancelChatModal() {
 
 // ===================== Initialization Code =====================
 document.addEventListener("DOMContentLoaded", async () => {
-// 1) Fetch the user's preferred language or set "en" as fallback
-let fetchedKey = await fetchLanguage();
-currentLanguageKey =
-fetchedKey && languageMap[fetchedKey] ? fetchedKey : "en";
-currentLanguage = languageMap[currentLanguageKey];
-console.log("Current language key:", currentLanguageKey);
-console.log("Current language:", currentLanguage);
-// 2) Create bubble button wrapper
-const bubbleButtonWrapper = document.createElement("div");
-bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
-// 3) Create the bubble button
-const bubbleButton = document.createElement("button");
-bubbleButton.classList.add("eva-bubble-button");
-// 4) Add an image to the bubble button
-const chatbotButtonLogo = document.createElement("img");
-chatbotButtonLogo.classList.add("chatbot-button-logo");
-chatbotButtonLogo.src = document
- .getElementById("chatbot-logo")
- .getAttribute("chatbot-logo");
-chatbotButtonLogo.alt = "Eva chat assistant";
-bubbleButton.appendChild(chatbotButtonLogo);
-// 5) Import and append your chat template (includes footer & dropdown)
-const chatClone = document.importNode(
-document.querySelector("#eva-assistant-chat-template").content,
-true
- );
-bubbleButtonWrapper.appendChild(chatClone);
-// 6) Finally append the bubble button to the wrapper
-bubbleButtonWrapper.appendChild(bubbleButton);
-bubbleButtonWrapper.classList.add("fade-in");
-document.body.appendChild(bubbleButtonWrapper);
+  // 1) Fetch the user's preferred language or set "en" as fallback
+  let fetchedKey = await fetchLanguage();
+  currentLanguageKey =
+    fetchedKey && languageMap[fetchedKey] ? fetchedKey : "en";
+  currentLanguage = languageMap[currentLanguageKey];
+  console.log("Current language key:", currentLanguageKey);
+  console.log("Current language:", currentLanguage);
+  // 2) Create bubble button wrapper
+  const bubbleButtonWrapper = document.createElement("div");
+  bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
+  // 3) Create the bubble button
+  const bubbleButton = document.createElement("button");
+  bubbleButton.classList.add("eva-bubble-button");
+  // 4) Add an image to the bubble button
+  const chatbotButtonLogo = document.createElement("img");
+  chatbotButtonLogo.classList.add("chatbot-button-logo");
+  chatbotButtonLogo.src = document
+    .getElementById("chatbot-logo")
+    .getAttribute("chatbot-logo");
+  chatbotButtonLogo.alt = "Eva chat assistant";
+  bubbleButton.appendChild(chatbotButtonLogo);
+  // 5) Import and append your chat template (includes footer & dropdown)
+  const chatClone = document.importNode(
+    document.querySelector("#eva-assistant-chat-template").content,
+    true
+  );
+  bubbleButtonWrapper.appendChild(chatClone);
+  // 6) Finally append the bubble button to the wrapper
+  bubbleButtonWrapper.appendChild(bubbleButton);
+  bubbleButtonWrapper.classList.add("fade-in");
+  document.body.appendChild(bubbleButtonWrapper);
 
-// ===================== Auto-pulse functionality =====================
-let pulseTimeout;
-let pulseInterval;
-let pulseCount = 0;
-const maxPulses = 5;
+  // ===================== Auto-pulse functionality =====================
+  let pulseTimeout;
+  let pulseInterval;
+  let pulseCount = 0;
+  const maxPulses = 3;
+  let chatBubbleVisible = false;
 
-function startPulse() {
-  pulseCount = 0;
-  pulseInterval = setInterval(() => {
-    if (pulseCount >= maxPulses) {
-      clearInterval(pulseInterval);
-      return;
+  // Создаем чат бабл
+  function createChatBubble() {
+    const chatBubble = document.createElement('div');
+    chatBubble.classList.add('eva-chat-bubble');
+    chatBubble.innerHTML = `
+      <div class="eva-chat-bubble-content">
+        <span class="eva-chat-bubble-text">If you have any questions I'm here to help! 💬</span>
+        <button class="eva-chat-bubble-close">×</button>
+      </div>
+    `;
+    
+    // Добавляем стили
+    const style = document.createElement('style');
+    style.textContent = `
+      .eva-chat-bubble {
+        position: absolute;
+        bottom: 80px;
+        right: 20px;
+        background: white;
+        border-radius: 18px;
+        padding: 16px 20px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+        border: 1px solid #e5e7eb;
+        min-width: 250px;
+        max-width: 300px;
+        opacity: 0;
+        transform: translateY(10px) scale(0.9);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        z-index: 9999;
+        pointer-events: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      
+      .eva-chat-bubble.show {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+      }
+      
+      .eva-chat-bubble-content {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        position: relative;
+      }
+      
+      .eva-chat-bubble-text {
+        color: #1f2937;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.5;
+        flex: 1;
+        margin: 0;
+        padding-right: 30px;
+      }
+      
+      .eva-chat-bubble-close {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+        position: absolute;
+        top: -2px;
+        right: -4px;
+        font-weight: 300;
+      }
+      
+      .eva-chat-bubble-close:hover {
+        background: #f3f4f6;
+        color: #374151;
+        transform: scale(1.1);
+      }
+      
+      .eva-chat-bubble::before {
+        content: '';
+        position: absolute;
+        bottom: -9px;
+        right: 35px;
+        width: 18px;
+        height: 18px;
+        background: white;
+        border-right: 1px solid #e5e7eb;
+        border-bottom: 1px solid #e5e7eb;
+        transform: rotate(45deg);
+        z-index: -1;
+      }
+    `;
+    
+    if (!document.querySelector('.eva-chat-bubble-styles')) {
+      style.classList.add('eva-chat-bubble-styles');
+      document.head.appendChild(style);
     }
     
-    // Добавляем hover эффект
-    bubbleButton.style.transform = 'scale(1.05)';
-    bubbleButton.style.boxShadow = '0 0px 20px 0px #bdccff';
-    bubbleButton.style.border = '1px solid #e0e7ff';
+    // Добавляем в wrapper
+    bubbleButtonWrapper.appendChild(chatBubble);
     
-    // Убираем эффект через секунду
-    setTimeout(() => {
-      bubbleButton.style.transform = '';
-      bubbleButton.style.boxShadow = '';
-      bubbleButton.style.border = '';
-    }, 1000);
+    // Анимируем появление
+    requestAnimationFrame(() => {
+      chatBubble.classList.add('show');
+    });
     
-    pulseCount++;
-  }, 2000); // Пульс каждые 2 секунды (1 сек эффект + 1 сек пауза)
-}
+    // Обработчик закрытия
+    chatBubble.querySelector('.eva-chat-bubble-close').addEventListener('click', () => {
+      chatBubble.classList.remove('show');
+      setTimeout(() => {
+        chatBubble.remove();
+        chatBubbleVisible = false;
+      }, 300);
+    });
+    
+    return chatBubble;
+  }
 
-function resetPulseTimer() {
-  clearTimeout(pulseTimeout);
-  clearInterval(pulseInterval);
-  pulseTimeout = setTimeout(() => {
-    startPulse();
-  }, 2000); // Начинаем пульсацию через 2 секунды бездействия
-}
+  function startPulse() {
+    pulseCount = 0;
+    pulseInterval = setInterval(() => {
+      if (pulseCount >= maxPulses) {
+        clearInterval(pulseInterval);
+        // Показываем чат бабл после пульсаций
+        if (!chatBubbleVisible) {
+          setTimeout(() => {
+            createChatBubble();
+            chatBubbleVisible = true;
+          }, 500);
+        }
+        return;
+      }
+      
+      // Добавляем hover эффект
+      bubbleButton.style.transform = 'scale(1.05)';
+      bubbleButton.style.boxShadow = '0 0px 20px 0px #bdccff';
+      bubbleButton.style.border = '1px solid #e0e7ff';
+      
+      // Убираем эффект через полсекунды
+      setTimeout(() => {
+        bubbleButton.style.transform = '';
+        bubbleButton.style.boxShadow = '';
+        bubbleButton.style.border = '';
+      }, 500);
+      
+      pulseCount++;
+    }, 1000); // Пульс каждую секунду (0.5 сек эффект + 0.5 сек пауза)
+  }
 
-// Отслеживаем наведение мыши
-bubbleButton.addEventListener('mouseenter', () => {
-  clearTimeout(pulseTimeout);
-  clearInterval(pulseInterval);
-});
+  function resetPulseTimer() {
+    clearTimeout(pulseTimeout);
+    clearInterval(pulseInterval);
+    pulseTimeout = setTimeout(() => {
+      startPulse();
+    }, 2000); // Начинаем пульсацию через 2 секунды бездействия
+  }
 
-bubbleButton.addEventListener('mouseleave', () => {
+  // Отслеживаем наведение мыши
+  bubbleButton.addEventListener('mouseenter', () => {
+    clearTimeout(pulseTimeout);
+    clearInterval(pulseInterval);
+  });
+
+  bubbleButton.addEventListener('mouseleave', () => {
+    resetPulseTimer();
+  });
+
+  // Запускаем таймер при загрузке
   resetPulseTimer();
-});
 
-// Запускаем таймер при загрузке
-resetPulseTimer();
-
-// 7) Now init your UI event listeners
-await initListeners(navigationEngine, messageFactory);
+  // 7) Now init your UI event listeners
+  await initListeners(navigationEngine, messageFactory);
 });
