@@ -1940,235 +1940,296 @@ function openCancelChatModal() {
 
 // ===================== Initialization Code =====================
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1) Fetch the user's preferred language or set "en" as fallback
-  let fetchedKey = await fetchLanguage();
-  currentLanguageKey =
-    fetchedKey && languageMap[fetchedKey] ? fetchedKey : "en";
-  currentLanguage = languageMap[currentLanguageKey];
-  console.log("Current language key:", currentLanguageKey);
-  console.log("Current language:", currentLanguage);
-  // 2) Create bubble button wrapper
-  const bubbleButtonWrapper = document.createElement("div");
-  bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
-  // 3) Create the bubble button
-  const bubbleButton = document.createElement("button");
-  bubbleButton.classList.add("eva-bubble-button");
-  // 4) Add an image to the bubble button
-  const chatbotButtonLogo = document.createElement("img");
-  chatbotButtonLogo.classList.add("chatbot-button-logo");
-  chatbotButtonLogo.src = document
-    .getElementById("chatbot-logo")
-    .getAttribute("chatbot-logo");
-  chatbotButtonLogo.alt = "Eva chat assistant";
-  bubbleButton.appendChild(chatbotButtonLogo);
-  // 5) Import and append your chat template (includes footer & dropdown)
-  const chatClone = document.importNode(
-    document.querySelector("#eva-assistant-chat-template").content,
-    true
-  );
-  bubbleButtonWrapper.appendChild(chatClone);
-  // 6) Finally append the bubble button to the wrapper
-  bubbleButtonWrapper.appendChild(bubbleButton);
-  bubbleButtonWrapper.classList.add("fade-in");
-  document.body.appendChild(bubbleButtonWrapper);
+// 1) Fetch the user's preferred language or set "en" as fallback
+let fetchedKey = await fetchLanguage();
+currentLanguageKey =
+fetchedKey && languageMap[fetchedKey] ? fetchedKey : "en";
+currentLanguage = languageMap[currentLanguageKey];
+console.log("Current language key:", currentLanguageKey);
+console.log("Current language:", currentLanguage);
 
-  // ===================== Auto-pulse functionality =====================
-  let pulseTimeout;
-  let pulseInterval;
-  let pulseCount = 0;
-  const maxPulses = 2;
-  let chatBubbleVisible = false;
+// 2) Create bubble button wrapper
+const bubbleButtonWrapper = document.createElement("div");
+bubbleButtonWrapper.classList.add("eva-bubble-button-wrapper");
 
-  // Создаем чат бабл с пиздатой анимацией
-  function createChatBubble() {
+// 3) Create the bubble button
+const bubbleButton = document.createElement("button");
+bubbleButton.classList.add("eva-bubble-button");
+
+// 4) Add an image to the bubble button
+const chatbotButtonLogo = document.createElement("img");
+chatbotButtonLogo.classList.add("chatbot-button-logo");
+chatbotButtonLogo.src = document
+ .getElementById("chatbot-logo")
+ .getAttribute("chatbot-logo");
+chatbotButtonLogo.alt = "Eva chat assistant";
+bubbleButton.appendChild(chatbotButtonLogo);
+
+// 5) Import and append your chat template (includes footer & dropdown)
+const chatClone = document.importNode(
+document.querySelector("#eva-assistant-chat-template").content,
+true
+ );
+bubbleButtonWrapper.appendChild(chatClone);
+
+// 6) Finally append the bubble button to the wrapper
+bubbleButtonWrapper.appendChild(bubbleButton);
+bubbleButtonWrapper.classList.add("fade-in");
+document.body.appendChild(bubbleButtonWrapper);
+
+// ===================== Memory Management =====================
+const MEMORY_KEY = 'eva-chat-bubble-dismissed';
+const DISMISS_DURATION = 10 * 60 * 1000; // 10 минут в миллисекундах
+
+function isBubbleDismissed() {
+    const dismissedAt = localStorage.getItem(MEMORY_KEY);
+    if (!dismissedAt) return false;
+    
+    const now = Date.now();
+    const timePassed = now - parseInt(dismissedAt);
+    
+    if (timePassed >= DISMISS_DURATION) {
+        // Время истекло, убираем из памяти
+        localStorage.removeItem(MEMORY_KEY);
+        return false;
+    }
+    
+    return true;
+}
+
+function markBubbleAsDismissed() {
+    localStorage.setItem(MEMORY_KEY, Date.now().toString());
+}
+
+// ===================== Auto-pulse functionality =====================
+let pulseTimeout;
+let pulseInterval;
+let pulseCount = 0;
+const maxPulses = 2;
+let chatBubbleVisible = false;
+
+// Создаем чат бабл с пиздатой анимацией
+function createChatBubble() {
+    // Проверяем, не был ли бабл недавно закрыт
+    if (isBubbleDismissed()) {
+        console.log('Chat bubble was dismissed recently, skipping...');
+        return null;
+    }
+
     const chatBubble = document.createElement('div');
     chatBubble.classList.add('eva-chat-bubble');
     chatBubble.innerHTML = `
-      <div class="eva-chat-bubble-content">
-        <span class="eva-chat-bubble-text">If you have any questions, I'm here to help! 💬</span>
-        <button class="eva-chat-bubble-close">×</button>
-      </div>
-    `;
-    
+     <div class="eva-chat-bubble-content">
+     <span class="eva-chat-bubble-text">If you have any questions, I'm here to help! 💬</span>
+     <button class="eva-chat-bubble-close">×</button>
+     </div>
+     `;
+
     // Добавляем стили с нормальной анимацией
     const style = document.createElement('style');
     style.textContent = `
-      .eva-chat-bubble {
-        position: absolute;
-        bottom: 80px;
-        right: 20px;
-        background: white;
-        border-radius: 18px;
-        padding: 16px 20px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-        border: 1px solid #e5e7eb;
-        min-width: 250px;
-        max-width: 300px;
-        z-index: 9999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        
-        /* Начальное состояние - скрыт за кнопкой */
-        transform: translateX(100%) translateY(50%) scale(0.3) rotate(15deg);
-        opacity: 0;
-        transform-origin: bottom right;
-        transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      }
-      
-      .eva-chat-bubble.show {
-        /* Конечное состояние - появился */
-        transform: translateX(0) translateY(0) scale(1) rotate(0deg);
-        opacity: 1;
-      }
-      
-      .eva-chat-bubble-content {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        position: relative;
-      }
-      
-      .eva-chat-bubble-close {
-        background: none;
-        border: none;
-        color: #9ca3af;
-        font-size: 20px;
-        cursor: pointer;
-        padding: 0;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        transition: all 0.2s ease;
-        flex-shrink: 0;
-        position: absolute;
-        top: -2px;
-        right: -4px;
-        font-weight: 300;
-      }
-      
-      .eva-chat-bubble-close:hover {
-        background: #f3f4f6;
-        color: #374151;
-        transform: scale(1.1);
-      }
-      
-      .eva-chat-bubble::before {
-        content: '';
-        position: absolute;
-        bottom: -9px;
-        right: 35px;
-        width: 18px;
-        height: 18px;
-        background: white;
-        border-right: 1px solid #e5e7eb;
-        border-bottom: 1px solid #e5e7eb;
-        transform: rotate(45deg);
-        z-index: -1;
-      }
-      
-      /* Анимация скрытия */
-      .eva-chat-bubble.hide {
-        transform: translateX(100%) translateY(50%) scale(0.3) rotate(-15deg);
-        opacity: 0;
-        transition: all 0.4s cubic-bezier(0.55, 0.055, 0.675, 0.19);
-      }
-    `;
-    
+     .eva-chat-bubble {
+     position: absolute;
+     bottom: 80px;
+     right: 20px;
+     background: white;
+     border-radius: 18px;
+     padding: 16px 20px;
+     box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+     border: 1px solid #e5e7eb;
+     min-width: 250px;
+     max-width: 300px;
+     z-index: 9999;
+     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+     /* Начальное состояние - скрыт за кнопкой */
+     transform: translateX(100%) translateY(50%) scale(0.3) rotate(15deg);
+     opacity: 0;
+     transform-origin: bottom right;
+     transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+     }
+     .eva-chat-bubble.show {
+     /* Конечное состояние - появился */
+     transform: translateX(0) translateY(0) scale(1) rotate(0deg);
+     opacity: 1;
+     }
+     .eva-chat-bubble-content {
+     display: flex;
+     align-items: flex-start;
+     gap: 12px;
+     position: relative;
+     }
+     .eva-chat-bubble-close {
+     background: none;
+     border: none;
+     color: #9ca3af;
+     font-size: 20px;
+     cursor: pointer;
+     padding: 0;
+     width: 24px;
+     height: 24px;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     border-radius: 50%;
+     transition: all 0.2s ease;
+     flex-shrink: 0;
+     position: absolute;
+     top: -2px;
+     right: -4px;
+     font-weight: 300;
+     }
+     .eva-chat-bubble-close:hover {
+     background: #f3f4f6;
+     color: #374151;
+     transform: scale(1.1);
+     }
+     .eva-chat-bubble::before {
+     content: '';
+     position: absolute;
+     bottom: -9px;
+     right: 35px;
+     width: 18px;
+     height: 18px;
+     background: white;
+     border-right: 1px solid #e5e7eb;
+     border-bottom: 1px solid #e5e7eb;
+     transform: rotate(45deg);
+     z-index: -1;
+     }
+     /* Анимация скрытия */
+     .eva-chat-bubble.hide {
+     transform: translateX(100%) translateY(50%) scale(0.3) rotate(-15deg);
+     opacity: 0;
+     transition: all 0.4s cubic-bezier(0.55, 0.055, 0.675, 0.19);
+     }
+     `;
+
     if (!document.querySelector('.eva-chat-bubble-styles')) {
-      style.classList.add('eva-chat-bubble-styles');
-      document.head.appendChild(style);
+        style.classList.add('eva-chat-bubble-styles');
+        document.head.appendChild(style);
     }
-    
+
     // Добавляем в wrapper
     bubbleButtonWrapper.appendChild(chatBubble);
-    
+
     // Запускаем анимацию появления через небольшую задержку
     setTimeout(() => {
-      chatBubble.classList.add('show');
+        chatBubble.classList.add('show');
     }, 0);
-    
+
     // Обработчик закрытия
     chatBubble.querySelector('.eva-chat-bubble-close').addEventListener('click', () => {
-      chatBubble.classList.add('hide');
-      setTimeout(() => {
-        chatBubble.remove();
-        chatBubbleVisible = false;
-      }, 400);
+        // Запоминаем время закрытия
+        markBubbleAsDismissed();
+        console.log('Chat bubble dismissed for 10 minutes');
+        
+        // Останавливаем все таймеры и интервалы
+        clearTimeout(pulseTimeout);
+        clearInterval(pulseInterval);
+        
+        chatBubble.classList.add('hide');
+        setTimeout(() => {
+            chatBubble.remove();
+            chatBubbleVisible = false;
+        }, 400);
     });
-    
-    return chatBubble;
-  }
 
-  function startPulse() {
+    return chatBubble;
+}
+
+function startPulse() {
+    // Проверяем, не был ли бабл недавно закрыт
+    if (isBubbleDismissed()) {
+        console.log('Pulse cancelled - chat bubble was dismissed recently');
+        return;
+    }
+
     pulseCount = 0;
     pulseInterval = setInterval(() => {
-      if (pulseCount >= maxPulses) {
-        clearInterval(pulseInterval);
-        // Показываем чат бабл после пульсаций
-        if (!chatBubbleVisible) {
-          setTimeout(() => {
-            createChatBubble();
-            chatBubbleVisible = true;
-          }, 0);
+        // Дополнительная проверка во время пульсации
+        if (isBubbleDismissed()) {
+            console.log('Pulse stopped - chat bubble was dismissed');
+            clearInterval(pulseInterval);
+            return;
         }
-        return;
-      }
-      
-      // Добавляем анимацию волны к кнопке
-      bubbleButton.style.animation = 'pulse-wave 0.5s ease-out';
-      
-      // Добавляем CSS анимацию волны если её ещё нет
-      if (!document.querySelector('.pulse-wave-styles')) {
-        const waveStyle = document.createElement('style');
-        waveStyle.classList.add('pulse-wave-styles');
-        waveStyle.textContent = `
-          @keyframes pulse-wave {
-            0% {
-              box-shadow: 0 0 0 0 rgba(189, 204, 255, 0.7);
-            }
-            70% {
-              box-shadow: 0 0 0 20px rgba(189, 204, 255, 0);
-            }
-            100% {
-              box-shadow: 0 0 0 0 rgba(189, 204, 255, 0);
-            }
-          }
-        `;
-        document.head.appendChild(waveStyle);
-      }
-      
-      // Убираем анимацию через полсекунды
-      setTimeout(() => {
-        bubbleButton.style.animation = '';
-      }, 250);
-      
-      pulseCount++;
-    }, 550); // Пульс каждую секунду (0.5 сек эффект + 0.5 сек пауза)
-  }
 
-  function resetPulseTimer() {
+        if (pulseCount >= maxPulses) {
+            clearInterval(pulseInterval);
+            // Показываем чат бабл после пульсаций только если он не был закрыт
+            if (!chatBubbleVisible && !isBubbleDismissed()) {
+                setTimeout(() => {
+                    const bubble = createChatBubble();
+                    if (bubble) {
+                        chatBubbleVisible = true;
+                    }
+                }, 0);
+            }
+            return;
+        }
+
+        // Добавляем анимацию волны к кнопке
+        bubbleButton.style.animation = 'pulse-wave 0.5s ease-out';
+
+        // Добавляем CSS анимацию волны если её ещё нет
+        if (!document.querySelector('.pulse-wave-styles')) {
+            const waveStyle = document.createElement('style');
+            waveStyle.classList.add('pulse-wave-styles');
+            waveStyle.textContent = `
+             @keyframes pulse-wave {
+             0% {
+             box-shadow: 0 0 0 0 rgba(189, 204, 255, 0.7);
+             }
+             70% {
+             box-shadow: 0 0 0 20px rgba(189, 204, 255, 0);
+             }
+             100% {
+             box-shadow: 0 0 0 0 rgba(189, 204, 255, 0);
+             }
+             }
+             `;
+            document.head.appendChild(waveStyle);
+        }
+
+        // Убираем анимацию через полсекунды
+        setTimeout(() => {
+            bubbleButton.style.animation = '';
+        }, 250);
+
+        pulseCount++;
+    }, 550); // Пульс каждую секунду (0.5 сек эффект + 0.5 сек пауза)
+}
+
+function resetPulseTimer() {
+    // Проверяем, не был ли бабл недавно закрыт
+    if (isBubbleDismissed()) {
+        console.log('Pulse timer reset cancelled - chat bubble was dismissed recently');
+        return;
+    }
+
     clearTimeout(pulseTimeout);
     clearInterval(pulseInterval);
     pulseTimeout = setTimeout(() => {
-      startPulse();
-    }, 5000); // Начинаем пульсацию через 2 секунды бездействия
-  }
+        startPulse();
+    }, 5000); // Начинаем пульсацию через 5 секунд бездействия
+}
 
-  // Отслеживаем наведение мыши
-  bubbleButton.addEventListener('mouseenter', () => {
+// Отслеживаем наведение мыши
+bubbleButton.addEventListener('mouseenter', () => {
     clearTimeout(pulseTimeout);
     clearInterval(pulseInterval);
-  });
+});
 
-  bubbleButton.addEventListener('mouseleave', () => {
+bubbleButton.addEventListener('mouseleave', () => {
     resetPulseTimer();
-  });
+});
 
-  // Запускаем таймер при загрузке
-  resetPulseTimer();
+// Запускаем таймер при загрузке только если бабл не был недавно закрыт
+if (!isBubbleDismissed()) {
+    resetPulseTimer();
+} else {
+    console.log('Chat bubble was dismissed recently, auto-pulse disabled');
+}
 
-  // 7) Now init your UI event listeners
-  await initListeners(navigationEngine, messageFactory);
+// 7) Now init your UI event listeners
+await initListeners(navigationEngine, messageFactory);
 });
