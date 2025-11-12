@@ -2,6 +2,11 @@
 
 VoiceCart is a Shopify app that brings an AI sales assistant to your storefront. The Remix-based admin app helps merchants generate a product catalog, build vector embeddings, and configure languages, while the theme extension exposes a voice-first shopping experience that can search, recommend, and manage the cart on behalf of customers. The project is designed to run alongside an external ML server: https://github.com/VoiceCart/voicecart-ml
 
+
+### Creators
+- [Daniil Podtesov](https://www.linkedin.com/in/daniil-podtesov/)
+- [Vorniches](https://vorniches.com/)
+
 ## Features
 
 - **Admin dashboard for data prep** – Trigger long-running jobs that download the product catalog from Shopify, save it as Parquet, and send it to the ML service for embedding generation or deletion. Track task progress directly in the UI.
