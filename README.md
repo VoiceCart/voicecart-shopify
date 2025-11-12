@@ -1,14 +1,14 @@
 # VoiceCart Shopify Assistant
 
-VoiceCart is a Shopify app that brings an AI sales assistant to your storefront. The Remix-based admin app helps merchants generate a product catalog, build vector embeddings, and configure languages, while the theme extension exposes a voice-first shopping experience that can search, recommend, and manage the cart on behalf of customers. The project is designed to run alongside an external machine-learning service for embeddings and the OpenAI Chat Completions API.
+VoiceCart is a Shopify app that brings an AI sales assistant to your storefront. The Remix-based admin app helps merchants generate a product catalog, build vector embeddings, and configure languages, while the theme extension exposes a voice-first shopping experience that can search, recommend, and manage the cart on behalf of customers. The project is designed to run alongside an external ML server: https://github.com/VoiceCart/voicecart-ml
 
 ## Features
 
-- **Admin dashboard for data prep** – Trigger long-running jobs that download the product catalog from Shopify, save it as Parquet, and send it to the ML service for embedding generation or deletion. Track task progress directly in the UI. 【F:app/routes/app._index.jsx†L1-L204】
-- **Shop description prompt generation** – Collect store metadata, build a rich store prompt with OpenAI, and persist it for contextual chat experiences. 【F:app/routes/api.generate-prompt.jsx†L1-L71】
-- **Multilingual storefront assistant** – Serve an interactive voice/chat widget that understands multiple locales, retrieves products from the embedding service, and can add/remove items from the customer cart. 【F:extensions/my-app-block/blocks/app-window.liquid†L1-L210】【F:app/routes/assistant.jsx†L1-L204】
-- **Conversation memory with Prisma** – Persist chats, threads, prompts, tasks, and language preferences in PostgreSQL via Prisma. 【F:prisma/schema.prisma†L1-L58】【F:app/db.server.js†L1-L74】
-- **Extensible AI intent system** – Route customer queries through configurable GPT intent handlers for greetings, product discovery, cart management, and checkout flows. 【F:app/utils/connectors/gptHandlers.js†L1-L240】
+- **Admin dashboard for data prep** – Trigger long-running jobs that download the product catalog from Shopify, save it as Parquet, and send it to the ML service for embedding generation or deletion. Track task progress directly in the UI.
+- **Shop description prompt generation** – Collect store metadata, build a rich store prompt with OpenAI, and persist it for contextual chat experiences.
+- **Multilingual storefront assistant** – Serve an interactive voice/chat widget that understands multiple locales, retrieves products from the embedding service, and can add/remove items from the customer cart.
+- **Conversation memory with Prisma** – Persist chats, threads, prompts, tasks, and language preferences in PostgreSQL via Prisma.
+- **Extensible AI intent system** – Route customer queries through configurable GPT intent handlers for greetings, product discovery, cart management, and checkout flows.
 
 ## Architecture
 
