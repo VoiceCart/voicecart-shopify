@@ -5,7 +5,7 @@ VoiceCart is a Shopify app that brings an AI sales assistant to your storefront.
 
 ### Creators
 - [Daniil Podtesov](https://www.linkedin.com/in/daniil-podtesov/)
-- [Vorniches](https://vorniches.com/)
+- [Sergei Vorniches](https://vorniches.com/)
 
 ## Features
 
