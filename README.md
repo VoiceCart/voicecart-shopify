@@ -40,7 +40,7 @@ The Remix app uses [`@shopify/shopify-app-remix`](https://www.npmjs.com/package/
 - PostgreSQL database for Prisma models (`DATABASE_URL`).
 - [Shopify CLI](https://shopify.dev/docs/apps/tools/cli) v3+ for local development.
 - OpenAI API key for chat completions (`OPENAI_API_KEY`).
-- ML service exposing `/create_embeddings`, `/delete_embeddings`, and `/query_embedding` endpoints (defaults to `http://ml-api:5556`). 【F:app/utils/createEmbedding.server.js†L61-L116】【F:app/utils/deleteEmbedding.server.js†L1-L34】【F:app/utils/connectors/embedingConnector.js†L1-L29】
+- ML service exposing `/create_embeddings`, `/delete_embeddings`, and `/query_embedding` endpoints (defaults to `http://ml-api:5556`).
 
 ## Environment variables
 
@@ -57,7 +57,7 @@ ML_SERVER_URL=http://ml-api:5556
 SHOP_CUSTOM_DOMAIN= # optional custom domain for OAuth callbacks
 ```
 
-The Remix and Vite configs also respect `HOST`, `PORT`, and `FRONTEND_PORT` for advanced setups. 【F:vite.config.js†L9-L41】【F:remix.config.js†L1-L31】
+The Remix and Vite configs also respect `HOST`, `PORT`, and `FRONTEND_PORT` for advanced setups.
 
 ## Installation
 
@@ -76,20 +76,20 @@ During `npm run dev`, press **P** in the CLI to open the embedded app in your de
 
 ## Admin workflow
 
-1. **Set a default language** – Use the language dropdown in the admin page to persist a global locale for conversations. 【F:app/routes/app._index.jsx†L9-L120】【F:app/routes/api.set-global-language.jsx†L1-L29】
-2. **Generate product catalog** – Kick off the `product-catalog` task to fetch all products via GraphQL, store them as Parquet, and mark the task complete when finished. 【F:app/utils/shopifyProductFetch.server.js†L13-L96】
-3. **Create embeddings** – After a catalog exists, start the `create-embeddings` task to read the Parquet file and upload it to your ML API. Task metadata (success, failure, extra details) is stored in Prisma. 【F:app/utils/createEmbedding.server.js†L11-L121】【F:app/db.server.js†L25-L54】
-4. **Delete embeddings** – Use the `delete-embeddings` button to remove vectors from the ML service. 【F:app/utils/deleteEmbedding.server.js†L1-L32】
-5. **Build a store prompt** – Run “Create Prompt” to collect shop tags/description, call OpenAI for a narrative summary, and store the result in the `Prompt` table. Retrieve saved prompts anytime with `/api/get-saved-prompt`. 【F:app/routes/api.generate-prompt.jsx†L1-L71】【F:app/routes/api.get-saved-prompt.jsx†L1-L29】
+1. **Set a default language** – Use the language dropdown in the admin page to persist a global locale for conversations. 
+2. **Generate product catalog** – Kick off the `product-catalog` task to fetch all products via GraphQL, store them as Parquet, and mark the task complete when finished.
+3. **Create embeddings** – After a catalog exists, start the `create-embeddings` task to read the Parquet file and upload it to your ML API. Task metadata (success, failure, extra details) is stored in Prisma.
+4. **Delete embeddings** – Use the `delete-embeddings` button to remove vectors from the ML service.
+5. **Build a store prompt** – Run “Create Prompt” to collect shop tags/description, call OpenAI for a narrative summary, and store the result in the `Prompt` table. Retrieve saved prompts anytime with `/api/get-saved-prompt`.
 
-Task execution is debounced through the `/api/start-task` endpoint, which prevents duplicate runs and records progress in the `Task` table. Poll `/api/status-task?taskId=…` to monitor job completion. 【F:app/routes/api.start-task.jsx†L1-L72】【F:app/routes/api.status-task.jsx†L1-L18】
+Task execution is debounced through the `/api/start-task` endpoint, which prevents duplicate runs and records progress in the `Task` table. Poll `/api/status-task?taskId=…` to monitor job completion. 
 
 ## Storefront assistant
 
-- The Theme App Extension renders the Eva assistant widget, including language selection, chat history, voice mode, and product carousels. 【F:extensions/my-app-block/blocks/app-window.liquid†L1-L210】
+- The Theme App Extension renders the Eva assistant widget, including language selection, chat history, voice mode, and product carousels.
 - Front-end scripts (in `extensions/my-app-block/assets/`) handle UI state, speech recognition, and interactions with backend fetchers.
-- Customer messages are sent to `/assistant?action=getAssistantResponse`, which orchestrates intent extraction, conversation history, and GPT responses. Results may include structured `products` or `action` payloads for the front end to handle cart operations. 【F:app/routes/assistant.jsx†L1-L204】【F:app/utils/connectors/gptHandlers.js†L1-L360】
-- Chat transcripts and context are persisted in Prisma (`Chats`, `Threads`, `Prompt`, `Languages`). 【F:prisma/schema.prisma†L25-L58】
+- Customer messages are sent to `/assistant?action=getAssistantResponse`, which orchestrates intent extraction, conversation history, and GPT responses. Results may include structured `products` or `action` payloads for the front end to handle cart operations.
+- Chat transcripts and context are persisted in Prisma (`Chats`, `Threads`, `Prompt`, `Languages`).
 
 To surface the assistant on your storefront after deploying the theme extension, add the **My App Block** to the desired template in the Online Store editor.
 
@@ -97,9 +97,9 @@ To surface the assistant on your storefront after deploying the theme extension,
 
 The ML API is expected to provide three endpoints:
 
-- `POST /create_embeddings` – Accepts a Parquet payload (binary body) and stores vectors for a shop. 【F:app/utils/createEmbedding.server.js†L61-L108】
-- `DELETE /delete_embeddings` – Removes embeddings for the provided shop (identified via `X-Shop-Name`). 【F:app/utils/deleteEmbedding.server.js†L1-L32】
-- `POST /query_embedding` – Returns a ranked product list matching the query tokens. 【F:app/utils/connectors/embedingConnector.js†L1-L29】
+- `POST /create_embeddings` – Accepts a Parquet payload (binary body) and stores vectors for a shop.
+- `DELETE /delete_embeddings` – Removes embeddings for the provided shop (identified via `X-Shop-Name`).
+- `POST /query_embedding` – Returns a ranked product list matching the query tokens.
 
 Adjust `ML_SERVER_URL` or the hardcoded fallback (`http://ml-api:5556`) if your service runs elsewhere.
 
@@ -115,7 +115,7 @@ docker network create shopify_ml_net
 docker compose up --build
 ```
 
-The service listens on port `3000` and communicates with `ml-api` over the shared network. 【F:docker-compose.yml†L1-L20】
+The service listens on port `3000` and communicates with `ml-api` over the shared network.
 
 ## Useful scripts
 
@@ -131,4 +131,5 @@ Issues and pull requests are welcome. Please describe the feature or bug clearly
 
 ## License
 
-This project is intended for open-source release. Add your preferred license text or SPDX identifier here before publishing.
+This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.
+
